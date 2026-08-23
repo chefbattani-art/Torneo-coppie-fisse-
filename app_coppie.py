@@ -159,6 +159,56 @@ def ottieni_nome_turno(num_turno, totale_turni):
     else:
         return f"Turno {num_turno}"
 
+def crea_abbinamenti_protetti(classificate_per_girone):
+    nomi_gironi = list(classificate_per_girone.keys())
+    num_g = len(nomi_gironi)
+    abbinamenti = []
+    
+    if num_g == 4:
+        gA, gB, gC, gD = nomi_gironi[0], nomi_gironi[1], nomi_gironi[2], nomi_gironi[3]
+        sqA = classificate_per_girone[gA]
+        sqB = classificate_per_girone[gB]
+        sqC = classificate_per_girone[gC]
+        sqD = classificate_per_girone[gD]
+        
+        match_slots = [
+            ((sqA, 0), (sqD, 3)),
+            ((sqB, 1), (sqC, 2)),
+            ((sqC, 0), (sqB, 3)),
+            ((sqD, 1), (sqA, 2)),
+            ((sqB, 0), (sqC, 3)),
+            ((sqA, 1), (sqD, 2)),
+            ((sqC, 0) if len(sqC)>0 else (sqA,0), (sqA, 3) if len(sqA)>3 else (sqA,0)),
+            ((sqD, 0) if len(sqD)>0 else (sqB,0), (sqB, 3) if len(sqB)>3 else (sqB,0)),
+        ]
+        for s1_ref, s2_ref in match_slots:
+            s1_lista, s1_idx = s1_ref
+            s2_lista, s2_idx = s2_ref
+            
+            nome_s1 = s1_lista[s1_idx] if len(s1_lista) > s1_idx else ("RIPOSO" if len(s1_lista)==0 else s1_lista[0])
+            gir_s1 = [k for k, v in classificate_per_girone.items() if s1_lista == v][0]
+            
+            nome_s2 = s2_lista[s2_idx] if len(s2_lista) > s2_idx else ("RIPOSO" if len(s2_lista)==0 else s2_lista[0])
+            gir_s2 = [k for k, v in classificate_per_girone.items() if s2_lista == v][0]
+            
+            abbinamenti.append(((nome_s1, gir_s1), (nome_s2, gir_s2)))
+    else:
+        tutte_le_prime = []
+        for g_n, lista in classificate_per_girone.items():
+            for idx, sq in enumerate(lista):
+                tutte_le_prime.append((sq, g_n, idx))
+        
+        for i in range(0, len(tutte_le_prime), 2):
+            if i + 1 < len(tutte_le_prime):
+                s1 = tutte_le_prime[i]
+                s2 = tutte_le_prime[i+1]
+                abbinamenti.append(((s1[0], s1[1]), (s2[0], s2[1])))
+            else:
+                s1 = tutte_le_prime[i]
+                abbinamenti.append(((s1[0], s1[1]), ("RIPOSO", "")))
+                
+    return abbinamenti
+
 # --- BARRA LATERALE ---
 st.sidebar.header("⚙️ Pannello di Controllo")
 
@@ -306,10 +356,10 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                                     "tavolo": None,
                                     "gol1": 0, "gol2": 0
                                 })
-                        turni_turno.append({"turno": t + 1, "partite": partite_turno})
+                        turni_girone.append({"turno": t + 1, "partite": partite_turno})
                         squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
                     
-                    calendario_totale[g_nome] = turni_turno
+                    calendario_totale[g_nome] = turni_girone
                 
                 db["calendario_gironi"] = calendario_totale
                 db["stato"] = "gironi"
@@ -379,6 +429,14 @@ if db["stato"] == "gironi":
                 cambiato = True
         if cambiato:
             salva_dati(db)
+
+    # =========================================================================
+    # ORDINAMENTO FORZATO: Mette in fila le partite in corso dal Biliardino 1 in poi
+    # =========================================================================
+    partite_in_corso = sorted(
+        partite_in_corso, 
+        key=lambda x: x.get('tavolo') if x.get('tavolo') is not None else 999
+    )
 
     # --- SEZIONE PARTITE IN CORSO E CODA ---
     st.subheader("⚡ Stato dei Biliardini e Coda Incontri")
