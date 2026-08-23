@@ -17,7 +17,7 @@ def carica_dati():
         "stato": "setup",
         "coppie": [],
         "num_tavoli": 6,
-        "num_gironi": 2,
+        "num_gironi": 4,
         "admin_pin": "0000",
         "gironi": {}, 
         "calendario_gironi": {}, 
@@ -112,7 +112,7 @@ def genera_pdf_coppie():
 
 def crea_abbinamenti_protetti(lista_squadre_ordinate_per_girone):
     gironi = list(lista_squadre_ordinate_per_girone.keys())
-    max_profondita = max([len(v) for v in lista_squadre_ordinate_per_girone.values()])
+    max_profondita = max([len(v) for v in lista_squadre_ordinate_per_girone.values()]) if lista_squadre_ordinate_per_girone else 0
     
     pool_squadre = []
     for livello in range(max_profondita):
@@ -208,7 +208,6 @@ else:
     st.sidebar.info("🔐 Accedi come admin per resettare la gara.")
 
 st.sidebar.markdown("---")
-st.sidebar.info("📱 **Link WhatsApp:** Copia l'indirizzo della pagina dal browser e incollalo nel gruppo.")
 
 # --- INTERFACCIA PRINCIPALE ---
 st.title("🏆 Torneo Coppie Fisse Live")
@@ -217,7 +216,7 @@ st.markdown(
     """
     <div style="padding: 10px; background-color: #f0f2f6; border-radius: 8px; text-align: center; margin-bottom: 20px;">
         🔄 <a href="javascript:window.location.reload(true)" style="text-decoration: none; color: #262730; font-weight: bold; font-size: 15px;">
-            Quando vuoi vedere l’andamento della gara e quando vuoi giocare ricarica la pagina del browser
+            Aggiorna pagina browser per vedere i risultati in tempo reale
         </a>
     </div>
     """,
@@ -231,17 +230,17 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
     if not is_admin:
         st.warning("⚠️ Configurazione bloccata. Accedi come amministratore dalla barra laterale con il PIN.")
     else:
-        whatsapp_text = st.text_area("Incolla qui la lista delle coppie da WhatsApp (es. 🤝 Mario / Luigi):")
+        whatsapp_text = st.text_area("Incolla qui la lista delle coppie da WhatsApp (es. 🤝 Mario / Luigi):", height=150)
         
         col1, col2 = st.columns(2)
         with col1:
-            db["num_tavoli"] = st.number_input("Numero di biliardini disponibili", min_value=1, max_value=10, value=db["num_tavoli"])
+            db["num_tavoli"] = st.number_input("Numero di biliardini disponibili", min_value=1, max_value=10, value=int(db["num_tavoli"]))
         with col2:
-            db["num_gironi"] = st.number_input("Numero di gironi da creare", min_value=1, max_value=6, value=db["num_gironi"])
+            db["num_gironi"] = st.number_input("Numero di gironi da creare", min_value=1, max_value=8, value=int(db["num_gironi"]))
             
         db["admin_pin"] = st.text_input("Cambia PIN Admin", value=db["admin_pin"])
 
-        if st.button("🚀 Crea Gironi e Sorteggia Coppie"):
+        if st.button("🚀 Crea Gironi e Sorteggia Coppie", use_container_width=True):
             coppie = []
             for line in whatsapp_text.split("\n"):
                 nome_c = pulisci_nome(line)
@@ -320,6 +319,7 @@ if db["stato"] == "gironi":
             st.rerun()
         st.markdown("---")
 
+    # Visualizzazione flessibile delle classifiche in base al numero effettivo di gironi
     nomi_gironi_chiavi = list(db["gironi"].keys())
     for i in range(0, len(nomi_gironi_chiavi), 2):
         col_gironi = st.columns(2)
@@ -405,20 +405,22 @@ if db["stato"] == "gironi":
                 st.write(f"{idx+1}. **{m['girone']}**: {m['c1']} vs {m['c2']}")
 
     st.markdown("---")
-    st.subheader("📅 Tutte le Partite dei Gironi (Mischia Unica per Turno)")
-    st.info(f"📌 **Organizzazione Biliardini:** Hai impostato **{num_tavoli} biliardini**. Le partite di tutti i gironi sono unite e mischiate per turno.")
+    st.subheader("📅 Calendario Unico e Misto per Turno (Tutti i Gironi Insieme)")
+    st.info(f"📌 **Biliardini ({num_tavoli}):** Le partite di tutti i gironi sono mescolate turnariamente affinché non si giochi a blocchi stagni.")
 
-    max_turni = max([len(turni) for turni in db["calendario_gironi"].values()])
+    max_turni = max([len(turni) for turni in db["calendario_gironi"].values()]) if db["calendario_gironi"] else 0
 
     for t_num in range(1, max_turni + 1):
-        st.markdown(f"### 🚩 Turno {t_num}")
+        st.markdown(f"### 🚩 Turno Globale {t_num}")
         
+        # Raccogliamo tutte le partite di questo turno da TUTTI i gironi e le mescoliamo insieme
         partite_questo_turno = []
         for g_nome, turni_girone in db["calendario_gironi"].items():
             for t_obj in turni_girone:
                 if t_obj["turno"] == t_num:
                     partite_questo_turno.extend(t_obj["partite"])
         
+        # Mostriamo le partite mescolate in griglie o schede pulite
         for m in partite_questo_turno:
             match_id = m['id']
             girone_m = m['girone']
