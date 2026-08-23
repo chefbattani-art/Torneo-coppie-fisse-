@@ -148,7 +148,6 @@ def genera_pdf_coppie():
     return bytes(pdf.output())
 
 def ottieni_nome_turno_dinamico(num_partite_turno):
-    """Riconosce la fase esatta in base al numero di partite rimaste nel turno"""
     if num_partite_turno == 1:
         return "🏆 FINALE"
     elif num_partite_turno == 2:
@@ -186,6 +185,8 @@ def crea_abbinamenti_protetti(classificate_per_girone):
             ((sqC, 0) if len(sqC)>0 else (sqA,0), (sqA, 3) if len(sqA)>3 else (sqA,0)),
             ((sqD, 0) if len(sqD)>0 else (sqB,0), (sqB, 3) if len(sqB)>3 else (sqB,0)),
         ]
+        
+        gia_inserite = set()
         for s1_ref, s2_ref in match_slots:
             s1_lista, s1_idx = s1_ref
             s2_lista, s2_idx = s2_ref
@@ -196,6 +197,15 @@ def crea_abbinamenti_protetti(classificate_per_girone):
             nome_s2 = s2_lista[s2_idx] if len(s2_lista) > s2_idx else ("RIPOSO" if len(s2_lista)==0 else s2_lista[0])
             gir_s2 = [k for k, v in classificate_per_girone.items() if s2_lista == v][0]
             
+            # Evita duplicazioni anomale nello stesso turno
+            if nome_s1 != "RIPOSO" and nome_s1 in gia_inserite:
+                continue
+            if nome_s2 != "RIPOSO" and nome_s2 in gia_inserite:
+                continue
+                
+            if nome_s1 != "RIPOSO": gia_inserite.add(nome_s1)
+            if nome_s2 != "RIPOSO": gia_inserite.add(nome_s2)
+            
             abbinamenti.append(((nome_s1, gir_s1, s1_idx + 1), (nome_s2, gir_s2, s2_idx + 1)))
     else:
         tutte_le_prime = []
@@ -203,14 +213,20 @@ def crea_abbinamenti_protetti(classificate_per_girone):
             for idx, sq in enumerate(lista):
                 tutte_le_prime.append((sq, g_n, idx + 1))
         
+        gia_inserite = set()
         for i in range(0, len(tutte_le_prime), 2):
             if i + 1 < len(tutte_le_prime):
                 s1 = tutte_le_prime[i]
                 s2 = tutte_le_prime[i+1]
-                abbinamenti.append(((s1[0], s1[1], s1[2]), (s2[0], s2[1], s2[2])))
+                if s1[0] not in gia_inserite and s2[0] not in gia_inserite:
+                    gia_inserite.add(s1[0])
+                    gia_inserite.add(s2[0])
+                    abbinamenti.append(((s1[0], s1[1], s1[2]), (s2[0], s2[1], s2[2])))
             else:
                 s1 = tutte_le_prime[i]
-                abbinamenti.append(((s1[0], s1[1], s1[2]), ("RIPOSO", "", 0)))
+                if s1[0] not in gia_inserite:
+                    gia_inserite.add(s1[0])
+                    abbinamenti.append(((s1[0], s1[1], s1[2]), ("RIPOSO", "", 0)))
                 
     return abbinamenti
 
@@ -752,7 +768,6 @@ elif db["stato"] == "fasi_finali":
                 s1_nome = m['s1']
                 s2_nome = m['s2']
                 
-                # Recupera girone e posizione salvati o mappa
                 g1_val = m.get('g1', '')
                 p1_val = m.get('p1', '')
                 if not g1_val and s1_nome in mappa_girone_pos:
@@ -852,15 +867,14 @@ elif db["stato"] == "fasi_finali":
                             st.success("Risultato aggiornato con successo!")
                             st.rerun()
 
-            # Estrazione Campione e Secondo se siamo in FINALE (num_part == 1 e nome_etichetta == FINALE)
             if nome_etichetta == "🏆 FINALE" and tutti_giocati and len(partite_turno) == 1:
                 fin_m = partite_turno[0]
                 if fin_m["giocata"] and fin_m.get("vincente"):
                     campione = fin_m["vincente"]
                     secondo_posto = fin_m['s2'] if campione == fin_m['s1'] else fin_m['s1']
                 
-            # Attivazione 3°/4° posto rigorosamente solo dopo le SEMIFINALI
-            if tutti_giocati and nome_etichetta == "⚔️ SEMIFINALI" and len(perdenti_turno) >= 2 and not db[chiave_34]:
+            # ATTIVAZIONE RIGOROSA DEL 3°/4° POSTO SOLO DALLE SEMIFINALI (num_part == 2)
+            if tutti_giocati and nome_etichetta == "⚔️ SEMIFINALI" and len(perdenti_turno) == 2 and not db[chiave_34]:
                 if is_admin:
                     p1, p2 = perdenti_turno[0], perdenti_turno[1]
                     if p1 != p2:
@@ -992,7 +1006,6 @@ elif db["stato"] == "fasi_finali":
                         st.success("Risultato 3°/4° posto salvato!")
                         st.rerun()
 
-        # PODIO FINALE
         if campione:
             st.markdown("---")
             st.markdown(
