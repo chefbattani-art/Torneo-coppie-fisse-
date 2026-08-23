@@ -497,7 +497,7 @@ if db["stato"] == "gironi":
 
     st.markdown("---")
     
-    # --- PARTITE PER GIRONE (TABS) ---
+    # --- PARTITE PER GIRONE (TABS) CON RIQUADRO COMPATTO ---
     st.subheader("📅 Incontri per Girone")
     st.info(f"📌 **Biliardini ({num_tavoli}):** Seleziona il girone per verificare le partite giocate, in corso o da disputare.")
 
@@ -517,55 +517,68 @@ if db["stato"] == "gironi":
                     for m in turno_obj["partite"]:
                         match_id = m['id']
                         
-                        with st.container(border=True):
-                            info_tavolo_str = f" - 🏟️ **Biliardino {m['tavolo']}**" if m.get("in_corso") and m.get("tavolo") else ""
-                            st.caption(f"📁 **{g_nome}**{info_tavolo_str}")
-                            
-                            col_s1, col_mid, col_s2 = st.columns([4, 3, 4], gap="small")
-                            with col_s1:
-                                st.info(f"🤝 **{m['c1']}**")
-                            with col_mid:
-                                if m["giocata"]:
-                                    st.error(f"🛑 **{m['gol1']} - {m['gol2']}**")
-                                elif m.get("in_corso", False):
-                                    st.warning(f"🔥 **In Corso (Tavolo {m.get('tavolo', 'N/D')})**")
-                                else:
-                                    st.write("**VS**")
-                            with col_s2:
-                                st.info(f"🤝 **{m['c2']}**")
+                        if m["giocata"]:
+                            bg_color = "#e8f5e9"
+                            border_color = "#c8e6c9"
+                            stato_testo = f"<b>{m['gol1']} - {m['gol2']}</b>"
+                        elif m.get("in_corso", False):
+                            bg_color = "#fffde7"
+                            border_color = "#fff59d"
+                            stato_testo = f"🔥 In corso (Tav. {m.get('tavolo', 'N/D')})"
+                        else:
+                            bg_color = "#f8f9fa"
+                            border_color = "#e9ecef"
+                            stato_testo = "VS"
 
-                            if is_admin:
-                                with st.expander(f"⚙️ Gestisci Risultato: {m['c1']} vs {m['c2']}"):
-                                    st.markdown(
-                                        f"""
-                                        <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
-                                            <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {m['c1']}</span>
-                                        </div>
-                                        """,
-                                        unsafe_allow_html=True
-                                    )
-                                    rg1 = st.radio("Gol S1_hidden", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}", label_visibility="collapsed")
-                                    
-                                    st.markdown(
-                                        f"""
-                                        <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
-                                            <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {m['c2']}</span>
-                                        </div>
-                                        """,
-                                        unsafe_allow_html=True
-                                    )
-                                    rg2 = st.radio("Gol S2_hidden", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}", label_visibility="collapsed")
-                                    
-                                    if st.button("💾 Salva Risultato", key=f"save_{match_id}", use_container_width=True):
-                                        m['gol1'] = rg1
-                                        m['gol2'] = rg2
-                                        m['giocata'] = True
-                                        m['in_corso'] = False
-                                        m['tavolo'] = None
-                                        ricalcola_classifiche_gironi()
-                                        salva_dati(db)
-                                        st.success("Salvato e aggiornato!")
-                                        st.rerun()
+                        st.markdown(
+                            f"""
+                            <div style="background-color: {bg_color}; border: 1.5px solid {border_color}; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                <div style="flex: 1; text-align: left; font-weight: bold; color: #212529; font-size: 14px;">
+                                    🤝 {m['c1']}
+                                </div>
+                                <div style="padding: 0 12px; text-align: center; font-weight: bold; color: #495057; font-size: 14px; white-space: nowrap;">
+                                    {stato_testo}
+                                </div>
+                                <div style="flex: 1; text-align: right; font-weight: bold; color: #212529; font-size: 14px;">
+                                    {m['c2']} 🤝
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                        if is_admin:
+                            with st.expander(f"⚙️ Gestisci Risultato: {m['c1']} vs {m['c2']}"):
+                                st.markdown(
+                                    f"""
+                                    <div style="background-color: #f1f3f5; padding: 4px 8px; border-radius: 5px; margin-top: 4px; text-align: center;">
+                                        <span style="font-size: 14px; font-weight: bold; color: #212529;">⚽ Gol: {m['c1']}</span>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+                                rg1 = st.radio("Gol S1_hidden", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}", label_visibility="collapsed")
+                                
+                                st.markdown(
+                                    f"""
+                                    <div style="background-color: #f1f3f5; padding: 4px 8px; border-radius: 5px; margin-top: 4px; text-align: center;">
+                                        <span style="font-size: 14px; font-weight: bold; color: #212529;">⚽ Gol: {m['c2']}</span>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+                                rg2 = st.radio("Gol S2_hidden", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}", label_visibility="collapsed")
+                                
+                                if st.button("💾 Salva Risultato", key=f"save_{match_id}", use_container_width=True):
+                                    m['gol1'] = rg1
+                                    m['gol2'] = rg2
+                                    m['giocata'] = True
+                                    m['in_corso'] = False
+                                    m['tavolo'] = None
+                                    ricalcola_classifiche_gironi()
+                                    salva_dati(db)
+                                    st.success("Salvato e aggiornato!")
+                                    st.rerun()
 
     if is_admin:
         st.markdown("---")
