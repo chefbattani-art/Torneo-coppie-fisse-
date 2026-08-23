@@ -312,24 +312,54 @@ elif db["stato"] == "gironi":
             st.rerun()
         st.markdown("---")
 
-    st.markdown("### 🔍 Cerca la tua Coppia")
-    tutte_le_coppie = db.get("coppie", [])
-    coppia_selezionata = st.selectbox("Seleziona il tuo nome / tua coppia per vedere solo i tuoi match:", ["-- Mostra tutto il torneo --"] + tutte_le_coppie)
+    # --- PANNELLO IN ALTO: PARTITE IN CORSO, CHIAMATE E CODA ---
+    st.markdown("---")
+    st.subheader("⚡ Stato dei Biliardini e Coda Incontri")
 
-    girone_filtro = None
-    if coppia_selezionata != "-- Mostra tutto il torneo --":
-        for g_n, c_list in db["gironi"].items():
-            if coppia_selezionata in c_list:
-                girone_filtro = g_n
-                break
-        st.success(f"📌 La tua coppia **{coppia_selezionata}** gioca nel **{girone_filtro}**!")
+    partite_in_corso = []
+    partite_da_giocare = []
+
+    for g_nome, turni in db["calendario_gironi"].items():
+        for t_obj in turni:
+            for m in t_obj["partite"]:
+                if not m.get("giocata", False):
+                    if m.get("in_corso", False):
+                        partite_in_corso.append(m)
+                    else:
+                        partite_da_giocare.append(m)
+
+    col_ic, col_coda = st.columns(2)
+
+    with col_ic:
+        st.markdown("#### 🔥 Partite in Corso ai Tavoli")
+        if not partite_in_corso:
+            st.info("Nessuna partita in corso al momento.")
+        else:
+            for m in partite_in_corso:
+                st.warning(f"🏟️ **{m['girone']}**: {m['c1']} vs {m['c2']}")
+
+        st.markdown("#### 📣 Chiamata / Preparazione")
+        if partite_in_corso:
+            primo_match = partite_in_corso[0]
+            st.success(f"In arrivo al tavolo... **{primo_match['c1']}** e **{primo_match['c2']}** ({primo_match['girone']}) - **Preparatevi!**")
+        elif partite_da_giocare:
+            prossimo = partite_da_giocare[0]
+            st.success(f"📣 Prossimi a scendere: **{prossimo['c1']}** e **{prossimo['c2']}** ({prossimo['girone']})")
+        else:
+            st.info("Nessuna altra partita in programma.")
+
+    with col_coda:
+        st.markdown("#### ⏳ In Coda (Prossimi Incontri)")
+        if not partite_da_giocare:
+            st.info("La coda è vuota.")
+        else:
+            for idx, m in enumerate(partite_da_giocare[:5]):
+                st.write(f"{idx+1}. **{m['girone']}**: {m['c1']} vs {m['c2']}")
 
     st.markdown("---")
     st.info(f"📌 **Organizzazione Biliardini:** Hai impostato **{num_tavoli} biliardini**. Gestisci le partite direttamente dai singoli gironi qui sotto.")
 
-    gironi_da_mostrare = {girone_filtro: db["gironi"][girone_filtro]} if girone_filtro else db["gironi"]
-
-    for g_nome, coppie_lista in gironi_da_mostrare.items():
+    for g_nome, coppie_lista in db["gironi"].items():
         st.markdown(f"## 📁 {g_nome}")
         
         st.markdown(f"#### 🏆 Classifica {g_nome}")
@@ -341,7 +371,7 @@ elif db["stato"] == "gironi":
             fascia_assegnata = "⭐ Fascia A" if idx < 4 else "🔻 Fascia B"
             data_g.append({
                 "Pos": f"{idx+1}°",
-                "Coppia": f"👉 {coppia}" if coppia == coppia_selezionata else coppia,
+                "Coppia": coppia,
                 "Punti": pt,
                 "Giocate": f"{gioc}/{tot}",
                 "Destinazione": fascia_assegnata
@@ -351,7 +381,7 @@ elif db["stato"] == "gironi":
         
         def colora_fasce(val):
             try:
-                pos = int(str(val).replace("°", "").replace("👉 ", ""))
+                pos = int(str(val).replace("°", ""))
                 if pos <= 4:
                     return 'background-color: #d4edda; color: #155724; font-weight: bold;'
                 else:
@@ -374,43 +404,40 @@ elif db["stato"] == "gironi":
             
             for m in turno_obj["partite"]:
                 match_id = m['id']
-                evidenzia = (coppia_selezionata != "-- Mostra tutto il torneo --" and (m['c1'] == coppia_selezionata or m['c2'] == coppia_selezionata))
-                
-                if evidenzia:
-                    st.markdown(f"⭐ *La tua partita:*")
 
-                col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
-                with col_s1:
-                    st.info(f"🤝 **{m['c1']}**")
-                with col_mid:
-                    if m["giocata"]:
-                        st.error(f"🛑 **{m['gol1']} - {m['gol2']}**")
-                    elif m.get("in_corso", False):
-                        st.warning("🔥 **In Corso al Tavolo**")
-                    else:
-                        st.write("**VS**")
-                        if is_admin:
-                            if st.button("▶️ Metti al Tavolo", key=f"btn_avvia_{match_id}", use_container_width=True):
-                                m["in_corso"] = True
+                # Riquadro separato per ogni singola partita
+                with st.container(border=True):
+                    col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
+                    with col_s1:
+                        st.info(f"🤝 **{m['c1']}**")
+                    with col_mid:
+                        if m["giocata"]:
+                            st.error(f"🛑 **{m['gol1']} - {m['gol2']}**")
+                        elif m.get("in_corso", False):
+                            st.warning("🔥 **In Corso al Tavolo**")
+                        else:
+                            st.write("**VS**")
+                            if is_admin:
+                                if st.button("▶️ Metti al Tavolo", key=f"btn_avvia_{match_id}", use_container_width=True):
+                                    m["in_corso"] = True
+                                    salva_dati(db)
+                                    st.rerun()
+                    with col_s2:
+                        st.info(f"🤝 **{m['c2']}**")
+
+                    if is_admin:
+                        with st.expander(f"⚙️ Gestisci Risultato: {m['c1']} vs {m['c2']}"):
+                            rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}")
+                            rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}")
+                            if st.button("💾 Salva Risultato", key=f"save_{match_id}", use_container_width=True):
+                                m['gol1'] = rg1
+                                m['gol2'] = rg2
+                                m['giocata'] = True
+                                m['in_corso'] = False
+                                ricalcola_classifiche_gironi()
                                 salva_dati(db)
+                                st.success("Salvato e aggiornato!")
                                 st.rerun()
-                with col_s2:
-                    st.info(f"🤝 **{m['c2']}**")
-
-                if is_admin:
-                    with st.expander(f"⚙️ Gestisci Risultato: {m['c1']} vs {m['c2']}"):
-                        rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}")
-                        rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}")
-                        if st.button("💾 Salva Risultato", key=f"save_{match_id}", use_container_width=True):
-                            m['gol1'] = rg1
-                            m['gol2'] = rg2
-                            m['giocata'] = True
-                            m['in_corso'] = False
-                            ricalcola_classifiche_gironi()
-                            salva_dati(db)
-                            st.success("Salvato e aggiornato!")
-                            st.rerun()
-            st.markdown("---")
 
     if is_admin:
         btn_testo = "🔄 Aggiorna Tabelloni Fasi Finali con Classifiche Ricalcolate" if db.get("fasi_finali_configurate", False) else "🏆 Genera Fasi Finali (Fascia A e Fascia B)"
@@ -510,40 +537,40 @@ elif db["stato"] == "fasi_finali":
                     st.success(f"🟢 **{s2_nome}** passa il turno automaticamente (Bye).")
                     continue
                 
-                col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
-                with col_s1:
-                    st.info(f"🤝 **{s1_nome}** ({m.get('g1', '')})")
-                with col_mid:
-                    if m["giocata"]:
-                        st.error(f"🛑 **{m['gol1']} - {m['gol2']}**\nVince: **{m['vincente']}**")
-                        vincente_match = m['vincente']
-                        vincitori_turno.append(vincente_match)
-                        perdente_match = s2_nome if vincente_match == s1_nome else s1_nome
-                        perdenti_turno.append(perdente_match)
-                    else:
-                        tutti_giocati = False
-                        st.write("**VS**")
-                with col_s2:
-                    st.info(f"🤝 **{s2_nome}** ({m.get('g2', '')})")
-                
-                if is_admin:
-                    with st.expander(f"⚙️ Inserisci / Modifica Risultato: {s1_nome} vs {s2_nome}"):
-                        rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}")
-                        rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}")
-                        if st.button("💾 Salva / Aggiorna Risultato", key=f"save_{match_id}", use_container_width=True):
-                            m['gol1'] = rg1
-                            m['gol2'] = rg2
-                            m['giocata'] = True
-                            if rg1 > rg2:
-                                m['vincente'] = s1_nome
-                            elif rg2 > rg1:
-                                m['vincente'] = s2_nome
-                            else:
-                                m['vincente'] = s1_nome
-                            salva_dati(db)
-                            st.success("Risultato aggiornato con successo!")
-                            st.rerun()
-                st.markdown("---")
+                with st.container(border=True):
+                    col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
+                    with col_s1:
+                        st.info(f"🤝 **{s1_nome}** ({m.get('g1', '')})")
+                    with col_mid:
+                        if m["giocata"]:
+                            st.error(f"🛑 **{m['gol1']} - {m['gol2']}**\nVince: **{m['vincente']}**")
+                            vincente_match = m['vincente']
+                            vincitori_turno.append(vincente_match)
+                            perdente_match = s2_nome if vincente_match == s1_nome else s1_nome
+                            perdenti_turno.append(perdente_match)
+                        else:
+                            tutti_giocati = False
+                            st.write("**VS**")
+                    with col_s2:
+                        st.info(f"🤝 **{s2_nome}** ({m.get('g2', '')})")
+                    
+                    if is_admin:
+                        with st.expander(f"⚙️ Inserisci / Modifica Risultato: {s1_nome} vs {s2_nome}"):
+                            rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}")
+                            rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}")
+                            if st.button("💾 Salva / Aggiorna Risultato", key=f"save_{match_id}", use_container_width=True):
+                                m['gol1'] = rg1
+                                m['gol2'] = rg2
+                                m['giocata'] = True
+                                if rg1 > rg2:
+                                    m['vincente'] = s1_nome
+                                elif rg2 > rg1:
+                                    m['vincente'] = s2_nome
+                                else:
+                                    m['vincente'] = s1_nome
+                                salva_dati(db)
+                                st.success("Risultato aggiornato con successo!")
+                                st.rerun()
                 
             if tutti_giocati and nome_etichetta == "⚔️ SEMIFINALI" and len(perdenti_turno) >= 2 and not db[chiave_34]:
                 if is_admin:
@@ -592,35 +619,35 @@ elif db["stato"] == "fasi_finali":
             tq_match = db[chiave_34][0]
             tq_id = tq_match['id']
             
-            col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
-            with col_s1:
-                st.info(f"🤝 **{tq_match['s1']}** ({tq_match.get('g1', '')})")
-            with col_mid:
-                if tq_match["giocata"]:
-                    st.error(f"🛑 **{tq_match['gol1']} - {tq_match['gol2']}**\nVince 3° Posto: **{tq_match['vincente']}**")
-                else:
-                    st.write("**VS**")
-            with col_s2:
-                st.info(f"🤝 **{tq_match['s2']}** ({tq_match.get('g2', '')})")
-                
-            if is_admin:
-                with st.expander(f"⚙️ Inserisci / Modifica 3°/4° Posto"):
-                    rg1 = st.radio("Gol S1", list(range(8)), index=int(tq_match.get('gol1', 0)), horizontal=True, key=f"tq_rg1_{tq_id}")
-                    rg2 = st.radio("Gol S2", list(range(8)), index=int(tq_match.get('gol2', 0)), horizontal=True, key=f"tq_rg2_{tq_id}")
-                    if st.button("💾 Salva 3°/4° Posto", key=f"tq_save_{tq_id}", use_container_width=True):
-                        tq_match['gol1'] = rg1
-                        tq_match['gol2'] = rg2
-                        tq_match['giocata'] = True
-                        if rg1 > rg2:
-                            tq_match['vincente'] = tq_match['s1']
-                        elif rg2 > rg1:
-                            tq_match['vincente'] = tq_match['s2']
-                        else:
-                            tq_match['vincente'] = tq_match['s1']
-                        salva_dati(db)
-                        st.success("Risultato 3°/4° posto salvato!")
-                        st.rerun()
-            st.markdown("---")
+            with st.container(border=True):
+                col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
+                with col_s1:
+                    st.info(f"🤝 **{tq_match['s1']}** ({tq_match.get('g1', '')})")
+                with col_mid:
+                    if tq_match["giocata"]:
+                        st.error(f"🛑 **{tq_match['gol1']} - {tq_match['gol2']}**\nVince 3° Posto: **{tq_match['vincente']}**")
+                    else:
+                        st.write("**VS**")
+                with col_s2:
+                    st.info(f"🤝 **{tq_match['s2']}** ({tq_match.get('g2', '')})")
+                    
+                if is_admin:
+                    with st.expander(f"⚙️ Inserisci / Modifica 3°/4° Posto"):
+                        rg1 = st.radio("Gol S1", list(range(8)), index=int(tq_match.get('gol1', 0)), horizontal=True, key=f"tq_rg1_{tq_id}")
+                        rg2 = st.radio("Gol S2", list(range(8)), index=int(tq_match.get('gol2', 0)), horizontal=True, key=f"tq_rg2_{tq_id}")
+                        if st.button("💾 Salva 3°/4° Posto", key=f"tq_save_{tq_id}", use_container_width=True):
+                            tq_match['gol1'] = rg1
+                            tq_match['gol2'] = rg2
+                            tq_match['giocata'] = True
+                            if rg1 > rg2:
+                                tq_match['vincente'] = tq_match['s1']
+                            elif rg2 > rg1:
+                                tq_match['vincente'] = tq_match['s2']
+                            else:
+                                tq_match['vincente'] = tq_match['s1']
+                            salva_dati(db)
+                            st.success("Risultato 3°/4° posto salvato!")
+                            st.rerun()
 
     with tab_a_view:
         gestisci_tabellone("tabellone_a", "terzo_quarto_a", "Tabellone Eliminazione Diretta - Fascia A")
