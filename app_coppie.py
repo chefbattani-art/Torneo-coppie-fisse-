@@ -319,7 +319,6 @@ if db["stato"] == "gironi":
             st.rerun()
         st.markdown("---")
 
-    # Visualizzazione flessibile delle classifiche in base al numero effettivo di gironi
     nomi_gironi_chiavi = list(db["gironi"].keys())
     for i in range(0, len(nomi_gironi_chiavi), 2):
         col_gironi = st.columns(2)
@@ -405,23 +404,31 @@ if db["stato"] == "gironi":
                 st.write(f"{idx+1}. **{m['girone']}**: {m['c1']} vs {m['c2']}")
 
     st.markdown("---")
-    st.subheader("📅 Calendario Unico e Misto per Turno (Tutti i Gironi Insieme)")
-    st.info(f"📌 **Biliardini ({num_tavoli}):** Le partite di tutti i gironi sono mescolate turnariamente affinché non si giochi a blocchi stagni.")
+    st.subheader("📅 Calendario Turni con Partite Alternate per Girone")
+    st.info(f"📌 **Biliardini ({num_tavoli}):** All'interno di ciascun turno globale, le partite vengono presentate alternando i gironi (es. Girone A, poi B, poi C, poi D...).")
 
     max_turni = max([len(turni) for turni in db["calendario_gironi"].values()]) if db["calendario_gironi"] else 0
 
     for t_num in range(1, max_turni + 1):
         st.markdown(f"### 🚩 Turno Globale {t_num}")
         
-        # Raccogliamo tutte le partite di questo turno da TUTTI i gironi e le mescoliamo insieme
-        partite_questo_turno = []
+        # Raccogliamo le partite del turno raggruppandole per girone e interlevarle (alternarle)
+        partite_per_girone_dict = {}
         for g_nome, turni_girone in db["calendario_gironi"].items():
             for t_obj in turni_girone:
                 if t_obj["turno"] == t_num:
-                    partite_questo_turno.extend(t_obj["partite"])
+                    partite_per_girone_dict[g_nome] = t_obj["partite"]
         
-        # Mostriamo le partite mescolate in griglie o schede pulite
-        for m in partite_questo_turno:
+        partite_questo_turno_miste = []
+        max_len_partite = max([len(v) for v in partite_per_girone_dict.values()]) if partite_per_girone_dict else 0
+        
+        for idx_misto in range(max_len_partite):
+            for g_chiave in sorted(partite_per_girone_dict.keys()):
+                lista_p = partite_per_girone_dict[g_chiave]
+                if idx_misto < len(lista_p):
+                    partite_questo_turno_miste.append(lista_p[idx_misto])
+        
+        for m in partite_questo_turno_miste:
             match_id = m['id']
             girone_m = m['girone']
 
