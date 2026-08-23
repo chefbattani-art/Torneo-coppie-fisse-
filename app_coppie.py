@@ -294,10 +294,10 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                                     "tavolo": None,
                                     "gol1": 0, "gol2": 0
                                 })
-                        turni_girone.append({"turno": t + 1, "partite": partite_turno})
+                        turni_turno.append({"turno": t + 1, "partite": partite_turno})
                         squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
                     
-                    calendario_totale[g_nome] = turni_girone
+                    calendario_totale[g_nome] = turni_turno
                 
                 db["calendario_gironi"] = calendario_totale
                 db["stato"] = "gironi"
@@ -395,9 +395,9 @@ if db["stato"] == "gironi":
                     )
                     
                     if is_admin:
-                        # Inserimento risultato immediato senza expander per chiudere subito il box alla registrazione
-                        rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"ic_rg1_{match_id}")
-                        rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"ic_rg2_{match_id}")
+                        # Inserimento risultato immediato con i nomi delle coppie in grassetto al posto di S1/S2
+                        rg1 = st.radio(f"Gol: **{m['c1']}**", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"ic_rg1_{match_id}")
+                        rg2 = st.radio(f"Gol: **{m['c2']}**", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"ic_rg2_{match_id}")
                         if st.button("💾 Registra e Libera Tavolo", key=f"ic_save_{match_id}", use_container_width=True):
                             m['gol1'] = rg1
                             m['gol2'] = rg2
@@ -507,8 +507,8 @@ if db["stato"] == "gironi":
 
             if is_admin:
                 with st.expander(f"⚙️ Gestisci Risultato: {m['c1']} vs {m['c2']}"):
-                    rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}")
-                    rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}")
+                    rg1 = st.radio(f"Gol: **{m['c1']}**", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}")
+                    rg2 = st.radio(f"Gol: **{m['c2']}**", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}")
                     if st.button("💾 Salva Risultato", key=f"save_{match_id}", use_container_width=True):
                         m['gol1'] = rg1
                         m['gol2'] = rg2
@@ -643,8 +643,8 @@ elif db["stato"] == "fasi_finali":
                     
                     if is_admin:
                         with st.expander(f"⚙️ Inserisci / Modifica Risultato: {s1_nome} vs {s2_nome}"):
-                            rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}")
-                            rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}")
+                            rg1 = st.radio(f"Gol: **{s1_nome}**", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}")
+                            rg2 = st.radio(f"Gol: **{s2_nome}**", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}")
                             if st.button("💾 Salva / Aggiorna Risultato", key=f"save_{match_id}", use_container_width=True):
                                 m['gol1'] = rg1
                                 m['gol2'] = rg2
@@ -720,8 +720,8 @@ elif db["stato"] == "fasi_finali":
                     
                 if is_admin:
                     with st.expander(f"⚙️ Inserisci / Modifica 3°/4° Posto"):
-                        rg1 = st.radio("Gol S1", list(range(8)), index=int(tq_match.get('gol1', 0)), horizontal=True, key=f"tq_rg1_{tq_id}")
-                        rg2 = st.radio("Gol S2", list(range(8)), index=int(tq_match.get('gol2', 0)), horizontal=True, key=f"tq_rg2_{tq_id}")
+                        rg1 = st.radio(f"Gol: **{tq_match['s1']}**", list(range(8)), index=int(tq_match.get('gol1', 0)), horizontal=True, key=f"tq_rg1_{tq_id}")
+                        rg2 = st.radio(f"Gol: **{tq_match['s2']}**", list(range(8)), index=int(tq_match.get('gol2', 0)), horizontal=True, key=f"tq_rg2_{tq_id}")
                         if st.button("💾 Salva 3°/4° Posto", key=f"tq_save_{tq_id}", use_container_width=True):
                             tq_match['gol1'] = rg1
                             tq_match['gol2'] = rg2
