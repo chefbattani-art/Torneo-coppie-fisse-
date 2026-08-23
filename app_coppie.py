@@ -357,12 +357,7 @@ if db["stato"] == "gironi":
             st.rerun()
         st.markdown("---")
 
-    # --- SEZIONE PARTITE IN CORSO E CODA SPOSTATE IN ALTO ---
-    st.subheader("⚡ Stato dei Biliardini e Coda Incontri")
-
-    partite_in_corso = []
-    partite_da_giocare = []
-
+    # --- PREPARAZIONE LISTE PARTITE ---
     max_turni = max([len(turni) for turni in db["calendario_gironi"].values()]) if db["calendario_gironi"] else 0
 
     partite_per_girone_dict = {}
@@ -382,12 +377,18 @@ if db["stato"] == "gironi":
             if idx_misto < len(lista_p):
                 partite_miste_totali.append(lista_p[idx_misto])
 
+    partite_in_corso = []
+    partite_da_giocare = []
+
     for m in partite_miste_totali:
         if not m.get("giocata", False):
             if m.get("in_corso", False):
                 partite_in_corso.append(m)
             else:
                 partite_da_giocare.append(m)
+
+    # --- SEZIONE PARTITE IN CORSO E CODA ---
+    st.subheader("⚡ Stato dei Biliardini e Coda Incontri")
 
     col_ic, col_coda = st.columns(2)
 
@@ -426,19 +427,12 @@ if db["stato"] == "gironi":
                                 st.rerun()
 
     with col_coda:
-        tavoli_occupati_count = len(partite_in_corso)
-        tavoli_liberi = max(0, num_tavoli - tavoli_occupati_count)
-        
-        if tavoli_occupati_count < tavoli_liberi:
-            limite_coda = max(tavoli_liberi, 1) if tavoli_liberi > 0 else 0
-        else:
-            limite_coda = max(tavoli_occupati_count, 1)
-            
-        partite_in_coda_correnti = partite_da_giocare[:limite_coda]
+        # Mostra le prossime 5 partite in coda che scalano automaticamente
+        partite_in_coda_correnti = partite_da_giocare[:5]
         
         st.markdown(f"#### ⏳ In Coda (Prossimi Incontri)")
         if not partite_in_coda_correnti:
-            st.info("La coda è vuota o tutti i tavoli sono occupati.")
+            st.info("La coda è vuota o tutte le partite sono in corso/giocate.")
         else:
             for idx, m in enumerate(partite_in_coda_correnti):
                 st.markdown(
