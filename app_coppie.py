@@ -151,7 +151,7 @@ def genera_pdf_coppie():
 def ottieni_nome_turno_dinamico(num_partite_turno, totale_turni, num_turno_corrente):
     diff_dalla_fine = totale_turni - num_turno_corrente
     if diff_dalla_fine == 0 or num_partite_turno == 1:
-        return "🏆 FINALE"
+        return "🏆 ATTO FINALE"
     elif diff_dalla_fine == 1 or num_partite_turno == 2:
         return "⚔️ SEMIFINALI"
     elif num_partite_turno == 4:
@@ -163,7 +163,7 @@ def ottieni_nome_turno_dinamico(num_partite_turno, totale_turni, num_turno_corre
     elif num_partite_turno == 32:
         return "🌟 TRENTADUESIMI DI FINALE"
     else:
-        return f"Turno Eliminazione ({num_partite_turno} match)"
+        return f"Turno Eliminazione ({num_partite_turno * 2} Coppie)"
 
 def crea_abbinamenti_protetti(classificate_per_girone):
     nomi_gironi = list(classificate_per_girone.keys())
@@ -436,7 +436,6 @@ if db["stato"] == "gironi":
         if cambiato:
             salva_dati(db)
 
-    # Ordinamento forzato dal Biliardino 1 in poi
     partite_in_corso = sorted(
         partite_in_corso, 
         key=lambda x: x.get('tavolo') if x.get('tavolo') is not None else 999
@@ -570,8 +569,6 @@ if db["stato"] == "gironi":
     st.markdown("---")
     
     st.subheader("📅 Incontri per Girone")
-    st.info(f"📌 **Biliardini ({num_tavoli}):** Seleziona il girone per verificare le partite giocate, in corso o da disputare.")
-
     nomi_gironi_lista = list(db["calendario_gironi"].keys())
     if nomi_gironi_lista:
         tabs_gironi = st.tabs(nomi_gironi_lista)
@@ -713,7 +710,7 @@ if db["stato"] == "gironi":
 # 3. FASI FINALI
 elif db["stato"] == "fasi_finali":
     st.subheader("🏆 Fasi Finali: Tabelloni a Eliminazione Diretta")
-    st.info("💡 Gestione completa turni finali con riconoscimento automatico turni e podio finale.")
+    st.info("💡 Gestione turni step-by-step: il sistema riconosce in automatico se si parte da Trentaduesimi, Sedicesimi, Ottavi o Quarti.")
     
     tab_a_view, tab_b_view = st.tabs(["⭐ Fascia A (Torneo Principale)", "🔻 Fascia B (Torneo Secondario)"])
     
@@ -738,7 +735,16 @@ elif db["stato"] == "fasi_finali":
             num_part = len(partite_turno)
             
             nome_etichetta = ottieni_nome_turno_dinamico(num_part, totale_turni, t_num)
-            st.markdown(f"#### 🚩 {nome_etichetta}")
+            
+            # Grafica pulita ed evidente per l'intestazione del turno
+            st.markdown(
+                f"""
+                <div style="background: linear-gradient(90deg, #1f77b4 0%, #4682b4 100%); padding: 10px 16px; border-radius: 8px; margin: 20px 0 12px 0; color: white;">
+                    <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: white;">⚡ {nome_etichetta}</h3>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
             
             tutti_giocati = True
             vincitori_turno = []
@@ -747,76 +753,99 @@ elif db["stato"] == "fasi_finali":
             for idx, m in enumerate(partite_turno):
                 match_id = m['id']
                 s1_nome = m['s1']
-                s2_nome = m['s2']
+                s2_nome = m['g1'] # recupero nome girone s1
+                s1_girone = m.get('g1', '')
+                s2_girone = m.get('g2', '')
                 
-                if s2_nome == "RIPOSO":
+                s1_display = f"{m['s1']} <span style='font-size:12px; color:#666;'>({s1_girone})</span>" if s1_girone else m['s1']
+                s2_display = f"{m['s2']} <span style='font-size:12px; color:#666;'>({s2_girone})</span>" if s2_girone else m['s2']
+                
+                if m['s2'] == "RIPOSO":
                     m['giocata'] = True
-                    m['vincente'] = s1_nome
-                    vincitori_turno.append(s1_nome)
-                    st.success(f"🟢 **{s1_nome}** passa il turno automaticamente (Bye).")
+                    m['vincente'] = m['s1']
+                    vincitori_turno.append(m['s1'])
+                    st.success(f"🟢 **{m['s1']}** passa il turno automaticamente (Bye).")
                     continue
-                elif s1_nome == "RIPOSO":
+                elif m['s1'] == "RIPOSO":
                     m['giocata'] = True
-                    m['vincente'] = s2_nome
-                    vincitori_turno.append(s2_nome)
-                    st.success(f"🟢 **{s2_nome}** passa il turno automaticamente (Bye).")
+                    m['vincente'] = m['s2']
+                    vincitori_turno.append(m['s2'])
+                    st.success(f"🟢 **{m['s2']}** passa il turno automaticamente (Bye).")
                     continue
                 
-                with st.container(border=True):
-                    col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
-                    with col_s1:
-                        st.info(f"🤝 **{s1_nome}** ({m.get('g1', '')})")
-                    with col_mid:
-                        if m["giocata"]:
-                            st.error(f"🛑 **{m['gol1']} - {m['gol2']}**\nVince: **{m['vincente']}**")
-                            vincente_match = m['vincente']
-                            vincitori_turno.append(vincente_match)
-                            perdente_match = s2_nome if vincente_match == s1_nome else s1_nome
-                            perdenti_turno.append(perdente_match)
-                        else:
-                            tutti_giocati = False
-                            st.write("**VS**")
-                    with col_s2:
-                        st.info(f"🤝 **{s2_nome}** ({m.get('g2', '')})")
-                    
-                    if is_admin:
-                        with st.expander(f"⚙️ Inserisci / Modifica Risultato: {s1_nome} vs {s2_nome}"):
-                            st.markdown(
-                                f"""
-                                <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
-                                    <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {s1_nome}</span>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
-                            rg1 = st.radio("Gol S1_hidden", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}", label_visibility="collapsed")
-                            
-                            st.markdown(
-                                f"""
-                                <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
-                                    <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {s2_nome}</span>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
-                            rg2 = st.radio("Gol S2_hidden", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}", label_visibility="collapsed")
-                            
-                            if st.button("💾 Salva / Aggiorna Risultato", key=f"save_{match_id}", use_container_width=True):
-                                m['gol1'] = rg1
-                                m['gol2'] = rg2
-                                m['giocata'] = True
-                                if rg1 > rg2:
-                                    m['vincente'] = s1_nome
-                                elif rg2 > rg1:
-                                    m['vincente'] = s2_nome
-                                else:
-                                    m['vincente'] = s1_nome
-                                salva_dati(db)
-                                st.success("Risultato aggiornato con successo!")
-                                st.rerun()
+                # Grafica Partita Moderna ed Evidente
+                if m["giocata"]:
+                    box_bg = "#f1f8e9"
+                    border_c = "#81c784"
+                    s1_style = "font-weight: bold; color: #2e7d32;" if m['vincente'] == m['s1'] else "color: #555;"
+                    s2_style = "font-weight: bold; color: #2e7d32;" if m['vincente'] == m['s2'] else "color: #555;"
+                    centro_testo = f"<span style='font-size: 18px; font-weight: bold; background-color: #2e7d32; color: white; padding: 4px 12px; border-radius: 6px;'>{m['gol1']} - {m['gol2']}</span><br><span style='font-size: 11px; color: #2e7d32; font-weight: bold;'>Vince: {m['vincente']}</span>"
+                    vincitori_turno.append(m['vincente'])
+                    perdente_match = m['s2'] if m['vincente'] == m['s1'] else m['s1']
+                    perdenti_turno.append(perdente_match)
+                else:
+                    tutti_giocati = False
+                    box_bg = "#f8f9fa"
+                    border_c = "#ced4da"
+                    s1_style = "font-weight: bold; color: #212529;"
+                    s2_style = "font-weight: bold; color: #212529;"
+                    centro_testo = "<span style='font-size: 15px; font-weight: bold; background-color: #e9ecef; color: #495057; padding: 4px 10px; border-radius: 6px;'>VS</span>"
 
-            # Estrazione Campione e Secondo se siamo in Finale e giocata
-            if nome_etichetta == "🏆 FINALE" and tutti_giocati and len(partite_turno) == 1:
+                st.markdown(
+                    f"""
+                    <div style="background-color: {box_bg}; border: 2px solid {border_c}; padding: 14px 18px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                        <div style="flex: 1; text-align: left; font-size: 16px; {s1_style}">
+                            🤝 {s1_display}
+                        </div>
+                        <div style="padding: 0 15px; text-align: center; min-width: 90px;">
+                            {centro_testo}
+                        </div>
+                        <div style="flex: 1; text-align: right; font-size: 16px; {s2_style}">
+                            {s2_display} 🤝
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+                
+                if is_admin:
+                    with st.expander(f"⚙️ Inserisci / Modifica Risultato: {m['s1']} vs {m['s2']}"):
+                        st.markdown(
+                            f"""
+                            <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
+                                <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {m['s1']}</span>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        rg1 = st.radio("Gol S1_hidden", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}", label_visibility="collapsed")
+                        
+                        st.markdown(
+                            f"""
+                            <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
+                                <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {m['s2']}</span>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        rg2 = st.radio("Gol S2_hidden", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}", label_visibility="collapsed")
+                        
+                        if st.button("💾 Salva / Aggiorna Risultato", key=f"save_{match_id}", use_container_width=True):
+                            m['gol1'] = rg1
+                            m['gol2'] = rg2
+                            m['giocata'] = True
+                            if rg1 > rg2:
+                                m['vincente'] = m['s1']
+                            elif rg2 > rg1:
+                                m['vincente'] = m['s2']
+                            else:
+                                m['vincente'] = m['s1']
+                            salva_dati(db)
+                            st.success("Risultato aggiornato con successo!")
+                            st.rerun()
+
+            # Estrazione Campione e Secondo se siamo nell'Atto Finale e giocata
+            if nome_etichetta == "🏆 ATTO FINALE" and tutti_giocati and len(partite_turno) == 1:
                 fin_m = partite_turno[0]
                 if fin_m["giocata"] and fin_m.get("vincente"):
                     campione = fin_m["vincente"]
@@ -865,72 +894,95 @@ elif db["stato"] == "fasi_finali":
                     st.rerun()
 
         if db[chiave_34]:
-            st.markdown("#### 🥉 FINALE 3° / 4° POSTO")
+            st.markdown(
+                """
+                <div style="background: linear-gradient(90deg, #d97706 0%, #f59e0b 100%); padding: 10px 16px; border-radius: 8px; margin: 25px 0 12px 0; color: white;">
+                    <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: white;">🥉 FINALE 3° / 4° POSTO</h3>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
             tq_match = db[chiave_34][0]
             tq_id = tq_match['id']
             
-            with st.container(border=True):
-                col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
-                with col_s1:
-                    st.info(f"🤝 **{tq_match['s1']}** ({tq_match.get('g1', '')})")
-                with col_mid:
-                    if tq_match["giocata"]:
-                        st.error(f"🛑 **{tq_match['gol1']} - {tq_match['gol2']}**\nVince 3° Posto: **{tq_match['vincente']}**")
-                        terzo_posto = tq_match["vincente"]
-                        quarto_posto = tq_match['s2'] if terzo_posto == tq_match['s1'] else tq_match['s1']
-                    else:
-                        st.write("**VS**")
-                with col_s2:
-                    st.info(f"🤝 **{tq_match['s2']}** ({tq_match.get('g2', '')})")
+            tq_s1_disp = f"{tq_match['s1']} <span style='font-size:12px; color:#666;'>({tq_match.get('g1','')})</span>"
+            tq_s2_disp = f"{tq_match['s2']} <span style='font-size:12px; color:#666;'>({tq_match.get('g2','')})</span>"
+            
+            if tq_match["giocata"]:
+                tq_bg = "#fef3c7"
+                tq_border = "#f59e0b"
+                tq_centro = f"<span style='font-size: 18px; font-weight: bold; background-color: #d97706; color: white; padding: 4px 12px; border-radius: 6px;'>{tq_match['gol1']} - {tq_match['gol2']}</span><br><span style='font-size: 11px; color: #d97706; font-weight: bold;'>3° Posto: {tq_match['vincente']}</span>"
+                terzo_posto = tq_match["vincente"]
+                quarto_posto = tq_match['s2'] if terzo_posto == tq_match['s1'] else tq_match['s1']
+            else:
+                tq_bg = "#f8f9fa"
+                tq_border = "#ced4da"
+                tq_centro = "<span style='font-size: 15px; font-weight: bold; background-color: #e9ecef; color: #495057; padding: 4px 10px; border-radius: 6px;'>VS</span>"
+
+            st.markdown(
+                f"""
+                <div style="background-color: {tq_bg}; border: 2px solid {tq_border}; padding: 14px 18px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="flex: 1; text-align: left; font-size: 16px; font-weight: bold;">
+                        🤝 {tq_s1_disp}
+                    </div>
+                    <div style="padding: 0 15px; text-align: center; min-width: 90px;">
+                        {tq_centro}
+                    </div>
+                    <div style="flex: 1; text-align: right; font-size: 16px; font-weight: bold;">
+                        {tq_s2_disp} 🤝
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            
+            if is_admin:
+                with st.expander(f"⚙️ Inserisci / Modifica 3°/4° Posto"):
+                    st.markdown(
+                        f"""
+                        <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
+                            <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {tq_match['s1']}</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    rg1 = st.radio("Gol S1_hidden", list(range(8)), index=int(tq_match.get('gol1', 0)), horizontal=True, key=f"tq_rg1_{tq_id}", label_visibility="collapsed")
                     
-                if is_admin:
-                    with st.expander(f"⚙️ Inserisci / Modifica 3°/4° Posto"):
-                        st.markdown(
-                            f"""
-                            <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
-                                <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {tq_match['s1']}</span>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                        rg1 = st.radio("Gol S1_hidden", list(range(8)), index=int(tq_match.get('gol1', 0)), horizontal=True, key=f"tq_rg1_{tq_id}", label_visibility="collapsed")
-                        
-                        st.markdown(
-                            f"""
-                            <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
-                                <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {tq_match['s2']}</span>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                        rg2 = st.radio("Gol S2_hidden", list(range(8)), index=int(tq_match.get('gol2', 0)), horizontal=True, key=f"tq_rg2_{tq_id}", label_visibility="collapsed")
-                        
-                        if st.button("💾 Salva 3°/4° Posto", key=f"tq_save_{tq_id}", use_container_width=True):
-                            tq_match['gol1'] = rg1
-                            tq_match['gol2'] = rg2
-                            tq_match['giocata'] = True
-                            if rg1 > rg2:
-                                tq_match['vincente'] = tq_match['s1']
-                            elif rg2 > rg1:
-                                tq_match['vincente'] = tq_match['s2']
-                            else:
-                                tq_match['vincente'] = tq_match['s1']
-                            salva_dati(db)
-                            st.success("Risultato 3°/4° posto salvato!")
-                            st.rerun()
+                    st.markdown(
+                        f"""
+                        <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
+                            <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {tq_match['s2']}</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    rg2 = st.radio("Gol S2_hidden", list(range(8)), index=int(tq_match.get('gol2', 0)), horizontal=True, key=f"tq_rg2_{tq_id}", label_visibility="collapsed")
+                    
+                    if st.button("💾 Salva 3°/4° Posto", key=f"tq_save_{tq_id}", use_container_width=True):
+                        tq_match['gol1'] = rg1
+                        tq_match['gol2'] = rg2
+                        tq_match['giocata'] = True
+                        if rg1 > rg2:
+                            tq_match['vincente'] = tq_match['s1']
+                        elif rg2 > rg1:
+                            tq_match['vincente'] = tq_match['s2']
+                        else:
+                            tq_match['vincente'] = tq_match['s1']
+                        salva_dati(db)
+                        st.success("Risultato 3°/4° posto salvato!")
+                        st.rerun()
 
         # PODIO FINALE
         if campione:
             st.markdown("---")
-            st.markdown(f"### 🌟 PODIO FINALE - {titolo_tab}")
             st.markdown(
                 f"""
-                <div style="background: linear-gradient(135deg, #fff3cd 0%, #fff9e6 100%); border: 2px solid #ffc107; padding: 20px; border-radius: 12px; text-align: center; color: #856404; margin-top: 15px;">
-                    <h2 style="margin: 0 0 15px 0; color: #856404;">🏆 CLASSIFICA FINALE 🏆</h2>
-                    <p style="font-size: 20px; margin: 8px 0;">🥇 <b>1° POSTO (Campioni):</b> {campione}</p>
-                    <p style="font-size: 18px; margin: 8px 0;">🥈 <b>2° POSTO:</b> {secondo_posto if secondo_posto else 'N.D.'}</p>
-                    <p style="font-size: 18px; margin: 8px 0;">🥉 <b>3° POSTO:</b> {terzo_posto if terzo_posto else 'N.D.'}</p>
-                    <p style="font-size: 16px; margin: 8px 0; color: #666;">4° Posto: {quarto_posto if quarto_posto else 'N.D.'}</p>
+                <div style="background: linear-gradient(135deg, #fef08a 0%, #fde047 100%); border: 3px solid #eab308; padding: 25px; border-radius: 16px; text-align: center; color: #713f12; margin-top: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    <h2 style="margin: 0 0 15px 0; color: #713f12; font-size: 24px;">🏆 PODIO FINALE - {titolo_tab} 🏆</h2>
+                    <p style="font-size: 22px; margin: 10px 0; font-weight: bold;">🥇 1° POSTO (Campioni): {campione}</p>
+                    <p style="font-size: 19px; margin: 8px 0; font-weight: 600;">🥈 2° POSTO: {secondo_posto if secondo_posto else 'N.D.'}</p>
+                    <p style="font-size: 19px; margin: 8px 0; font-weight: 600;">🥉 3° POSTO: {terzo_posto if terzo_posto else 'N.D.'}</p>
+                    <p style="font-size: 16px; margin: 10px 0; color: #854d0e;">4° Posto: {quarto_posto if quarto_posto else 'N.D.'}</p>
                 </div>
                 """,
                 unsafe_allow_html=True
