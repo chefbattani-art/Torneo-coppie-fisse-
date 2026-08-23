@@ -185,7 +185,15 @@ if modalita_admin:
 
 st.sidebar.markdown("---")
 
-# --- PULSANTE DI RESET TOTALE AGGIUNTO QUI ---
+# --- PULSANTE NAVIGAZIONE / CONTROLLO GIRONI ---
+if is_admin and db["stato"] == "fasi_finali":
+    if st.sidebar.button("🔙 Torna temporaneamente ai Gironi", use_container_width=True):
+        db["stato"] = "gironi"
+        salva_dati(db)
+        st.rerun()
+    st.sidebar.markdown("---")
+
+# --- PULSANTE DI RESET TOTALE ---
 st.sidebar.subheader("⚠️ Zona Pericolo")
 if is_admin:
     conferma_reset = st.sidebar.checkbox("Spunta per confermare il reset totale", key="checkbox_reset_gara")
@@ -302,6 +310,13 @@ elif db["stato"] == "gironi":
     st.subheader("📊 Fase a Gironi in Diretta")
     ricalcola_classifiche_gironi()
     num_tavoli = db.get("num_tavoli", 2)
+
+    if db.get("fasi_finali_configurate", False):
+        if st.button("⬅️ Torna alla schermata delle Fasi Finali", use_container_width=True):
+            db["stato"] = "fasi_finali"
+            salva_dati(db)
+            st.rerun()
+        st.markdown("---")
 
     st.markdown("### 🔍 Cerca la tua Coppia")
     tutte_le_coppie = db.get("coppie", [])
@@ -443,7 +458,8 @@ elif db["stato"] == "gironi":
                 st.markdown("---")
 
     if is_admin:
-        if st.button("🏆 Genera Fasi Finali (Fascia A e Fascia B)", use_container_width=True):
+        btn_testo = "🔄 Aggiorna Tabelloni Fasi Finali con Classifiche Ricalcolate" if db.get("fasi_finali_configurate", False) else "🏆 Genera Fasi Finali (Fascia A e Fascia B)"
+        if st.button(btn_testo, use_container_width=True):
             classificate_a = {}
             classificate_b = {}
             for g_nome in db["gironi"]:
@@ -473,20 +489,31 @@ elif db["stato"] == "gironi":
                     "giocata": False, "gol1": 0, "gol2": 0, "vincente": None
                 })
                 
-            db["tabellone_a"] = [ {"turno": 1, "partite": turno_a_iniziale} ]
-            db["tabellone_b"] = [ {"turno": 1, "partite": turno_b_iniziale} ]
-            db["terzo_quarto_a"] = []
-            db["terzo_quarto_b"] = []
+            if not db.get("fasi_finali_configurate", False):
+                db["tabellone_a"] = [ {"turno": 1, "partite": turno_a_iniziale} ]
+                db["tabellone_b"] = [ {"turno": 1, "partite": turno_b_iniziale} ]
+                db["terzo_quarto_a"] = []
+                db["terzo_quarto_b"] = []
+            else:
+                if db["tabellone_a"]:
+                    db["tabellone_a"][0]["partite"] = turno_a_iniziale
+                else:
+                    db["tabellone_a"] = [ {"turno": 1, "partite": turno_a_iniziale} ]
+                if db["tabellone_b"]:
+                    db["tabellone_b"][0]["partite"] = turno_b_iniziale
+                else:
+                    db["tabellone_b"] = [ {"turno": 1, "partite": turno_b_iniziale} ]
+
             db["stato"] = "fasi_finali"
             db["fasi_finali_configurate"] = True
             salva_dati(db)
-            st.success("Fasi finali e tabelloni a eliminazione diretta generati con successo!")
+            st.success("Operazione completata con successo! Ritorno alle Fasi Finali...")
             st.rerun()
 
 # 3. FASI FINALI
 elif db["stato"] == "fasi_finali":
     st.subheader("🏆 Fasi Finali: Tabelloni a Eliminazione Diretta")
-    st.info("💡 Gestione completa turni finali (Ottavi, Quarti, Semifinali, Finale e 3°/4° posto) con possibilità di modifica risultati.")
+    st.info("💡 Gestione completa turni finali con possibilità di modifica risultati.")
     
     tab_a_view, tab_b_view = st.tabs(["⭐ Fascia A (Torneo Principale)", "🔻 Fascia B (Torneo Secondario)"])
     
@@ -534,9 +561,10 @@ elif db["stato"] == "fasi_finali":
                 with col_mid:
                     if m["giocata"]:
                         st.error(f"🛑 **{m['gol1']} - {m['gol2']}**\nVince: **{m['vincente']}**")
-                        vincitori_turno.append(m['vincente'])
-                        perdente = s2_nome if m['vincente'] == s1_nome else s1_nome
-                        perdenti_turno.append(perdente)
+                        vincente_match = m['vincente']
+                        vincitori_turno.append(vincente_match)
+                        perdente_match = s2_nome if vincente_match == s1_nome else s1_nome
+                        perdenti_turno.append(perdente_match)
                     else:
                         tutti_giocati = False
                         st.write("**VS**")
@@ -562,15 +590,17 @@ elif db["stato"] == "fasi_finali":
                             st.rerun()
                 st.markdown("---")
                 
-            if tutti_giocati and nome_etichetta == "⚔️ SEMIFINALI" and len(perdenti_turno) == 2 and not db[chiave_34]:
+            if tutti_giocati and nome_etichetta == "⚔️ SEMIFINALI" and len(perdenti_turno) >= 2 and not db[chiave_34]:
                 if is_admin:
-                    db[chiave_34] = [{
-                        "id": f"{chiave_tabellone}_terzo_quarto",
-                        "s1": perdenti_turno[0], "g1": mappa_girone.get(perdenti_turno[0], ""),
-                        "s2": perdenti_turno[1], "g2": mappa_girone.get(perdenti_turno[1], ""),
-                        "giocata": False, "gol1": 0, "gol2": 0, "vincente": None
-                    }]
-                    salva_dati(db)
+                    p1, p2 = perdenti_turno[0], perdenti_turno[1]
+                    if p1 != p2:
+                        db[chiave_34] = [{
+                            "id": f"{chiave_tabellone}_terzo_quarto",
+                            "s1": p1, "g1": mappa_girone.get(p1, ""),
+                            "s2": p2, "g2": mappa_girone.get(p2, ""),
+                            "giocata": False, "gol1": 0, "gol2": 0, "vincente": None
+                        }]
+                        salva_dati(db)
 
             if tutti_giocati and len(partite_turno) > 1:
                 prossimo_turno_num = t_num + 1
@@ -588,11 +618,9 @@ elif db["stato"] == "fasi_finali":
                             "giocata": False, "gol1": 0, "gol2": 0, "vincente": None
                         })
                 
-                # Controlla se il turno successivo esiste già
                 turno_esistente = next((t for t in turni_tab if t['turno'] == prossimo_turno_num), None)
                 
                 if turno_esistente and is_admin:
-                    # Aggiorna le squadre del turno esistente con i nuovi vincitori reali
                     for idx_p, p_nuova in enumerate(nuove_partite):
                         if idx_p < len(turno_esistente["partite"]):
                             turno_esistente["partite"][idx_p]["s1"] = p_nuova["s1"]
