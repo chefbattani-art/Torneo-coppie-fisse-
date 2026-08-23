@@ -288,10 +288,10 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                                     "giocata": False, "in_corso": False,
                                     "gol1": 0, "gol2": 0
                                 })
-                        turni_girone.append({"turno": t + 1, "partite": partite_turno})
+                        turni_turno.append({"turno": t + 1, "partite": partite_turno})
                         squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
                     
-                    calendario_totale[g_nome] = turni_girone
+                    calendario_totale[g_nome] = turni_turno
                 
                 db["calendario_gironi"] = calendario_totale
                 db["stato"] = "gironi"
@@ -308,7 +308,6 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
 
 # 2. FASE A GIRONI
 if db["stato"] == "gironi":
-    st.subheader("📊 Classifiche dei Gironi")
     ricalcola_classifiche_gironi()
     num_tavoli = db.get("num_tavoli", 6)
 
@@ -319,6 +318,79 @@ if db["stato"] == "gironi":
             st.rerun()
         st.markdown("---")
 
+    # --- SEZIONE PARTITE IN CORSO E CODA SPOSTATE IN ALTO ---
+    st.subheader("⚡ Stato dei Biliardini e Coda Incontri")
+
+    partite_in_corso = []
+    partite_da_giocare = []
+
+    max_turni = max([len(turni) for turni in db["calendario_gironi"].values()]) if db["calendario_gironi"] else 0
+
+    # Ricreiamo la lista mista globale in base all'alternanza dei gironi
+    partite_per_girone_dict = {}
+    for t_num in range(1, max_turni + 1):
+        for g_nome, turni_girone in db["calendario_gironi"].items():
+            for t_obj in turni_girone:
+                if t_obj["turno"] == t_num:
+                    if g_nome not in partite_per_girone_dict:
+                        partite_per_girone_dict[g_nome] = []
+                    partite_per_girone_dict[g_nome].extend(t_obj["partite"])
+
+    partite_miste_totali = []
+    max_len_partite = max([len(v) for v in partite_per_girone_dict.values()]) if partite_per_girone_dict else 0
+    for idx_misto in range(max_len_partite):
+        for g_chiave in sorted(partite_per_girone_dict.keys()):
+            lista_p = partite_per_girone_dict[g_chiave]
+            if idx_misto < len(lista_p):
+                partite_miste_totali.append(lista_p[idx_misto])
+
+    for m in partite_miste_totali:
+        if not m.get("giocata", False):
+            if m.get("in_corso", False):
+                partite_in_corso.append(m)
+            else:
+                partite_da_giocare.append(m)
+
+    col_ic, col_coda = st.columns(2)
+
+    with col_ic:
+        st.markdown("#### 🔥 Partite in Corso ai Tavoli")
+        if not partite_in_corso:
+            st.info("Nessuna partita in corso al momento.")
+        else:
+            for m in partite_in_corso:
+                st.markdown(
+                    f"""
+                    <div style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 5px; margin-bottom: 8px; color: #856404;">
+                        <b>🏟️ {m['girone']}</b><br>{m['c1']} vs {m['c2']}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+    with col_coda:
+        num_in_corso_count = len(partite_in_corso)
+        # La coda mostra lo stesso numero di partite rispetto a quelle in corso (o comunque le prossime in ordine)
+        partite_in_coda_correnti = partite_da_giocare[:max(num_in_corso_count, 1)]
+        
+        st.markdown("#### ⏳ In Coda (Prossimi Incontri)")
+        if not partite_in_coda_correnti:
+            st.info("La coda è vuota.")
+        else:
+            for idx, m in enumerate(partite_in_coda_correnti):
+                st.markdown(
+                    f"""
+                    <div style="background-color: #d4edda; border: 1px solid #c3e6cb; padding: 10px; border-radius: 5px; margin-bottom: 8px; color: #155724;">
+                        <b>⏳ {idx+1}. {m['girone']}</b><br>{m['c1']} vs {m['c2']}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+    st.markdown("---")
+
+    # --- CLASSIFICHE DEI GIRONI ---
+    st.subheader("📊 Classifiche dei Gironi")
     nomi_gironi_chiavi = list(db["gironi"].keys())
     for i in range(0, len(nomi_gironi_chiavi), 2):
         col_gironi = st.columns(2)
@@ -361,110 +433,48 @@ if db["stato"] == "gironi":
                         st.dataframe(df_g, hide_index=True, use_container_width=True)
 
     st.markdown("---")
-    st.subheader("⚡ Stato dei Biliardini e Coda Incontri")
+    
+    # --- LISTA UNICA ORDINATA DELLE PARTITE (SENZA TURNI GLOBALI) ---
+    st.subheader("📅 Lista Unica Incontri di Girone")
+    st.info(f"📌 **Biliardini ({num_tavoli}):** Elenco unico ordinato alternando i gironi.")
 
-    partite_in_corso = []
-    partite_da_giocare = []
+    for m in partite_miste_totali:
+        match_id = m['id']
+        girone_m = m['girone']
 
-    for g_nome, turni in db["calendario_gironi"].items():
-        for t_obj in turni:
-            for m in t_obj["partite"]:
-                if not m.get("giocata", False):
-                    if m.get("in_corso", False):
-                        partite_in_corso.append(m)
-                    else:
-                        partite_da_giocare.append(m)
-
-    col_ic, col_coda = st.columns(2)
-
-    with col_ic:
-        st.markdown("#### 🔥 Partite in Corso ai Tavoli")
-        if not partite_in_corso:
-            st.info("Nessuna partita in corso al momento.")
-        else:
-            for m in partite_in_corso:
-                st.warning(f"🏟️ **{m['girone']}**: {m['c1']} vs {m['c2']}")
-
-        st.markdown("#### 📣 Chiamata / Preparazione")
-        if partite_in_corso:
-            primo_match = partite_in_corso[0]
-            st.success(f"In arrivo al tavolo... **{primo_match['c1']}** e **{primo_match['c2']}** ({primo_match['girone']}) - **Preparatevi!**")
-        elif partite_da_giocare:
-            prossimo = partite_da_giocare[0]
-            st.success(f"📣 Prossimi a scendere: **{prossimo['c1']}** e **{prossimo['c2']}** ({prossimo['girone']})")
-        else:
-            st.info("Nessuna altra partita in programma.")
-
-    with col_coda:
-        st.markdown("#### ⏳ In Coda (Prossimi Incontri)")
-        if not partite_da_giocare:
-            st.info("La coda è vuota.")
-        else:
-            for idx, m in enumerate(partite_da_giocare[:5]):
-                st.write(f"{idx+1}. **{m['girone']}**: {m['c1']} vs {m['c2']}")
-
-    st.markdown("---")
-    st.subheader("📅 Calendario Turni con Partite Alternate per Girone")
-    st.info(f"📌 **Biliardini ({num_tavoli}):** All'interno di ciascun turno globale, le partite vengono presentate alternando i gironi (es. Girone A, poi B, poi C, poi D...).")
-
-    max_turni = max([len(turni) for turni in db["calendario_gironi"].values()]) if db["calendario_gironi"] else 0
-
-    for t_num in range(1, max_turni + 1):
-        st.markdown(f"### 🚩 Turno Globale {t_num}")
-        
-        # Raccogliamo le partite del turno raggruppandole per girone e interlevarle (alternarle)
-        partite_per_girone_dict = {}
-        for g_nome, turni_girone in db["calendario_gironi"].items():
-            for t_obj in turni_girone:
-                if t_obj["turno"] == t_num:
-                    partite_per_girone_dict[g_nome] = t_obj["partite"]
-        
-        partite_questo_turno_miste = []
-        max_len_partite = max([len(v) for v in partite_per_girone_dict.values()]) if partite_per_girone_dict else 0
-        
-        for idx_misto in range(max_len_partite):
-            for g_chiave in sorted(partite_per_girone_dict.keys()):
-                lista_p = partite_per_girone_dict[g_chiave]
-                if idx_misto < len(lista_p):
-                    partite_questo_turno_miste.append(lista_p[idx_misto])
-        
-        for m in partite_questo_turno_miste:
-            match_id = m['id']
-            girone_m = m['girone']
-
-            with st.container(border=True):
-                st.caption(f"📁 **{girone_m}**")
-                col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
-                with col_s1:
-                    st.info(f"🤝 **{m['c1']}**")
-                with col_mid:
-                    if m["giocata"]:
-                        st.error(f"🛑 **{m['gol1']} - {m['gol2']}**")
-                    elif m.get("in_corso", False):
-                        st.warning("🔥 **In Corso al Tavolo**")
-                    else:
-                        st.write("**VS**")
-                        if is_admin:
-                            if st.button("▶️ Metti al Tavolo", key=f"btn_avvia_{match_id}", use_container_width=True):
-                                m["in_corso"] = True
-                                salva_dati(db)
-                                st.rerun()
-                with col_s2:
-                    st.info(f"🤝 **{m['c2']}**")
-
-                if is_admin:
-                    with st.expander(f"⚙️ Gestisci Risultato: {m['c1']} vs {m['c2']}"):
-                        rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}")
-                        rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}")
-                        if st.button("💾 Salva Risultato", key=f"save_{match_id}", use_container_width=True):
-                            m['gol1'] = rg1
-                            m['gol2'] = rg2
-                            m['giocata'] = True
-                            m['in_corso'] = False
-                            ricalcola_classifiche_gironi()
+        with st.container(border=True):
+            st.caption(f"📁 **{girone_m}**")
+            col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
+            with col_s1:
+                st.info(f"🤝 **{m['c1']}**")
+            with col_mid:
+                if m["giocata"]:
+                    st.error(f"🛑 **{m['gol1']} - {m['gol2']}**")
+                elif m.get("in_corso", False):
+                    st.warning("🔥 **In Corso al Tavolo**")
+                else:
+                    st.write("**VS**")
+                    if is_admin:
+                        if st.button("▶️ Metti al Tavolo", key=f"btn_avvia_{match_id}", use_container_width=True):
+                            m["in_corso"] = True
                             salva_dati(db)
-                            st.success("Salvato e aggiornato!")
                             st.rerun()
+            with col_s2:
+                st.info(f"🤝 **{m['c2']}**")
+
+            if is_admin:
+                with st.expander(f"⚙️ Gestisci Risultato: {m['c1']} vs {m['c2']}"):
+                    rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}")
+                    rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}")
+                    if st.button("💾 Salva Risultato", key=f"save_{match_id}", use_container_width=True):
+                        m['gol1'] = rg1
+                        m['gol2'] = rg2
+                        m['giocata'] = True
+                        m['in_corso'] = False
+                        ricalcola_classifiche_gironi()
+                        salva_dati(db)
+                        st.success("Salvato e aggiornato!")
+                        st.rerun()
 
     if is_admin:
         st.markdown("---")
