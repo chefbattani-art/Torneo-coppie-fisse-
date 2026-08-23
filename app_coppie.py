@@ -148,39 +148,6 @@ def genera_pdf_coppie():
             pdf.ln(2)
     return bytes(pdf.output())
 
-def crea_abbinamenti_protetti(lista_squadre_ordinate_per_girone):
-    gironi = list(lista_squadre_ordinate_per_girone.keys())
-    max_profondita = max([len(v) for v in lista_squadre_ordinate_per_girone.values()]) if lista_squadre_ordinate_per_girone else 0
-    
-    pool_squadre = []
-    for livello in range(max_profondita):
-        for g in gironi:
-            lst = lista_squadre_ordinate_per_girone[g]
-            if livello < len(lst):
-                pool_squadre.append((lst[livello], g))
-                
-    accoppiamenti = []
-    rimanenti = pool_squadre.copy()
-    
-    while len(rimanenti) >= 2:
-        s1, g1 = rimanenti.pop(0)
-        trovato = False
-        for idx, (s2, g2) in enumerate(rimanenti):
-            if g1 != g2:
-                accoppiamenti.append(((s1, g1), (s2, g2)))
-                rimanenti.pop(idx)
-                trovato = True
-                break
-        if not trovato:
-            s2, g2 = rimanenti.pop(0)
-            accoppiamenti.append(((s1, g1), (s2, g2)))
-            
-    if rimanenti:
-        s1, g1 = rimanenti.pop(0)
-        accoppiamenti.append(((s1, g1), ("RIPOSO", "NESSUNO")))
-        
-    return accoppiamenti
-
 def ottieni_nome_turno(num_turno, totale_turni):
     diff = totale_turni - num_turno
     if diff == 0:
@@ -327,10 +294,10 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                                     "tavolo": None,
                                     "gol1": 0, "gol2": 0
                                 })
-                        turni_turno.append({"turno": t + 1, "partite": partite_turno})
+                        turni_girone.append({"turno": t + 1, "partite": partite_turno})
                         squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
                     
-                    calendario_totale[g_nome] = turni_turno
+                    calendario_totale[g_nome] = turni_girone
                 
                 db["calendario_gironi"] = calendario_totale
                 db["stato"] = "gironi"
@@ -357,7 +324,6 @@ if db["stato"] == "gironi":
             st.rerun()
         st.markdown("---")
 
-    # --- PREPARAZIONE LISTE PARTITE ---
     max_turni = max([len(turni) for turni in db["calendario_gironi"].values()]) if db["calendario_gironi"] else 0
 
     partite_per_girone_dict = {}
@@ -387,7 +353,6 @@ if db["stato"] == "gironi":
             else:
                 partite_da_giocare.append(m)
 
-    # --- RIEMPIMENTO AUTOMATICO TAVOLI LIBERI DALLA CODA ---
     tavoli_occupati_ids = [p.get("tavolo") for p in partite_in_corso if p.get("tavolo") is not None]
     tavoli_liberi_disponibili = [t for t in range(1, num_tavoli + 1) if t not in tavoli_occupati_ids]
 
@@ -417,33 +382,35 @@ if db["stato"] == "gironi":
                 tavolo_str = f"<b>🏟️ Biliardino {m.get('tavolo')}</b>" if m.get('tavolo') else "<b>🏟️ In campo</b>"
                 match_id = m['id']
                 
-                with st.container(border=True):
+                # Riquadro giallo per le partite in corso
+                with st.container():
                     st.markdown(
                         f"""
-                        <div style="color: #856404; margin-bottom: 5px;">
-                            {tavolo_str} - <b>{m['girone']}</b><br>{m['c1']} vs {m['c2']}
+                        <div style="background-color: #fffde7; border: 2px solid #fbc02d; padding: 14px; border-radius: 8px; margin-bottom: 6px; color: #5d4037;">
+                            {tavolo_str} - <b>{m['girone']}</b><br>
+                            <b style="font-size: 16px;">{m['c1']} vs {m['c2']}</b>
                         </div>
                         """,
                         unsafe_allow_html=True
                     )
                     
                     if is_admin:
-                        with st.expander(f"⚙️ Inserisci Risultato Tavolo"):
-                            rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"ic_rg1_{match_id}")
-                            rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"ic_rg2_{match_id}")
-                            if st.button("💾 Registra e Libera Tavolo", key=f"ic_save_{match_id}", use_container_width=True):
-                                m['gol1'] = rg1
-                                m['gol2'] = rg2
-                                m['giocata'] = True
-                                m['in_corso'] = False
-                                m['tavolo'] = None
-                                ricalcola_classifiche_gironi()
-                                salva_dati(db)
-                                st.success("Partita registrata!")
-                                st.rerun()
+                        # Inserimento risultato immediato senza expander per chiudere subito il box alla registrazione
+                        rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"ic_rg1_{match_id}")
+                        rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"ic_rg2_{match_id}")
+                        if st.button("💾 Registra e Libera Tavolo", key=f"ic_save_{match_id}", use_container_width=True):
+                            m['gol1'] = rg1
+                            m['gol2'] = rg2
+                            m['giocata'] = True
+                            m['in_corso'] = False
+                            m['tavolo'] = None
+                            ricalcola_classifiche_gironi()
+                            salva_dati(db)
+                            st.success("Partita registrata!")
+                            st.rerun()
+                    st.markdown("<hr style='margin: 5px 0 15px 0;'>", unsafe_allow_html=True)
 
     with col_coda:
-        # Mostra in coda esattamente un numero di partite pari al numero dei biliardini
         partite_in_coda_correnti = partite_da_giocare[:num_tavoli]
         
         st.markdown(f"#### ⏳ In Coda (Prossimi Incontri)")
