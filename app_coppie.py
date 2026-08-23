@@ -16,7 +16,7 @@ def carica_dati():
     dati_default = {
         "stato": "setup",
         "coppie": [],
-        "num_tavoli": 2,
+        "num_tavoli": 6,
         "num_gironi": 2,
         "admin_pin": "0000",
         "gironi": {}, 
@@ -92,10 +92,8 @@ def genera_pdf_coppie():
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "Torneo a Coppie Fisse - Schema Partite", 0, 1, "C")
+    pdf.cell(0, 10, "Torneo a Coppie Fisse - Schema Gironi", 0, 1, "C")
     pdf.ln(5)
-    
-    num_tavoli = db.get("num_tavoli", 2)
     
     for g_nome, turni in db["calendario_gironi"].items():
         pdf.set_font("Arial", "B", 14)
@@ -105,9 +103,8 @@ def genera_pdf_coppie():
             pdf.cell(0, 7, f"Turno {turno_obj['turno']}", 0, 1, "L")
             pdf.set_font("Arial", "", 10)
             for idx, m in enumerate(turno_obj["partite"]):
-                tavolo_num = (idx % num_tavoli) + 1
                 risultato = f"{m['gol1']} - {m['gol2']}" if m.get("giocata", False) else "Da giocare"
-                riga = f"  Tavolo {tavolo_num}: {m['c1']} VS {m['c2']} -> {risultato}"
+                riga = f"  {m['c1']} VS {m['c2']} -> {risultato}"
                 riga_pulita = riga.encode('latin-1', 'ignore').decode('latin-1')
                 pdf.cell(0, 6, riga_pulita, 0, 1, "L")
             pdf.ln(2)
@@ -154,8 +151,6 @@ def ottieni_nome_turno(num_turno, totale_turni):
         return "⚔️ SEMIFINALI"
     elif diff == 2:
         return "🔥 QUARTI DI FINALE"
-    elif diff == 3:
-        return "⚽ OTTAVI DI FINALE"
     else:
         return f"Turno {num_turno}"
 
@@ -167,7 +162,7 @@ if db["stato"] != "setup":
     st.sidebar.download_button(
         label="📥 Scarica Schema in PDF",
         data=pdf_data,
-        file_name="schema_torneo_coppie.pdf",
+        file_name="schema_gironi_torneo.pdf",
         mime="application/pdf",
         use_container_width=True
     )
@@ -185,7 +180,6 @@ if modalita_admin:
 
 st.sidebar.markdown("---")
 
-# --- PULSANTE NAVIGAZIONE / CONTROLLO GIRONI ---
 if is_admin and db["stato"] == "fasi_finali":
     if st.sidebar.button("🔙 Torna temporaneamente ai Gironi", use_container_width=True):
         db["stato"] = "gironi"
@@ -193,7 +187,6 @@ if is_admin and db["stato"] == "fasi_finali":
         st.rerun()
     st.sidebar.markdown("---")
 
-# --- PULSANTE DI RESET TOTALE ---
 st.sidebar.subheader("⚠️ Zona Pericolo")
 if is_admin:
     conferma_reset = st.sidebar.checkbox("Spunta per confermare il reset totale", key="checkbox_reset_gara")
@@ -220,7 +213,7 @@ st.markdown(
     """
     <div style="padding: 10px; background-color: #f0f2f6; border-radius: 8px; text-align: center; margin-bottom: 20px;">
         🔄 <a href="javascript:window.location.reload(true)" style="text-decoration: none; color: #262730; font-weight: bold; font-size: 15px;">
-            Quando vuoi vedere l’andamento della gara e quando devi giocare ricarica la pagina del browser
+            Quando vuoi vedere l’andamento della gara e quando vuoi giocare ricarica la pagina del browser
         </a>
     </div>
     """,
@@ -285,14 +278,15 @@ if db["stato"] == "setup":
                                 match_id = f"{g_nome}_t{t+1}_m{i}"
                                 partite_turno.append({
                                     "id": match_id,
+                                    "girone": g_nome,
                                     "c1": s1, "c2": s2,
                                     "giocata": False, "in_corso": False,
                                     "gol1": 0, "gol2": 0
                                 })
-                        turni_girone.append({"turno": t + 1, "partite": partite_turno})
+                        turni_turno.append({"turno": t + 1, "partite": partite_turno})
                         squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
                     
-                    calendario_totale[g_nome] = turni_girone
+                    calendario_totale[g_nome] = turni_turno
                 
                 db["calendario_gironi"] = calendario_totale
                 db["stato"] = "gironi"
@@ -305,11 +299,11 @@ if db["stato"] == "setup":
                 st.success("Gironi e calendario generati con successo!")
                 st.rerun()
 
-# 2. FASE A GIRONI
+# 2. FASE A GIRONI (GIRONI SEPARATI E GESTIONE PER TAVOLI FISSI)
 elif db["stato"] == "gironi":
-    st.subheader("📊 Fase a Gironi in Diretta")
+    st.subheader("📊 Fase a Gironi all'Italiana")
     ricalcola_classifiche_gironi()
-    num_tavoli = db.get("num_tavoli", 2)
+    num_tavoli = db.get("num_tavoli", 6)
 
     if db.get("fasi_finali_configurate", False):
         if st.button("⬅️ Torna alla schermata delle Fasi Finali", use_container_width=True):
@@ -320,7 +314,7 @@ elif db["stato"] == "gironi":
 
     st.markdown("### 🔍 Cerca la tua Coppia")
     tutte_le_coppie = db.get("coppie", [])
-    coppia_selezionata = st.selectbox("Seleziona il tuo nome / tua coppia per vedere solo il tuo girone:", ["-- Mostra tutto il torneo --"] + tutte_le_coppie)
+    coppia_selezionata = st.selectbox("Seleziona il tuo nome / tua coppia per vedere solo i tuoi match:", ["-- Mostra tutto il torneo --"] + tutte_le_coppie)
 
     girone_filtro = None
     if coppia_selezionata != "-- Mostra tutto il torneo --":
@@ -331,48 +325,15 @@ elif db["stato"] == "gironi":
         st.success(f"📌 La tua coppia **{coppia_selezionata}** gioca nel **{girone_filtro}**!")
 
     st.markdown("---")
+    st.info(f"📌 **Organizzazione Biliardini:** Hai impostato **{num_tavoli} biliardini**. Gestisci le partite direttamente dai singoli gironi qui sotto.")
 
-    partite_in_corso = []
-    for g_nome, turni in db["calendario_gironi"].items():
-        if girone_filtro and g_nome != girone_filtro:
-            continue
-        for turno_obj in turni:
-            for idx, m in enumerate(turno_obj["partite"]):
-                if m.get("in_corso", False) and not m.get("giocata", False):
-                    tavolo_num = (idx % num_tavoli) + 1
-                    partite_in_corso.append((tavolo_num, g_nome, turno_obj['turno'], m))
-
-    if partite_in_corso:
-        testo_corso = "🔥 **PARTITE IN CORSO (Sui biliardini):**\n\n"
-        for t_num, g_nome, t_turno, pm in partite_in_corso:
-            testo_corso += f"📍 **Biliardino {t_num} ({g_nome} - Turno {t_turno}):** {pm['c1']}  **VS**  {pm['c2']}\n\n"
-        st.warning(testo_corso)
-
-    prossime_partite = []
-    for g_nome, turni in db["calendario_gironi"].items():
-        if girone_filtro and g_nome != girone_filtro:
-            continue
-        for turno_obj in turni:
-            for m in turno_obj["partite"]:
-                if not m.get("giocata", False) and not m.get("in_corso", False):
-                    prossime_partite.append((g_nome, turno_obj['turno'], m))
-                    if len(prossime_partite) >= num_tavoli:
-                        break
-            if len(prossime_partite) >= num_tavoli:
-                break
-
-    if prossime_partite:
-        testo_coda = "📢 **PROSSIMI IN CODA (Preparatevi):**\n\n"
-        for g_nome, t_turno, pm in prossime_partite:
-            testo_coda += f"👉 **In Coda ({g_nome} - Turno {t_turno}):** {pm['c1']}  **VS**  {pm['c2']}\n\n"
-        st.success(testo_coda)
-
-    st.markdown("---")
-    
     gironi_da_mostrare = {girone_filtro: db["gironi"][girone_filtro]} if girone_filtro else db["gironi"]
 
     for g_nome, coppie_lista in gironi_da_mostrare.items():
-        st.markdown(f"### 🏆 Classifica {g_nome}")
+        st.markdown(f"## 📁 {g_nome}")
+        
+        # Classifica
+        st.markdown(f"#### 🏆 Classifica {g_nome}")
         sorted_c = sorted(db["punti_gironi"][g_nome].items(), key=lambda x: x[1], reverse=True)
         
         data_g = []
@@ -405,24 +366,19 @@ elif db["stato"] == "gironi":
         else:
             st.dataframe(df_g, hide_index=True, use_container_width=True)
 
-    st.markdown("---")
-    st.markdown("### 📅 Calendario e Risultati Gironi")
-
-    for g_nome, turni in db["calendario_gironi"].items():
-        if girone_filtro and g_nome != girone_filtro:
-            continue
+        st.markdown(f"#### 📅 Partite del {g_nome}")
         
-        st.markdown(f"#### 📁 {g_nome}")
-        for turno_obj in turni:
-            st.markdown(f"**🚩 Turno {turno_obj['turno']}**")
-            for idx, m in enumerate(turno_obj["partite"]):
-                tavolo_num = (idx % num_tavoli) + 1
+        turni_girone = db["calendario_gironi"][g_nome]
+        for turno_obj in turni_girone:
+            t_num = turno_obj["turno"]
+            st.markdown(f"**🚩 Turno {t_num}**")
+            
+            for m in turno_obj["partite"]:
                 match_id = m['id']
-
-                evidenzia_match = (coppia_selezionata != "-- Mostra tutto il torneo --" and (m['c1'] == coppia_selezionata or m['c2'] == coppia_selezionata))
+                evidenzia = (coppia_selezionata != "-- Mostra tutto il torneo --" and (m['c1'] == coppia_selezionata or m['c2'] == coppia_selezionata))
                 
-                if evidenzia_match:
-                    st.markdown(f"⭐ **LA TUA PARTITA (Biliardino {tavolo_num})**")
+                if evidenzia:
+                    st.markdown(f"⭐ *La tua partita:*")
 
                 col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
                 with col_s1:
@@ -431,11 +387,11 @@ elif db["stato"] == "gironi":
                     if m["giocata"]:
                         st.error(f"🛑 **{m['gol1']} - {m['gol2']}**")
                     elif m.get("in_corso", False):
-                        st.warning("🔥 **In Corso**")
+                        st.warning("🔥 **In Corso al Tavolo**")
                     else:
                         st.write("**VS**")
                         if is_admin:
-                            if st.button("▶️ Avvia", key=f"btn_avvia_{match_id}", use_container_width=True):
+                            if st.button("▶️ Metti al Tavolo", key=f"btn_avvia_{match_id}", use_container_width=True):
                                 m["in_corso"] = True
                                 salva_dati(db)
                                 st.rerun()
@@ -443,7 +399,7 @@ elif db["stato"] == "gironi":
                     st.info(f"🤝 **{m['c2']}**")
 
                 if is_admin:
-                    with st.expander(f"⚙️ Gestisci Risultato {m['c1']} vs {m['c2']}"):
+                    with st.expander(f"⚙️ Gestisci Risultato: {m['c1']} vs {m['c2']}"):
                         rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}")
                         rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}")
                         if st.button("💾 Salva Risultato", key=f"save_{match_id}", use_container_width=True):
@@ -453,9 +409,9 @@ elif db["stato"] == "gironi":
                             m['in_corso'] = False
                             ricalcola_classifiche_gironi()
                             salva_dati(db)
-                            st.success("Salvato!")
+                            st.success("Salvato e aggiornato!")
                             st.rerun()
-                st.markdown("---")
+            st.markdown("---")
 
     if is_admin:
         btn_testo = "🔄 Aggiorna Tabelloni Fasi Finali con Classifiche Ricalcolate" if db.get("fasi_finali_configurate", False) else "🏆 Genera Fasi Finali (Fascia A e Fascia B)"
@@ -604,7 +560,6 @@ elif db["stato"] == "fasi_finali":
 
             if tutti_giocati and len(partite_turno) > 1:
                 prossimo_turno_num = t_num + 1
-                
                 vincitori_con_girone = [(v, mappa_girone.get(v, "Sconosciuto")) for v in vincitori_turno]
                 nuove_partite = []
                 for i in range(0, len(vincitori_con_girone), 2):
@@ -619,7 +574,6 @@ elif db["stato"] == "fasi_finali":
                         })
                 
                 turno_esistente = next((t for t in turni_tab if t['turno'] == prossimo_turno_num), None)
-                
                 if turno_esistente and is_admin:
                     for idx_p, p_nuova in enumerate(nuove_partite):
                         if idx_p < len(turno_esistente["partite"]):
