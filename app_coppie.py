@@ -56,11 +56,9 @@ def pulisci_nome(testo):
 
 def ricalcola_classifiche_gironi():
     for g_nome, coppie_lista in db["gironi"].items():
-        # Struttura dati per memorizzare statistiche dettagliate per ogni coppia nel girone
         stats = {c: {"punti": 0, "gf": 0, "gs": 0, "dr": 0, "scontri_diretti_pt": {}} for c in coppie_lista}
         
         if g_nome in db["calendario_gironi"]:
-            # Prima passata: calcola punti, gol fatti, gol subiti generali
             for turno_obj in db["calendario_gironi"][g_nome]:
                 for m in turno_obj["partite"]:
                     if m.get("giocata", False):
@@ -82,12 +80,9 @@ def ricalcola_classifiche_gironi():
                         stats[c2]["gf"] += g2
                         stats[c2]["gs"] += g1
 
-            # Calcolo Differenza Reti generale
             for c in coppie_lista:
                 stats[c]["dr"] = stats[c]["gf"] - stats[c]["gs"]
 
-            # Gestione Scontri Diretti in caso di arrivo a pari punti
-            # Raggruppiamo le squadre per punteggio
             punti_gruppo = {}
             for c in coppie_lista:
                 p = stats[c]["punti"]
@@ -95,7 +90,6 @@ def ricalcola_classifiche_gironi():
                     punti_gruppo[p] = []
                 punti_gruppo[p].append(c)
 
-            # Per ogni gruppo con parità di punti (2 o più squadre), calcoliamo i mini-punti negli scontri diretti
             for p, gruppo in punti_gruppo.items():
                 if len(gruppo) > 1:
                     mini_punti = {c: 0 for c in gruppo}
@@ -330,7 +324,7 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                                     "girone": g_nome,
                                     "c1": s1, "c2": s2,
                                     "giocata": False, "in_corso": False,
-                                    "tavolo": random.randint(1, int(db["num_tavoli"])),
+                                    "tavolo": None,
                                     "gol1": 0, "gol2": 0
                                 })
                         turni_girone.append({"turno": t + 1, "partite": partite_turno})
@@ -403,7 +397,7 @@ if db["stato"] == "gironi":
             st.info("Nessuna partita in corso al momento.")
         else:
             for m in partite_in_corso:
-                tavolo_str = f"<b>🏟️ Biliardino {m.get('tavolo', 'N/D')}</b>" if m.get('tavolo') else "<b>🏟️ In campo</b>"
+                tavolo_str = f"<b>🏟️ Biliardino {m.get('tavolo')}</b>" if m.get('tavolo') else "<b>🏟️ In campo</b>"
                 st.markdown(
                     f"""
                     <div style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 5px; margin-bottom: 8px; color: #856404;">
@@ -414,12 +408,22 @@ if db["stato"] == "gironi":
                 )
 
     with col_coda:
-        num_in_corso_count = len(partite_in_corso)
-        partite_in_coda_correnti = partite_da_giocare[:max(num_in_corso_count, 1)]
+        tavoli_occupati_count = len(partite_in_corso)
+        tavoli_liberi = max(0, num_tavoli - tavoli_occupati_count)
         
-        st.markdown("#### ⏳ In Coda (Prossimi Incontri)")
+        # LOGICA AGGIORNATA: 
+        # All'inizio (finché ci sono tavoli liberi o poche partite avviate), mostra tanti elementi quanti sono i tavoli liberi.
+        # Una volta a regime (quando i tavoli occupati superano o eguagliano i liberi, o il torneo entra nel vivo), la coda rispecchia il numero di partite in corso.
+        if tavoli_occupati_count < tavoli_liberi:
+            limite_coda = max(tavoli_liberi, 1) if tavoli_liberi > 0 else 0
+        else:
+            limite_coda = max(tavoli_occupati_count, 1)
+            
+        partite_in_coda_correnti = partite_da_giocare[:limite_coda]
+        
+        st.markdown(f"#### ⏳ In Coda (Prossimi Incontri)")
         if not partite_in_coda_correnti:
-            st.info("La coda è vuota.")
+            st.info("La coda è vuota o tutti i tavoli sono occupati.")
         else:
             for idx, m in enumerate(partite_in_coda_correnti):
                 st.markdown(
@@ -444,7 +448,6 @@ if db["stato"] == "gironi":
                 with col_gironi[j]:
                     st.markdown(f"**📁 {g_nome}**")
                     
-                    # Ordinamento basato su: Punti -> Scontri Diretti -> Differenza Reti -> Gol Fatti
                     dati_girone = db["punti_gironi"][g_nome]
                     sorted_c = sorted(
                         dati_girone.items(),
