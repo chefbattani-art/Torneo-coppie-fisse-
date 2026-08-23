@@ -56,13 +56,16 @@ def pulisci_nome(testo):
 
 def ricalcola_classifiche_gironi():
     for g_nome, coppie_lista in db["gironi"].items():
-        punti = {c: 0 for c in coppie_lista}
+        # Struttura dati per memorizzare statistiche dettagliate per ogni coppia nel girone
+        stats = {c: {"punti": 0, "gf": 0, "gs": 0, "dr": 0, "scontri_diretti_pt": {}} for c in coppie_lista}
+        
         if g_nome in db["calendario_gironi"]:
+            # Prima passata: calcola punti, gol fatti, gol subiti generali
             for turno_obj in db["calendario_gironi"][g_nome]:
                 for m in turno_obj["partite"]:
                     if m.get("giocata", False):
-                        g1 = m["gol1"]
-                        g2 = m["gol2"]
+                        c1, c2 = m['c1'], m['c2']
+                        g1, g2 = m['gol1'], m['gol2']
                         diff = abs(g1 - g2)
                         
                         if g1 > g2:
@@ -72,9 +75,50 @@ def ricalcola_classifiche_gironi():
                         else:
                             pt_s1, pt_s2 = 2, 2
                         
-                        punti[m['c1']] = punti.get(m['c1'], 0) + pt_s1
-                        punti[m['c2']] = punti.get(m['c2'], 0) + pt_s2
-        db["punti_gironi"][g_nome] = punti
+                        stats[c1]["punti"] += pt_s1
+                        stats[c2]["punti"] += pt_s2
+                        stats[c1]["gf"] += g1
+                        stats[c1]["gs"] += g2
+                        stats[c2]["gf"] += g2
+                        stats[c2]["gs"] += g1
+
+            # Calcolo Differenza Reti generale
+            for c in coppie_lista:
+                stats[c]["dr"] = stats[c]["gf"] - stats[c]["gs"]
+
+            # Gestione Scontri Diretti in caso di arrivo a pari punti
+            # Raggruppiamo le squadre per punteggio
+            punti_gruppo = {}
+            for c in coppie_lista:
+                p = stats[c]["punti"]
+                if p not in punti_gruppo:
+                    punti_gruppo[p] = []
+                punti_gruppo[p].append(c)
+
+            # Per ogni gruppo con parità di punti (2 o più squadre), calcoliamo i mini-punti negli scontri diretti
+            for p, gruppo in punti_gruppo.items():
+                if len(gruppo) > 1:
+                    mini_punti = {c: 0 for c in gruppo}
+                    for turno_obj in db["calendario_gironi"][g_nome]:
+                        for m in turno_obj["partite"]:
+                            if m.get("giocata", False):
+                                c1, c2 = m['c1'], m['c2']
+                                if c1 in gruppo and c2 in gruppo:
+                                    g1, g2 = m['gol1'], m['gol2']
+                                    if g1 > g2:
+                                        mini_punti[c1] += 3
+                                    elif g2 > g1:
+                                        mini_punti[c2] += 3
+                                    else:
+                                        mini_punti[c1] += 1
+                                        mini_punti[c2] += 1
+                    for c in gruppo:
+                        stats[c]["scontri_diretti_pt"] = mini_punti[c]
+                else:
+                    for c in gruppo:
+                        stats[c]["scontri_diretti_pt"] = 0
+
+        db["punti_gironi"][g_nome] = stats
 
 def calcola_partite_giocate_coppia(g_nome, coppia):
     giocate = 0
@@ -263,7 +307,7 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                     gironi_dict[g_scelto].append(c)
                 
                 db["gironi"] = gironi_dict
-                db["punti_gironi"] = {g: {c: 0 for c in lst} for g, lst in gironi_dict.items()}
+                db["punti_gironi"] = {g: {c: {"punti": 0, "gf": 0, "gs": 0, "dr": 0, "scontri_diretti_pt": 0} for c in lst} for g, lst in gironi_dict.items()}
                 
                 calendario_totale = {}
                 for g_nome, lista_c in gironi_dict.items():
@@ -286,12 +330,13 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                                     "girone": g_nome,
                                     "c1": s1, "c2": s2,
                                     "giocata": False, "in_corso": False,
+                                    "tavolo": random.randint(1, int(db["num_tavoli"])),
                                     "gol1": 0, "gol2": 0
                                 })
-                        turni_turno.append({"turno": t + 1, "partite": partite_turno})
+                        turni_girone.append({"turno": t + 1, "partite": partite_turno})
                         squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
                     
-                    calendario_totale[g_nome] = turni_turno
+                    calendario_totale[g_nome] = turni_girone
                 
                 db["calendario_gironi"] = calendario_totale
                 db["stato"] = "gironi"
@@ -326,7 +371,6 @@ if db["stato"] == "gironi":
 
     max_turni = max([len(turni) for turni in db["calendario_gironi"].values()]) if db["calendario_gironi"] else 0
 
-    # Ricreiamo la lista mista globale in base all'alternanza dei gironi
     partite_per_girone_dict = {}
     for t_num in range(1, max_turni + 1):
         for g_nome, turni_girone in db["calendario_gironi"].items():
@@ -359,10 +403,11 @@ if db["stato"] == "gironi":
             st.info("Nessuna partita in corso al momento.")
         else:
             for m in partite_in_corso:
+                tavolo_str = f"<b>🏟️ Biliardino {m.get('tavolo', 'N/D')}</b>" if m.get('tavolo') else "<b>🏟️ In campo</b>"
                 st.markdown(
                     f"""
                     <div style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 5px; margin-bottom: 8px; color: #856404;">
-                        <b>🏟️ {m['girone']}</b><br>{m['c1']} vs {m['c2']}
+                        {tavolo_str} - <b>{m['girone']}</b><br>{m['c1']} vs {m['c2']}
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -370,7 +415,6 @@ if db["stato"] == "gironi":
 
     with col_coda:
         num_in_corso_count = len(partite_in_corso)
-        # La coda mostra lo stesso numero di partite rispetto a quelle in corso (o comunque le prossime in ordine)
         partite_in_coda_correnti = partite_da_giocare[:max(num_in_corso_count, 1)]
         
         st.markdown("#### ⏳ In Coda (Prossimi Incontri)")
@@ -390,26 +434,34 @@ if db["stato"] == "gironi":
     st.markdown("---")
 
     # --- CLASSIFICHE DEI GIRONI ---
-    st.subheader("📊 Classifiche dei Gironi")
+    st.subheader("📊 Classifiche dei Gironi (con Scontri Diretti e Differenza Reti)")
     nomi_gironi_chiavi = list(db["gironi"].keys())
     for i in range(0, len(nomi_gironi_chiavi), 2):
         col_gironi = st.columns(2)
         for j in range(2):
             if i + j < len(nomi_gironi_chiavi):
                 g_nome = nomi_gironi_chiavi[i + j]
-                coppie_lista = db["gironi"][g_nome]
                 with col_gironi[j]:
                     st.markdown(f"**📁 {g_nome}**")
-                    sorted_c = sorted(db["punti_gironi"][g_nome].items(), key=lambda x: x[1], reverse=True)
+                    
+                    # Ordinamento basato su: Punti -> Scontri Diretti -> Differenza Reti -> Gol Fatti
+                    dati_girone = db["punti_gironi"][g_nome]
+                    sorted_c = sorted(
+                        dati_girone.items(),
+                        key=lambda x: (x[1]["punti"], x[1]["scontri_diretti_pt"], x[1]["dr"], x[1]["gf"]),
+                        reverse=True
+                    )
                     
                     data_g = []
-                    for idx, (coppia, pt) in enumerate(sorted_c):
+                    for idx, (coppia, info) in enumerate(sorted_c):
                         gioc, tot = calcola_partite_giocate_coppia(g_nome, coppia)
                         fascia_assegnata = "⭐ A" if idx < 4 else "🔻 B"
                         data_g.append({
                             "Pos": f"{idx+1}°",
                             "Coppia": coppia,
-                            "Pt": pt,
+                            "Pt": info["punti"],
+                            "DR": info["dr"],
+                            "GF": info["gf"],
                             "Gioc": f"{gioc}/{tot}",
                             "Fascia": fascia_assegnata
                         })
@@ -434,29 +486,39 @@ if db["stato"] == "gironi":
 
     st.markdown("---")
     
-    # --- LISTA UNICA ORDINATA DELLE PARTITE (SENZA TURNI GLOBALI) ---
+    # --- LISTA UNICA ORDINATA DELLE PARTITE ---
     st.subheader("📅 Lista Unica Incontri di Girone")
-    st.info(f"📌 **Biliardini ({num_tavoli}):** Elenco unico ordinato alternando i gironi.")
+    st.info(f"📌 **Biliardini ({num_tavoli}):** Assegnazione automatica del tavolo libero quando la partita viene avviata.")
 
     for m in partite_miste_totali:
         match_id = m['id']
         girone_m = m['girone']
 
         with st.container(border=True):
-            st.caption(f"📁 **{girone_m}**")
-            col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
+            info_tavolo_str = f" - 🏟️ **Biliardino {m['tavolo']}**" if m.get("in_corso") and m.get("tavolo") else ""
+            st.caption(f"📁 **{girone_m}**{info_tavolo_str}")
+            col_s1, col_mid, col_s2 = st.columns([4, 3, 4], gap="small")
             with col_s1:
                 st.info(f"🤝 **{m['c1']}**")
             with col_mid:
                 if m["giocata"]:
                     st.error(f"🛑 **{m['gol1']} - {m['gol2']}**")
                 elif m.get("in_corso", False):
-                    st.warning("🔥 **In Corso al Tavolo**")
+                    st.warning(f"🔥 **In Corso (Tavolo {m.get('tavolo', 'N/D')})**")
                 else:
                     st.write("**VS**")
                     if is_admin:
-                        if st.button("▶️ Metti al Tavolo", key=f"btn_avvia_{match_id}", use_container_width=True):
+                        if st.button(f"▶️ Metti al Tavolo", key=f"btn_avvia_{match_id}", use_container_width=True):
+                            tavoli_occupati = [p.get("tavolo") for p in partite_in_corso if p.get("tavolo") is not None]
+                            tavoli_disponibili = [t for t in range(1, num_tavoli + 1) if t not in tavoli_occupati]
+                            
+                            if tavoli_disponibili:
+                                tavolo_assegnato = random.choice(tavoli_disponibili)
+                            else:
+                                tavolo_assegnato = random.randint(1, num_tavoli)
+                                
                             m["in_corso"] = True
+                            m["tavolo"] = tavolo_assegnato
                             salva_dati(db)
                             st.rerun()
             with col_s2:
@@ -471,6 +533,7 @@ if db["stato"] == "gironi":
                         m['gol2'] = rg2
                         m['giocata'] = True
                         m['in_corso'] = False
+                        m['tavolo'] = None
                         ricalcola_classifiche_gironi()
                         salva_dati(db)
                         st.success("Salvato e aggiornato!")
@@ -483,7 +546,12 @@ if db["stato"] == "gironi":
             classificate_a = {}
             classificate_b = {}
             for g_nome in db["gironi"]:
-                sorted_c = sorted(db["punti_gironi"][g_nome].items(), key=lambda x: x[1], reverse=True)
+                dati_girone = db["punti_gironi"][g_nome]
+                sorted_c = sorted(
+                    dati_girone.items(),
+                    key=lambda x: (x[1]["punti"], x[1]["scontri_diretti_pt"], x[1]["dr"], x[1]["gf"]),
+                    reverse=True
+                )
                 squadre_girone = [c[0] for c in sorted_c]
                 classificate_a[g_nome] = squadre_girone[:4]
                 classificate_b[g_nome] = squadre_girone[4:]
