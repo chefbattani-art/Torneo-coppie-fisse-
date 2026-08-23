@@ -180,6 +180,10 @@ if modalita_admin:
 
 st.sidebar.markdown("---")
 
+if is_admin:
+    if st.sidebar.button("⚙️ Mostra / Nascondi Setup Iniziale", use_container_width=True):
+        st.session_state["mostra_setup"] = not st.session_state.get("mostra_setup", False)
+
 if is_admin and db["stato"] == "fasi_finali":
     if st.sidebar.button("🔙 Torna temporaneamente ai Gironi", use_container_width=True):
         db["stato"] = "gironi"
@@ -220,8 +224,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 1. SETUP
-if db["stato"] == "setup":
+# 1. SETUP (Visibile solo se richiesto dall'admin o se il torneo è in stato setup)
+if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
     st.subheader("1. Configurazione Iniziale Torneo a Coppie")
     
     if not is_admin:
@@ -297,11 +301,13 @@ if db["stato"] == "setup":
                 db["terzo_quarto_b"] = []
                 salva_dati(db)
                 st.success("Gironi e calendario generati con successo!")
+                st.session_state["mostra_setup"] = False
                 st.rerun()
+    st.markdown("---")
 
 # 2. FASE A GIRONI
-elif db["stato"] == "gironi":
-    st.subheader("📊 Fase a Gironi all'Italiana")
+if db["stato"] == "gironi":
+    st.subheader("📊 Classifiche dei Gironi")
     ricalcola_classifiche_gironi()
     num_tavoli = db.get("num_tavoli", 6)
 
@@ -312,7 +318,44 @@ elif db["stato"] == "gironi":
             st.rerun()
         st.markdown("---")
 
-    # --- PANNELLO IN ALTO: PARTITE IN CORSO, CHIAMATE E CODA ---
+    # Mostra le classifiche affiancate per tutti i gironi in alto
+    col_gironi = st.columns(len(db["gironi"]))
+    for idx_g, (g_nome, coppie_lista) in enumerate(db["gironi"].items()):
+        with col_gironi[idx_g]:
+            st.markdown(f"**📁 {g_nome}**")
+            sorted_c = sorted(db["punti_gironi"][g_nome].items(), key=lambda x: x[1], reverse=True)
+            
+            data_g = []
+            for idx, (coppia, pt) in enumerate(sorted_c):
+                gioc, tot = calcola_partite_giocate_coppia(g_nome, coppia)
+                fascia_assegnata = "⭐ A" if idx < 4 else "🔻 B"
+                data_g.append({
+                    "Pos": f"{idx+1}°",
+                    "Coppia": coppia,
+                    "Pt": pt,
+                    "Gioc": f"{gioc}/{tot}",
+                    "Fascia": fascia_assegnata
+                })
+                
+            df_g = pd.DataFrame(data_g)
+            
+            def colora_fasce(val):
+                try:
+                    pos = int(str(val).replace("°", ""))
+                    if pos <= 4:
+                        return 'background-color: #d4edda; color: #155724; font-weight: bold;'
+                    else:
+                        return 'background-color: #f8d7da; color: #721c24;'
+                except:
+                    return ''
+
+            if not df_g.empty:
+                df_styled = df_g.style.map(colora_fasce, subset=["Pos"])
+                st.dataframe(df_styled, hide_index=True, use_container_width=True)
+            else:
+                st.dataframe(df_g, hide_index=True, use_container_width=True)
+
+    # --- PANNELLO IN ALTO: PARTITE IN CORSO E CHIAMATE ---
     st.markdown("---")
     st.subheader("⚡ Stato dei Biliardini e Coda Incontri")
 
@@ -357,89 +400,63 @@ elif db["stato"] == "gironi":
                 st.write(f"{idx+1}. **{m['girone']}**: {m['c1']} vs {m['c2']}")
 
     st.markdown("---")
-    st.info(f"📌 **Organizzazione Biliardini:** Hai impostato **{num_tavoli} biliardini**. Gestisci le partite direttamente dai singoli gironi qui sotto.")
+    st.subheader("📅 Tutte le Partite dei Gironi (Mischia Unica per Turno)")
+    st.info(f"📌 **Organizzazione Biliardini:** Hai impostato **{num_tavoli} biliardini**. Le partite di tutti i gironi sono unite e mischiate per turno.")
 
-    for g_nome, coppie_lista in db["gironi"].items():
-        st.markdown(f"## 📁 {g_nome}")
+    # Raccogliamo i turni massimi tra tutti i gironi per mostrarli insieme
+    max_turni = max([len(turni) for turni in db["calendario_gironi"].values()])
+
+    for t_num in range(1, max_turni + 1):
+        st.markdown(f"### 🚩 Turno {t_num}")
         
-        st.markdown(f"#### 🏆 Classifica {g_nome}")
-        sorted_c = sorted(db["punti_gironi"][g_nome].items(), key=lambda x: x[1], reverse=True)
+        # Raccogliamo tutte le partite di questo turno da TUTTI i gironi e le mischiamo/uniamo
+        partite_questo_turno = []
+        for g_nome, turni_girone in db["calendario_gironi"].items():
+            for t_obj in turni_girone:
+                if t_obj["turno"] == t_num:
+                    partite_questo_turno.extend(t_obj["partite"])
         
-        data_g = []
-        for idx, (coppia, pt) in enumerate(sorted_c):
-            gioc, tot = calcola_partite_giocate_coppia(g_nome, coppia)
-            fascia_assegnata = "⭐ Fascia A" if idx < 4 else "🔻 Fascia B"
-            data_g.append({
-                "Pos": f"{idx+1}°",
-                "Coppia": coppia,
-                "Punti": pt,
-                "Giocate": f"{gioc}/{tot}",
-                "Destinazione": fascia_assegnata
-            })
-            
-        df_g = pd.DataFrame(data_g)
-        
-        def colora_fasce(val):
-            try:
-                pos = int(str(val).replace("°", ""))
-                if pos <= 4:
-                    return 'background-color: #d4edda; color: #155724; font-weight: bold;'
-                else:
-                    return 'background-color: #f8d7da; color: #721c24;'
-            except:
-                return ''
+        for m in partite_questo_turno:
+            match_id = m['id']
+            girone_m = m['girone']
 
-        if not df_g.empty:
-            df_styled = df_g.style.map(colora_fasce, subset=["Pos"])
-            st.dataframe(df_styled, hide_index=True, use_container_width=True)
-        else:
-            st.dataframe(df_g, hide_index=True, use_container_width=True)
-
-        st.markdown(f"#### 📅 Partite del {g_nome}")
-        
-        turni_girone = db["calendario_gironi"][g_nome]
-        for turno_obj in turni_girone:
-            t_num = turno_obj["turno"]
-            st.markdown(f"**🚩 Turno {t_num}**")
-            
-            for m in turno_obj["partite"]:
-                match_id = m['id']
-
-                # Riquadro separato per ogni singola partita
-                with st.container(border=True):
-                    col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
-                    with col_s1:
-                        st.info(f"🤝 **{m['c1']}**")
-                    with col_mid:
-                        if m["giocata"]:
-                            st.error(f"🛑 **{m['gol1']} - {m['gol2']}**")
-                        elif m.get("in_corso", False):
-                            st.warning("🔥 **In Corso al Tavolo**")
-                        else:
-                            st.write("**VS**")
-                            if is_admin:
-                                if st.button("▶️ Metti al Tavolo", key=f"btn_avvia_{match_id}", use_container_width=True):
-                                    m["in_corso"] = True
-                                    salva_dati(db)
-                                    st.rerun()
-                    with col_s2:
-                        st.info(f"🤝 **{m['c2']}**")
-
-                    if is_admin:
-                        with st.expander(f"⚙️ Gestisci Risultato: {m['c1']} vs {m['c2']}"):
-                            rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}")
-                            rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}")
-                            if st.button("💾 Salva Risultato", key=f"save_{match_id}", use_container_width=True):
-                                m['gol1'] = rg1
-                                m['gol2'] = rg2
-                                m['giocata'] = True
-                                m['in_corso'] = False
-                                ricalcola_classifiche_gironi()
+            # Riquadro separato per ogni singola partita
+            with st.container(border=True):
+                st.caption(f"📁 **{girone_m}**")
+                col_s1, col_mid, col_s2 = st.columns([4, 2.5, 4], gap="small")
+                with col_s1:
+                    st.info(f"🤝 **{m['c1']}**")
+                with col_mid:
+                    if m["giocata"]:
+                        st.error(f"🛑 **{m['gol1']} - {m['gol2']}**")
+                    elif m.get("in_corso", False):
+                        st.warning("🔥 **In Corso al Tavolo**")
+                    else:
+                        st.write("**VS**")
+                        if is_admin:
+                            if st.button("▶️ Metti al Tavolo", key=f"btn_avvia_{match_id}", use_container_width=True):
+                                m["in_corso"] = True
                                 salva_dati(db)
-                                st.success("Salvato e aggiornato!")
                                 st.rerun()
+                with col_s2:
+                    st.info(f"🤝 **{m['c2']}**")
+
+                if is_admin:
+                    with st.expander(f"⚙️ Gestisci Risultato: {m['c1']} vs {m['c2']}"):
+                        rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}")
+                        rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}")
+                        if st.button("💾 Salva Risultato", key=f"save_{match_id}", use_container_width=True):
+                            m['gol1'] = rg1
+                            m['gol2'] = rg2
+                            m['giocata'] = True
+                            m['in_corso'] = False
+                            ricalcola_classifiche_gironi()
+                            salva_dati(db)
+                            st.success("Salvato e aggiornato!")
+                            st.rerun()
 
     if is_admin:
+        st.markdown("---")
         btn_testo = "🔄 Aggiorna Tabelloni Fasi Finali con Classifiche Ricalcolate" if db.get("fasi_finali_configurate", False) else "🏆 Genera Fasi Finali (Fascia A e Fascia B)"
         if st.button(btn_testo, use_container_width=True):
             classificate_a = {}
