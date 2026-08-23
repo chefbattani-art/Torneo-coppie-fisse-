@@ -215,7 +215,19 @@ else:
 st.sidebar.markdown("---")
 
 # --- INTERFACCIA PRINCIPALE ---
-st.title("🏆 Torneo Coppie Fisse Live")
+st.markdown(
+    """
+    <div style="text-align: left; margin-bottom: 10px;">
+        <h1 style="font-size: 26px; white-space: nowrap; margin: 0; padding: 0; color: #262730;">
+            🏆 Torneo Coppie Fisse Live
+        </h1>
+        <p style="font-size: 16px; color: #666; margin: 4px 0 0 0; font-weight: 500;">
+            Regolamento 3 Tocchi Uisp
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.markdown(
     """
@@ -294,10 +306,10 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                                     "tavolo": None,
                                     "gol1": 0, "gol2": 0
                                 })
-                        turni_girone.append({"turno": t + 1, "partite": partite_turno})
+                        turni_turno.append({"turno": t + 1, "partite": partite_turno})
                         squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
                     
-                    calendario_totale[g_nome] = turni_girone
+                    calendario_totale[g_nome] = turni_turno
                 
                 db["calendario_gironi"] = calendario_totale
                 db["stato"] = "gironi"
