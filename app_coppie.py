@@ -283,10 +283,10 @@ if db["stato"] == "setup":
                                     "giocata": False, "in_corso": False,
                                     "gol1": 0, "gol2": 0
                                 })
-                        turni_turno.append({"turno": t + 1, "partite": partite_turno})
+                        turni_girone.append({"turno": t + 1, "partite": partite_turno})
                         squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
                     
-                    calendario_totale[g_nome] = turni_turno
+                    calendario_totale[g_nome] = turni_girone
                 
                 db["calendario_gironi"] = calendario_totale
                 db["stato"] = "gironi"
@@ -299,7 +299,7 @@ if db["stato"] == "setup":
                 st.success("Gironi e calendario generati con successo!")
                 st.rerun()
 
-# 2. FASE A GIRONI (GIRONI SEPARATI E GESTIONE PER TAVOLI FISSI)
+# 2. FASE A GIRONI
 elif db["stato"] == "gironi":
     st.subheader("📊 Fase a Gironi all'Italiana")
     ricalcola_classifiche_gironi()
@@ -332,7 +332,6 @@ elif db["stato"] == "gironi":
     for g_nome, coppie_lista in gironi_da_mostrare.items():
         st.markdown(f"## 📁 {g_nome}")
         
-        # Classifica
         st.markdown(f"#### 🏆 Classifica {g_nome}")
         sorted_c = sorted(db["punti_gironi"][g_nome].items(), key=lambda x: x[1], reverse=True)
         
