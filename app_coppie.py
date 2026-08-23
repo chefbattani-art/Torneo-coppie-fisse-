@@ -158,8 +158,6 @@ def ottieni_nome_turno_dinamico(num_partite_turno):
         return "⭐ OTTAVI DI FINALE"
     elif num_partite_turno == 16:
         return "🚀 SEDICESIMI DI FINALE"
-    elif num_partite_turno == 32:
-        return "🌟 TRENTADUESIMI DI FINALE"
     else:
         return f"Eliminazione Diretta ({num_partite_turno * 2} Coppie)"
 
@@ -197,7 +195,6 @@ def crea_abbinamenti_protetti(classificate_per_girone):
             nome_s2 = s2_lista[s2_idx] if len(s2_lista) > s2_idx else ("RIPOSO" if len(s2_lista)==0 else s2_lista[0])
             gir_s2 = [k for k, v in classificate_per_girone.items() if s2_lista == v][0]
             
-            # Evita duplicazioni anomale nello stesso turno
             if nome_s1 != "RIPOSO" and nome_s1 in gia_inserite:
                 continue
             if nome_s2 != "RIPOSO" and nome_s2 in gia_inserite:
@@ -665,7 +662,7 @@ if db["stato"] == "gironi":
 
     if is_admin:
         st.markdown("---")
-        btn_testo = "🔄 Aggiorna Tabelloni Fasi Finali con Classifiche Ricalcolate" if db.get("fasi_finali_configurate", False) else "🏆 Genera Fasi Finali (Fascia A e Fascia B)"
+        btn_testo = "🔄 Ricrea / Resetta Fasi Finali da Zero" if db.get("fasi_finali_configurate", False) else "🏆 Genera Fasi Finali (Fascia A e Fascia B)"
         if st.button(btn_testo, use_container_width=True):
             classificate_a = {}
             classificate_b = {}
@@ -701,31 +698,21 @@ if db["stato"] == "gironi":
                     "giocata": False, "gol1": 0, "gol2": 0, "vincente": None
                 })
                 
-            if not db.get("fasi_finali_configurate", False):
-                db["tabellone_a"] = [ {"turno": 1, "partite": turno_a_iniziale} ]
-                db["tabellone_b"] = [ {"turno": 1, "partite": turno_b_iniziale} ]
-                db["terzo_quarto_a"] = []
-                db["terzo_quarto_b"] = []
-            else:
-                if db["tabellone_a"]:
-                    db["tabellone_a"][0]["partite"] = turno_a_iniziale
-                else:
-                    db["tabellone_a"] = [ {"turno": 1, "partite": turno_a_iniziale} ]
-                if db["tabellone_b"]:
-                    db["tabellone_b"][0]["partite"] = turno_b_iniziale
-                else:
-                    db["tabellone_b"] = [ {"turno": 1, "partite": turno_b_iniziale} ]
+            db["tabellone_a"] = [ {"turno": 1, "partite": turno_a_iniziale} ]
+            db["tabellone_b"] = [ {"turno": 1, "partite": turno_b_iniziale} ]
+            db["terzo_quarto_a"] = []
+            db["terzo_quarto_b"] = []
 
             db["stato"] = "fasi_finali"
             db["fasi_finali_configurate"] = True
             salva_dati(db)
-            st.success("Operazione completata con successo! Ritorno alle Fasi Finali...")
+            st.success("Fasi finali rigenerate da zero con successo!")
             st.rerun()
 
 # 3. FASI FINALI
 elif db["stato"] == "fasi_finali":
     st.subheader("🏆 Fasi Finali: Tabelloni a Eliminazione Diretta")
-    st.info("💡 Gestione turni step-by-step: il nome della fase si adatta automaticamente in base alle coppie rimaste (Ottavi, Quarti, Semifinali, Finale).")
+    st.info("💡 Gestione turni pulita: i tabelloni partono correttamente dal turno iniziale configurato.")
     
     tab_a_view, tab_b_view = st.tabs(["⭐ Fascia A (Torneo Principale)", "🔻 Fascia B (Torneo Secondario)"])
     
@@ -841,7 +828,7 @@ elif db["stato"] == "fasi_finali":
                             """,
                             unsafe_allow_html=True
                         )
-                        rg1 = st.radio("Gol S1_hidden", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}", label_visibility="collapsed")
+                        rg1 = st.radio("Gol S1_hidden", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"ff_rg1_{match_id}", label_visibility="collapsed")
                         
                         st.markdown(
                             f"""
@@ -851,9 +838,9 @@ elif db["stato"] == "fasi_finali":
                             """,
                             unsafe_allow_html=True
                         )
-                        rg2 = st.radio("Gol S2_hidden", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}", label_visibility="collapsed")
+                        rg2 = st.radio("Gol S2_hidden", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"ff_rg2_{match_id}", label_visibility="collapsed")
                         
-                        if st.button("💾 Salva / Aggiorna Risultato", key=f"save_{match_id}", use_container_width=True):
+                        if st.button("💾 Salva / Aggiorna Risultato", key=f"ff_save_{match_id}", use_container_width=True):
                             m['gol1'] = rg1
                             m['gol2'] = rg2
                             m['giocata'] = True
@@ -908,17 +895,7 @@ elif db["stato"] == "fasi_finali":
                         })
                 
                 turno_esistente = next((t for t in turni_tab if t['turno'] == prossimo_turno_num), None)
-                if turno_esistente and is_admin:
-                    for idx_p, p_nuova in enumerate(nuove_partite):
-                        if idx_p < len(turno_esistente["partite"]):
-                            turno_esistente["partite"][idx_p]["s1"] = p_nuova["s1"]
-                            turno_esistente["partite"][idx_p]["g1"] = p_nuova["g1"]
-                            turno_esistente["partite"][idx_p]["p1"] = p_nuova["p1"]
-                            turno_esistente["partite"][idx_p]["s2"] = p_nuova["s2"]
-                            turno_esistente["partite"][idx_p]["g2"] = p_nuova["g2"]
-                            turno_esistente["partite"][idx_p]["p2"] = p_nuova["p2"]
-                    salva_dati(db)
-                elif not turno_esistente and is_admin and nuove_partite:
+                if not turno_esistente and is_admin and nuove_partite:
                     turni_tab.append({"turno": prossimo_turno_num, "partite": nuove_partite})
                     salva_dati(db)
                     st.success(f"🎉 Turno successivo generato con successo!")
