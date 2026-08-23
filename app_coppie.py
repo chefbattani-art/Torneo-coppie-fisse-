@@ -184,6 +184,25 @@ if modalita_admin:
         st.sidebar.error("PIN errato.")
 
 st.sidebar.markdown("---")
+
+# --- PULSANTE DI RESET TOTALE AGGIUNTO QUI ---
+st.sidebar.subheader("⚠️ Zona Pericolo")
+if is_admin:
+    conferma_reset = st.sidebar.checkbox("Spunta per confermare il reset totale", key="checkbox_reset_gara")
+    if st.sidebar.button("🔄 Ricomincia la gara da zero", use_container_width=True):
+        if conferma_reset:
+            if os.path.exists(DB_FILE):
+                os.remove(DB_FILE)
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.success("Torneo azzerato con successo! Ricarico...")
+            st.rerun()
+        else:
+            st.sidebar.warning("⚠️ Spunta la casella di conferma sopra per procedere.")
+else:
+    st.sidebar.info("🔐 Accedi come admin per resettare la gara.")
+
+st.sidebar.markdown("---")
 st.sidebar.info("📱 **Link WhatsApp:** Copia l'indirizzo della pagina dal browser e incollalo nel gruppo.")
 
 # --- INTERFACCIA PRINCIPALE ---
@@ -555,27 +574,37 @@ elif db["stato"] == "fasi_finali":
 
             if tutti_giocati and len(partite_turno) > 1:
                 prossimo_turno_num = t_num + 1
-                turno_esistente = any(t['turno'] == prossimo_turno_num for t in turni_tab)
                 
-                if not turno_esistente and is_admin:
-                    vincitori_con_girone = [(v, mappa_girone.get(v, "Sconosciuto")) for v in vincitori_turno]
-                    nuove_partite = []
-                    for i in range(0, len(vincitori_con_girone), 2):
-                        if i + 1 < len(vincitori_con_girone):
-                            s1_info = vincitori_con_girone[i]
-                            s2_info = vincitori_con_girone[i+1]
-                            nuove_partite.append({
-                                "id": f"{chiave_tabellone}_t{prossimo_turno_num}_m{i//2}",
-                                "s1": s1_info[0], "g1": s1_info[1],
-                                "s2": s2_info[0], "g2": s2_info[1],
-                                "giocata": False, "gol1": 0, "gol2": 0, "vincente": None
-                            })
-                    
-                    if nuove_partite:
-                        turni_tab.append({"turno": prossimo_turno_num, "partite": nuove_partite})
-                        salva_dati(db)
-                        st.success(f"🎉 Turno successivo generato con successo!")
-                        st.rerun()
+                vincitori_con_girone = [(v, mappa_girone.get(v, "Sconosciuto")) for v in vincitori_turno]
+                nuove_partite = []
+                for i in range(0, len(vincitori_con_girone), 2):
+                    if i + 1 < len(vincitori_con_girone):
+                        s1_info = vincitori_con_girone[i]
+                        s2_info = vincitori_con_girone[i+1]
+                        nuove_partite.append({
+                            "id": f"{chiave_tabellone}_t{prossimo_turno_num}_m{i//2}",
+                            "s1": s1_info[0], "g1": s1_info[1],
+                            "s2": s2_info[0], "g2": s2_info[1],
+                            "giocata": False, "gol1": 0, "gol2": 0, "vincente": None
+                        })
+                
+                # Controlla se il turno successivo esiste già
+                turno_esistente = next((t for t in turni_tab if t['turno'] == prossimo_turno_num), None)
+                
+                if turno_esistente and is_admin:
+                    # Aggiorna le squadre del turno esistente con i nuovi vincitori reali
+                    for idx_p, p_nuova in enumerate(nuove_partite):
+                        if idx_p < len(turno_esistente["partite"]):
+                            turno_esistente["partite"][idx_p]["s1"] = p_nuova["s1"]
+                            turno_esistente["partite"][idx_p]["g1"] = p_nuova["g1"]
+                            turno_esistente["partite"][idx_p]["s2"] = p_nuova["s2"]
+                            turno_esistente["partite"][idx_p]["g2"] = p_nuova["g2"]
+                    salva_dati(db)
+                elif not turno_esistente and is_admin and nuove_partite:
+                    turni_tab.append({"turno": prossimo_turno_num, "partite": nuove_partite})
+                    salva_dati(db)
+                    st.success(f"🎉 Turno successivo generato con successo!")
+                    st.rerun()
 
         if db[chiave_34]:
             st.markdown("#### 🥉 FINALE 3° / 4° POSTO")
