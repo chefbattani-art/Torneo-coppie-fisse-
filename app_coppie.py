@@ -148,16 +148,22 @@ def genera_pdf_coppie():
             pdf.ln(2)
     return bytes(pdf.output())
 
-def ottieni_nome_turno(num_turno, totale_turni):
-    diff = totale_turni - num_turno
-    if diff == 0:
+def ottieni_nome_turno_dinamico(num_partite_turno, totale_turni, num_turno_corrente):
+    diff_dalla_fine = totale_turni - num_turno_corrente
+    if diff_dalla_fine == 0 or num_partite_turno == 1:
         return "🏆 FINALE"
-    elif diff == 1:
+    elif diff_dalla_fine == 1 or num_partite_turno == 2:
         return "⚔️ SEMIFINALI"
-    elif diff == 2:
+    elif num_partite_turno == 4:
         return "🔥 QUARTI DI FINALE"
+    elif num_partite_turno == 8:
+        return "⭐ OTTAVI DI FINALE"
+    elif num_partite_turno == 16:
+        return "🚀 SEDICESIMI DI FINALE"
+    elif num_partite_turno == 32:
+        return "🌟 TRENTADUESIMI DI FINALE"
     else:
-        return f"Turno {num_turno}"
+        return f"Turno Eliminazione ({num_partite_turno} match)"
 
 def crea_abbinamenti_protetti(classificate_per_girone):
     nomi_gironi = list(classificate_per_girone.keys())
@@ -430,15 +436,12 @@ if db["stato"] == "gironi":
         if cambiato:
             salva_dati(db)
 
-    # =========================================================================
-    # ORDINAMENTO FORZATO: Mette in fila le partite in corso dal Biliardino 1 in poi
-    # =========================================================================
+    # Ordinamento forzato dal Biliardino 1 in poi
     partite_in_corso = sorted(
         partite_in_corso, 
         key=lambda x: x.get('tavolo') if x.get('tavolo') is not None else 999
     )
 
-    # --- SEZIONE PARTITE IN CORSO E CODA ---
     st.subheader("⚡ Stato dei Biliardini e Coda Incontri")
 
     col_ic, col_coda = st.columns(2)
@@ -515,7 +518,6 @@ if db["stato"] == "gironi":
 
     st.markdown("---")
 
-    # --- CLASSIFICHE DEI GIRONI ---
     st.subheader("📊 Classifiche dei Gironi (con Scontri Diretti e Differenza Reti)")
     nomi_gironi_chiavi = list(db["gironi"].keys())
     for i in range(0, len(nomi_gironi_chiavi), 2):
@@ -567,7 +569,6 @@ if db["stato"] == "gironi":
 
     st.markdown("---")
     
-    # --- PARTITE PER GIRONE (TABS) CON RIQUADRO COMPATTO ---
     st.subheader("📅 Incontri per Girone")
     st.info(f"📌 **Biliardini ({num_tavoli}):** Seleziona il girone per verificare le partite giocate, in corso o da disputare.")
 
@@ -712,7 +713,7 @@ if db["stato"] == "gironi":
 # 3. FASI FINALI
 elif db["stato"] == "fasi_finali":
     st.subheader("🏆 Fasi Finali: Tabelloni a Eliminazione Diretta")
-    st.info("💡 Gestione completa turni finali con possibilità di modifica risultati.")
+    st.info("💡 Gestione completa turni finali con riconoscimento automatico turni e podio finale.")
     
     tab_a_view, tab_b_view = st.tabs(["⭐ Fascia A (Torneo Principale)", "🔻 Fascia B (Torneo Secondario)"])
     
@@ -726,12 +727,19 @@ elif db["stato"] == "fasi_finali":
             for sq in lista_sq:
                 mappa_girone[sq] = g
 
-        for turno_obj in turni_tab:
+        campione = None
+        secondo_posto = None
+        terzo_posto = None
+        quarto_posto = None
+
+        for t_idx, turno_obj in enumerate(turni_tab):
             t_num = turno_obj["turno"]
-            nome_etichetta = ottieni_nome_turno(t_num, totale_turni)
+            partite_turno = turno_obj["partite"]
+            num_part = len(partite_turno)
+            
+            nome_etichetta = ottieni_nome_turno_dinamico(num_part, totale_turni, t_num)
             st.markdown(f"#### 🚩 {nome_etichetta}")
             
-            partite_turno = turno_obj["partite"]
             tutti_giocati = True
             vincitori_turno = []
             perdenti_turno = []
@@ -806,6 +814,13 @@ elif db["stato"] == "fasi_finali":
                                 salva_dati(db)
                                 st.success("Risultato aggiornato con successo!")
                                 st.rerun()
+
+            # Estrazione Campione e Secondo se siamo in Finale e giocata
+            if nome_etichetta == "🏆 FINALE" and tutti_giocati and len(partite_turno) == 1:
+                fin_m = partite_turno[0]
+                if fin_m["giocata"] and fin_m.get("vincente"):
+                    campione = fin_m["vincente"]
+                    secondo_posto = fin_m['s2'] if campione == fin_m['s1'] else fin_m['s1']
                 
             if tutti_giocati and nome_etichetta == "⚔️ SEMIFINALI" and len(perdenti_turno) >= 2 and not db[chiave_34]:
                 if is_admin:
@@ -861,6 +876,8 @@ elif db["stato"] == "fasi_finali":
                 with col_mid:
                     if tq_match["giocata"]:
                         st.error(f"🛑 **{tq_match['gol1']} - {tq_match['gol2']}**\nVince 3° Posto: **{tq_match['vincente']}**")
+                        terzo_posto = tq_match["vincente"]
+                        quarto_posto = tq_match['s2'] if terzo_posto == tq_match['s1'] else tq_match['s1']
                     else:
                         st.write("**VS**")
                 with col_s2:
@@ -901,6 +918,23 @@ elif db["stato"] == "fasi_finali":
                             salva_dati(db)
                             st.success("Risultato 3°/4° posto salvato!")
                             st.rerun()
+
+        # PODIO FINALE
+        if campione:
+            st.markdown("---")
+            st.markdown(f"### 🌟 PODIO FINALE - {titolo_tab}")
+            st.markdown(
+                f"""
+                <div style="background: linear-gradient(135deg, #fff3cd 0%, #fff9e6 100%); border: 2px solid #ffc107; padding: 20px; border-radius: 12px; text-align: center; color: #856404; margin-top: 15px;">
+                    <h2 style="margin: 0 0 15px 0; color: #856404;">🏆 CLASSIFICA FINALE 🏆</h2>
+                    <p style="font-size: 20px; margin: 8px 0;">🥇 <b>1° POSTO (Campioni):</b> {campione}</p>
+                    <p style="font-size: 18px; margin: 8px 0;">🥈 <b>2° POSTO:</b> {secondo_posto if secondo_posto else 'N.D.'}</p>
+                    <p style="font-size: 18px; margin: 8px 0;">🥉 <b>3° POSTO:</b> {terzo_posto if terzo_posto else 'N.D.'}</p>
+                    <p style="font-size: 16px; margin: 8px 0; color: #666;">4° Posto: {quarto_posto if quarto_posto else 'N.D.'}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
     with tab_a_view:
         gestisci_tabellone("tabellone_a", "terzo_quarto_a", "Tabellone Eliminazione Diretta - Fascia A")
