@@ -327,10 +327,10 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                                     "tavolo": None,
                                     "gol1": 0, "gol2": 0
                                 })
-                        turni_girone.append({"turno": t + 1, "partite": partite_turno})
+                        turni_turno.append({"turno": t + 1, "partite": partite_turno})
                         squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
                     
-                    calendario_totale[g_nome] = turni_girone
+                    calendario_totale[g_nome] = turni_turno
                 
                 db["calendario_gironi"] = calendario_totale
                 db["stato"] = "gironi"
@@ -387,6 +387,22 @@ if db["stato"] == "gironi":
             else:
                 partite_da_giocare.append(m)
 
+    # --- RIEMPIMENTO AUTOMATICO TAVOLI LIBERI DALLA CODA ---
+    tavoli_occupati_ids = [p.get("tavolo") for p in partite_in_corso if p.get("tavolo") is not None]
+    tavoli_liberi_disponibili = [t for t in range(1, num_tavoli + 1) if t not in tavoli_occupati_ids]
+
+    if is_admin and tavoli_liberi_disponibili and partite_da_giocare:
+        cambiato = False
+        for tavolo_libero in tavoli_liberi_disponibili:
+            if partite_da_giocare:
+                prossima_partita = partite_da_giocare.pop(0)
+                prossima_partita["in_corso"] = True
+                prossima_partita["tavolo"] = tavolo_libero
+                partite_in_corso.append(prossima_partita)
+                cambiato = True
+        if cambiato:
+            salva_dati(db)
+
     # --- SEZIONE PARTITE IN CORSO E CODA ---
     st.subheader("⚡ Stato dei Biliardini e Coda Incontri")
 
@@ -427,8 +443,8 @@ if db["stato"] == "gironi":
                                 st.rerun()
 
     with col_coda:
-        # Mostra le prossime 5 partite in coda che scalano automaticamente
-        partite_in_coda_correnti = partite_da_giocare[:5]
+        # Mostra in coda esattamente un numero di partite pari al numero dei biliardini
+        partite_in_coda_correnti = partite_da_giocare[:num_tavoli]
         
         st.markdown(f"#### ⏳ In Coda (Prossimi Incontri)")
         if not partite_in_coda_correnti:
@@ -519,20 +535,6 @@ if db["stato"] == "gironi":
                     st.warning(f"🔥 **In Corso (Tavolo {m.get('tavolo', 'N/D')})**")
                 else:
                     st.write("**VS**")
-                    if is_admin:
-                        if st.button(f"▶️ Metti al Tavolo", key=f"btn_avvia_{match_id}", use_container_width=True):
-                            tavoli_occupati = [p.get("tavolo") for p in partite_in_corso if p.get("tavolo") is not None]
-                            tavoli_disponibili = [t for t in range(1, num_tavoli + 1) if t not in tavoli_occupati]
-                            
-                            if tavoli_disponibili:
-                                tavolo_assegnato = random.choice(tavoli_disponibili)
-                            else:
-                                tavolo_assegnato = random.randint(1, num_tavoli)
-                                
-                            m["in_corso"] = True
-                            m["tavolo"] = tavolo_assegnato
-                            salva_dati(db)
-                            st.rerun()
             with col_s2:
                 st.info(f"🤝 **{m['c2']}**")
 
