@@ -398,22 +398,37 @@ if db["stato"] == "gironi":
         else:
             for m in partite_in_corso:
                 tavolo_str = f"<b>🏟️ Biliardino {m.get('tavolo')}</b>" if m.get('tavolo') else "<b>🏟️ In campo</b>"
-                st.markdown(
-                    f"""
-                    <div style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 5px; margin-bottom: 8px; color: #856404;">
-                        {tavolo_str} - <b>{m['girone']}</b><br>{m['c1']} vs {m['c2']}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                match_id = m['id']
+                
+                with st.container(border=True):
+                    st.markdown(
+                        f"""
+                        <div style="color: #856404; margin-bottom: 5px;">
+                            {tavolo_str} - <b>{m['girone']}</b><br>{m['c1']} vs {m['c2']}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    
+                    if is_admin:
+                        with st.expander(f"⚙️ Inserisci Risultato Tavolo"):
+                            rg1 = st.radio("Gol S1", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"ic_rg1_{match_id}")
+                            rg2 = st.radio("Gol S2", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"ic_rg2_{match_id}")
+                            if st.button("💾 Registra e Libera Tavolo", key=f"ic_save_{match_id}", use_container_width=True):
+                                m['gol1'] = rg1
+                                m['gol2'] = rg2
+                                m['giocata'] = True
+                                m['in_corso'] = False
+                                m['tavolo'] = None
+                                ricalcola_classifiche_gironi()
+                                salva_dati(db)
+                                st.success("Partita registrata!")
+                                st.rerun()
 
     with col_coda:
         tavoli_occupati_count = len(partite_in_corso)
         tavoli_liberi = max(0, num_tavoli - tavoli_occupati_count)
         
-        # LOGICA AGGIORNATA: 
-        # All'inizio (finché ci sono tavoli liberi o poche partite avviate), mostra tanti elementi quanti sono i tavoli liberi.
-        # Una volta a regime (quando i tavoli occupati superano o eguagliano i liberi, o il torneo entra nel vivo), la coda rispecchia il numero di partite in corso.
         if tavoli_occupati_count < tavoli_liberi:
             limite_coda = max(tavoli_liberi, 1) if tavoli_liberi > 0 else 0
         else:
