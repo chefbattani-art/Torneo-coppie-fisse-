@@ -374,11 +374,12 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Box aggiorna pagina aggiornato con il nuovo testo richiesto
 st.markdown(
     """
     <div style="padding: 10px; background-color: #f0f2f6; border-radius: 8px; text-align: center; margin-bottom: 15px;">
         🔄 <a href="javascript:window.location.reload(true)" style="text-decoration: none; color: #262730; font-weight: bold; font-size: 15px;">
-            Aggiorna pagina browser per vedere i risultati in tempo reale
+            Aggiorna la pagina dal browser ogni volta che vuoi vedere gli aggiornamenti del torneo in corso
         </a>
     </div>
     """,
