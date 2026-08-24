@@ -949,10 +949,6 @@ if db["stato"] == "gironi":
 # 3. FASI FINALI
 elif db["stato"] == "fasi_finali":
   st.subheader("🏆 Fasi Finali: Tabelloni a Eliminazione Diretta")
-  st.info(
-      "💡 Nessun inserimento di gol richiesto: decidi direttamente la coppia"
-      " vincitrice di ogni scontro con un semplice click!"
-  )
 
   tab_a_view, tab_b_view = st.tabs(
       ["⭐ Fascia A (Torneo Principale)", "🔻 Fascia B (Torneo Secondario)"]
