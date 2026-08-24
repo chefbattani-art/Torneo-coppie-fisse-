@@ -390,7 +390,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- SELETTORE COPPIA (ORA OBBLIGATORIO) ---
+# --- SELETTORE COPPIA (PERSISTENTE) ---
 tutte_le_coppie = []
 for g_lst in db["gironi"].values():
   tutte_le_coppie.extend(g_lst)
@@ -402,8 +402,11 @@ opzioni_selettore = ["-- Seleziona la tua coppia per accedere --"] + sorted(
     tutte_le_coppie
 )
 
-if "coppia_selezionata" not in st.session_state:
-  st.session_state["coppia_selettore"] = (
+if (
+    "coppia_selezionata" not in st.session_state
+    or st.session_state["coppia_selezionata"] not in opzioni_selettore
+):
+  st.session_state["coppia_selezionata"] = (
       "-- Seleziona la tua coppia per accedere --"
   )
 
