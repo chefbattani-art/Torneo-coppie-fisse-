@@ -287,6 +287,19 @@ if db["stato"] != "setup":
   )
   st.sidebar.markdown("---")
 
+# SELETTORE COPPIA PER GIOCATORI
+st.sidebar.subheader("📱 Vista Giocatore")
+tutte_le_coppie = []
+for g_lst in db["gironi"].values():
+  tutte_le_coppie.extend(g_lst)
+
+coppia_selezionata = st.sidebar.selectbox(
+    "Seleziona la tua coppia:",
+    ["-- Nessuna (Solo Visualizzazione) --"] + sorted(tutte_le_coppie),
+)
+
+st.sidebar.markdown("---")
+
 modalita_admin = st.sidebar.checkbox("Modalità Amministratore (PIN)")
 is_admin = False
 if modalita_admin:
@@ -575,6 +588,13 @@ if db["stato"] == "gironi":
         )
         match_id = m["id"]
 
+        # Controllo se la partita riguarda la coppia selezionata o se è admin
+        fa_al_caso_nostro = (
+            is_admin
+            or coppia_selezionata == m["c1"]
+            or coppia_selezionata == m["c2"]
+        )
+
         with st.container():
           st.markdown(
               f"""
@@ -588,55 +608,62 @@ if db["stato"] == "gironi":
               unsafe_allow_html=True,
           )
 
-          with st.expander(
-              f"📝 Inserisci Risultato Tavolo {m.get('tavolo', '')}"
-          ):
-            st.markdown(
-                f"<div style='font-weight: bold; font-size: 15px; color:"
-                f" #111; margin-bottom: 4px;'>⚽ {m['c1']}</div>",
-                unsafe_allow_html=True,
-            )
-            gol_p1 = st.pills(
-                f"Gol {m['c1']}",
-                options=[0, 1, 2, 3, 4, 5, 6, 7],
-                default=int(m.get("gol1", 0)),
-                key=f"user_g1_{match_id}",
-                label_visibility="collapsed",
-            )
-
-            st.markdown(
-                f"<div style='font-weight: bold; font-size: 15px; color:"
-                f" #111; margin-top: 12px; margin-bottom: 4px;'>⚽"
-                f" {m['c2']}</div>",
-                unsafe_allow_html=True,
-            )
-            gol_p2 = st.pills(
-                f"Gol {m['c2']}",
-                options=[0, 1, 2, 3, 4, 5, 6, 7],
-                default=int(m.get("gol2", 0)),
-                key=f"user_g2_{match_id}",
-                label_visibility="collapsed",
-            )
-
-            st.markdown(
-                "<div style='margin-top: 15px;'></div>", unsafe_allow_html=True
-            )
-            if st.button(
-                "✅ Conferma e Registra Risultato",
-                key=f"user_save_{match_id}",
-                use_container_width=True,
+          if fa_al_caso_nostro:
+            with st.expander(
+                f"📝 Inserisci Risultato Tavolo {m.get('tavolo', '')}"
             ):
-              m["gol1"] = int(gol_p1) if gol_p1 is not None else 0
-              m["gol2"] = int(gol_p2) if gol_p2 is not None else 0
-              m["giocata"] = True
-              m["in_corso"] = False
-              m["tavolo"] = None
-              ricalcola_classifiche_gironi()
-              salva_dati(db)
-              st.success(
-                  "Risultato registrato con successo! Tavolo liberato."
+              st.markdown(
+                  f"<div style='font-weight: bold; font-size: 15px; color:"
+                  f" #111; margin-bottom: 4px;'>⚽ {m['c1']}</div>",
+                  unsafe_allow_html=True,
               )
-              st.rerun()
+              gol_p1 = st.pills(
+                  f"Gol {m['c1']}",
+                  options=[0, 1, 2, 3, 4, 5, 6, 7],
+                  default=int(m.get("gol1", 0)),
+                  key=f"user_g1_{match_id}",
+                  label_visibility="collapsed",
+              )
+
+              st.markdown(
+                  f"<div style='font-weight: bold; font-size: 15px; color:"
+                  f" #111; margin-top: 12px; margin-bottom: 4px;'>⚽ {m['c2']}</div>",
+                  unsafe_allow_html=True,
+              )
+              gol_p2 = st.pills(
+                  f"Gol {m['c2']}",
+                  options=[0, 1, 2, 3, 4, 5, 6, 7],
+                  default=int(m.get("gol2", 0)),
+                  key=f"user_g2_{match_id}",
+                  label_visibility="collapsed",
+              )
+
+              st.markdown(
+                  "<div style='margin-top: 15px;'></div>",
+                  unsafe_allow_html=True,
+              )
+              if st.button(
+                  "✅ Conferma e Registra Risultato",
+                  key=f"user_save_{match_id}",
+                  use_container_width=True,
+              ):
+                m["gol1"] = int(gol_p1) if gol_p1 is not None else 0
+                m["gol2"] = int(gol_p2) if gol_p2 is not None else 0
+                m["giocata"] = True
+                m["in_corso"] = False
+                m["tavolo"] = None
+                ricalcola_classifiche_gironi()
+                salva_dati(db)
+                st.success(
+                    "Risultato registrato con successo! Tavolo liberato."
+                )
+                st.rerun()
+          else:
+            st.info(
+                "🔒 Il modulo per inserire il risultato compare solo per la"
+                " coppia in campo (seleziona la tua coppia nella barra"
+                " laterale)."
+            )
 
           if is_admin:
             with st.expander(f"⚙️ Opzioni Admin Tavolo {m.get('tavolo', '')}"):
@@ -808,8 +835,7 @@ if db["stato"] == "gironi":
 
                 st.markdown(
                     f"<div style='font-weight: bold; font-size: 15px; color:"
-                    f" #111; margin-top: 12px; margin-bottom: 4px;'>⚽"
-                    f" {m['c2']}</div>",
+                    f" #111; margin-top: 12px; margin-bottom: 4px;'>⚽ {m['c2']}</div>",
                     unsafe_allow_html=True,
                 )
                 rg2 = st.pills(
