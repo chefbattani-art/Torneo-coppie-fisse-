@@ -591,12 +591,10 @@ if db["stato"] == "gironi":
               f"📝 Inserisci Risultato Tavolo {m.get('tavolo', '')}"
           ):
             st.markdown(
-                f"<div style='text-align: center; font-weight: bold;"
-                f" font-size: 14px;'>{m['c1']} vs {m['c2']}</div>",
+                f"<div style='font-weight: bold; font-size: 15px; color:"
+                f" #111; margin-bottom: 4px;'>⚽ {m['c1']}</div>",
                 unsafe_allow_html=True,
             )
-
-            st.markdown(f"**Gol {m['c1']}**")
             gol_p1 = st.pills(
                 f"Gol {m['c1']}",
                 options=[0, 1, 2, 3, 4, 5, 6, 7],
@@ -605,7 +603,12 @@ if db["stato"] == "gironi":
                 label_visibility="collapsed",
             )
 
-            st.markdown(f"**Gol {m['c2']}**")
+            st.markdown(
+                f"<div style='font-weight: bold; font-size: 15px; color:"
+                f" #111; margin-top: 12px; margin-bottom: 4px;'>⚽"
+                f" {m['c2']}</div>",
+                unsafe_allow_html=True,
+            )
             gol_p2 = st.pills(
                 f"Gol {m['c2']}",
                 options=[0, 1, 2, 3, 4, 5, 6, 7],
@@ -614,6 +617,9 @@ if db["stato"] == "gironi":
                 label_visibility="collapsed",
             )
 
+            st.markdown(
+                "<div style='margin-top: 15px;'></div>", unsafe_allow_html=True
+            )
             if st.button(
                 "✅ Conferma e Registra Risultato",
                 key=f"user_save_{match_id}",
@@ -786,7 +792,11 @@ if db["stato"] == "gironi":
               with st.expander(
                   f"⚙️ Gestisci Risultato: {m['c1']} vs {m['c2']}"
               ):
-                st.markdown(f"**Gol {m['c1']}**")
+                st.markdown(
+                    f"<div style='font-weight: bold; font-size: 15px; color:"
+                    f" #111; margin-bottom: 4px;'>⚽ {m['c1']}</div>",
+                    unsafe_allow_html=True,
+                )
                 rg1 = st.pills(
                     f"Gol S1 {match_id}",
                     options=[0, 1, 2, 3, 4, 5, 6, 7],
@@ -795,7 +805,12 @@ if db["stato"] == "gironi":
                     label_visibility="collapsed",
                 )
 
-                st.markdown(f"**Gol {m['c2']}**")
+                st.markdown(
+                    f"<div style='font-weight: bold; font-size: 15px; color:"
+                    f" #111; margin-top: 12px; margin-bottom: 4px;'>⚽"
+                    f" {m['c2']}</div>",
+                    unsafe_allow_html=True,
+                )
                 rg2 = st.pills(
                     f"Gol S2 {match_id}",
                     options=[0, 1, 2, 3, 4, 5, 6, 7],
@@ -804,6 +819,10 @@ if db["stato"] == "gironi":
                     label_visibility="collapsed",
                 )
 
+                st.markdown(
+                    "<div style='margin-top: 15px;'></div>",
+                    unsafe_allow_html=True,
+                )
                 if st.button(
                     "💾 Salva Risultato (Admin)",
                     key=f"save_{match_id}",
