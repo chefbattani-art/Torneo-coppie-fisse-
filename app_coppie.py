@@ -174,7 +174,6 @@ def crea_abbinamenti_fascia_a_perfetti(classificate_per_girone):
             return (lst[pos_idx], g_nome, pos_idx + 1)
         return ("RIPOSO", g_nome, pos_idx + 1)
 
-    # Abbinamenti Quarti corretti per separare 1ª e 2ª dello stesso girone in rami opposti
     abbinamenti = [
         (get_sq(g0, 0), get_sq(g3, 3)), # 1ª G1 vs 4ª G4
         (get_sq(g1, 1), get_sq(g2, 2)), # 2ª G2 vs 3ª G3
@@ -223,6 +222,15 @@ def crea_abbinamenti_fascia_b(classificate_per_girone):
         else:
             abbinamenti.append((tutte_b[i], ("RIPOSO", "", 0)))
     return abbinamenti
+
+def verifica_conflitto_stesso_girone(s1_nome, s2_nome, mappa_girone_pos):
+    """Ritorna True se le due squadre appartengono allo stesso girone ed una è 1ª e l'altra è 2ª"""
+    g1, p1 = mappa_girone_pos.get(s1_nome, ("", 0))
+    g2, p2 = mappa_girone_pos.get(s2_nome, ("", 0))
+    if g1 and g2 and g1 == g2:
+        if {p1, p2} == {1, 2}:
+            return True
+    return False
 
 # --- BARRA LATERALE ---
 st.sidebar.header("⚙️ Pannello di Controllo")
@@ -717,7 +725,6 @@ elif db["stato"] == "fasi_finali":
         st.markdown(f"### 📋 {titolo_tab}")
         turni_tab = db[chiave_tabellone]
         
-        # Mappa ufficiale definitiva basata sui gironi reali
         mappa_girone_pos = {}
         for g_nome, lista_sq in db["gironi"].items():
             dati_girone = db["punti_gironi"][g_nome]
@@ -759,7 +766,6 @@ elif db["stato"] == "fasi_finali":
                 s1_nome = m['s1']
                 s2_nome = m['s2']
                 
-                # Sincronizzazione dinamica per prendere SEMPRE il girone e la posizione REALE aggiornati
                 g1_val, p1_val = mappa_girone_pos.get(s1_nome, ("", ""))
                 g2_val, p2_val = mappa_girone_pos.get(s2_nome, ("", ""))
                 
@@ -840,7 +846,6 @@ elif db["stato"] == "fasi_finali":
                     campione = fin_m["vincente"]
                     secondo_posto = fin_m['s2'] if campione == fin_m['s1'] else fin_m['s1']
                 
-            # ATTIVAZIONE 3°/4° POSTO DALLE SEMIFINALI
             if tutti_giocati and nome_etichetta == "⚔️ SEMIFINALI" and len(perdenti_turno) == 2 and not db[chiave_34]:
                 if is_admin:
                     p1, p2 = perdenti_turno[0], perdenti_turno[1]
@@ -862,6 +867,14 @@ elif db["stato"] == "fasi_finali":
                     g_v, p_v = mappa_girone_pos.get(v, ("", ""))
                     vincitori_dettagli.append((v, g_v, p_v))
                     
+                # APPLICAZIONE REOLA: Evitare scontro tra 1ª e 2ª dello stesso girone prima della finale
+                if len(vincitori_dettagli) == 4 and chiave_tabellone == "tabellone_a":
+                    # Se in semifinale (4 squadre) c'è conflitto tra 1ª e 2ª dello stesso girone, scambiamo gli abbinamenti
+                    sq1, sq2, sq3, sq4 = vincitori_dettagli
+                    if verifica_conflitto_stesso_girone(sq1[0], sq2[0], mappa_girone_pos):
+                        # Scambiamo sq2 con sq3 per evitare lo scontro
+                        vincitori_dettagli = [sq1, sq3, sq2, sq4]
+                
                 nuove_partite = []
                 for i in range(0, len(vincitori_dettagli), 2):
                     if i + 1 < len(vincitori_dettagli):
