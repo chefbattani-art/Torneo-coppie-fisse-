@@ -45,12 +45,15 @@ if menu == "Incontri & Risultati":
   for p in st.session_state.partite:
     if not p["giocata"]:
       with st.container():
-        # Box principale con CSS per evitare che i nomi vadano a capo
         st.markdown(
             f"""
-                <div class="match-card">
-                    <div class="match-header">⚽ {p['tavolo']} - {p['girone']}</div>
-                    <div class="match-teams">{p['giocatore1']} vs {p['giocatore2']}</div>
+                <div style="background-color: #fffde7; border: 2px solid #ffca28; border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                    <div style="text-align: center; font-weight: bold; color: #d84315; font-size: 16px;">
+                        ⚽ {p['tavolo']} - {p['girone']}
+                    </div>
+                    <div style="text-align: center; font-size: 18px; font-weight: bold; margin-top: 5px;">
+                        {p['giocatore1']} vs {p['giocatore2']}
+                    </div>
                 </div>
                 """,
             unsafe_allow_html=True,
@@ -60,8 +63,8 @@ if menu == "Incontri & Risultati":
             f"📝 Inserisci Risultato {p['tavolo']}", expanded=True
         ):
           st.markdown(
-              f"<div class='expander-title'>{p['giocatore1']} vs"
-              f" {p['giocatore2']}</div>",
+              f"<h4 style='text-align: center;'>{p['giocatore1']} vs"
+              f" {p['giocatore2']}</h4>",
               unsafe_allow_html=True,
           )
 
@@ -71,7 +74,6 @@ if menu == "Incontri & Risultati":
               options=[0, 1, 2, 3, 4, 5, 6, 7],
               default=0,
               key=f"pills_g1_{p['id']}",
-              label_visibility="collapsed",
           )
 
           st.markdown(f"**Gol {p['giocatore2']}**")
@@ -80,12 +82,11 @@ if menu == "Incontri & Risultati":
               options=[0, 1, 2, 3, 4, 5, 6, 7],
               default=0,
               key=f"pills_g2_{p['id']}",
-              label_visibility="collapsed",
           )
 
           st.markdown("<br>", unsafe_allow_html=True)
           if st.button(
-              f"✅ Conferma Risultato {p['tavolo']}",
+              f"✅ Conferma e Registra Risultato {p['tavolo']}",
               use_container_width=True,
               key=f"btn_{p['id']}",
           ):
@@ -98,6 +99,7 @@ if menu == "Incontri & Risultati":
             )
             st.rerun()
 
+  # Mostra le partite già concluse
   partite_concluse = [p for p in st.session_state.partite if p["giocata"]]
   if partite_concluse:
     st.markdown("---")
@@ -196,43 +198,3 @@ elif menu == "Gestione Torneo":
   if st.button("🗑️ Reset di tutte le partite"):
     st.session_state.partite = []
     st.rerun()
-
-# --- CSS Personalizzato per compattare i nomi su una riga ---
-st.markdown(
-    """
-<style>
-    .match-card {
-        background-color: #fffde7;
-        border: 2px solid #ffca28;
-        border-radius: 10px;
-        padding: 12px;
-        margin-bottom: 15px;
-    }
-    .match-header {
-        text-align: center;
-        font-weight: bold;
-        color: #d84315;
-        font-size: 15px;
-    }
-    .match-teams {
-        text-align: center;
-        font-size: 16px;
-        font-weight: bold;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        margin-top: 4px;
-    }
-    .expander-title {
-        text-align: center;
-        font-size: 16px;
-        font-weight: bold;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        margin-bottom: 10px;
-    }
-</style>
-""",
-    unsafe_allow_html=True,
-)
