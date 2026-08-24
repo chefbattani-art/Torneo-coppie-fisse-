@@ -364,19 +364,31 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# SELETTORE COPPIA NELLA SCHERMATA PRINCIPALE (IN ALTO) + AVVISO
+# SELETTORE COPPIA NELLA SCHERMATA PRINCIPALE (IN ALTO) + PERSISTENZA URL + AVVISO
 tutte_le_coppie = []
 for g_lst in db["gironi"].values():
   tutte_le_coppie.extend(g_lst)
 
+opzioni_selettore = ["-- Nessuna (Solo Visualizzazione) --"] + sorted(
+    tutte_le_coppie
+)
+
+if "coppia_selezionata" not in st.session_state:
+  st.session_state["coppia_selezionata"] = (
+      "-- Nessuna (Solo Visualizzazione) --"
+  )
+
 coppia_selezionata = st.selectbox(
     "📱 Seleziona la tua coppia:",
-    ["-- Nessuna (Solo Visualizzazione) --"] + sorted(tutte_le_coppie),
+    options=opzioni_selettore,
+    key="coppia_selezionata",
+    bind="query-params",
 )
 
 st.info(
     "💡 **Seleziona la tua coppia** dall'elenco qui sopra per poter inserire"
-    " direttamente il tuo risultato quando giochi la tua partita!"
+    " direttamente il tuo risultato quando giochi la tua partita! La scelta"
+    " rimarrà memorizzata anche se aggiorni la pagina."
 )
 
 st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
