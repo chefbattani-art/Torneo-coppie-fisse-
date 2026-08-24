@@ -390,7 +390,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- SELETTORE COPPIA (PERSISTENTE) ---
+# --- SELETTORE COPPIA (PERSISTENTE TRAMITE URL) ---
 tutte_le_coppie = []
 for g_lst in db["gironi"].values():
   tutte_le_coppie.extend(g_lst)
@@ -402,19 +402,22 @@ opzioni_selettore = ["-- Seleziona la tua coppia per accedere --"] + sorted(
     tutte_le_coppie
 )
 
-if (
-    "coppia_selezionata" not in st.session_state
-    or st.session_state["coppia_selezionata"] not in opzioni_selettore
-):
-  st.session_state["coppia_selezionata"] = (
-      "-- Seleziona la tua coppia per accedere --"
-  )
+coppia_url = st.query_params.get(
+    "coppia", "-- Seleziona la tua coppia per accedere --"
+)
+if coppia_url not in opzioni_selettore:
+  coppia_url = "-- Seleziona la tua coppia per accedere --"
 
 coppia_selezionata = st.selectbox(
     "📱 Seleziona la tua coppia:",
     options=opzioni_selettore,
-    key="coppia_selezionata",
+    index=opzioni_selettore.index(coppia_url),
+    key="widget_selezione_coppia",
 )
+
+if coppia_selezionata != coppia_url:
+  st.query_params["coppia"] = coppia_selezionata
+  st.rerun()
 
 if coppia_selezionata == "-- Seleziona la tua coppia per accedere --":
   st.warning(
@@ -430,7 +433,6 @@ else:
   with st.expander(
       f"👁️ Segui la tua coppia: {coppia_selezionata}", expanded=True
   ):
-    # Trova il girone di appartenenza e posizione in classifica
     girone_mio = None
     pos_mia = None
     info_mie = None
@@ -456,7 +458,6 @@ else:
               info_mie = stats
         break
 
-    # -- BOX RIEPILOGO STATISTICHE (GRAFICA CARD PROFESSIONALE) --
     st.markdown(
         f"""
         <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #ced4da; border-radius: 12px; padding: 18px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
@@ -483,7 +484,6 @@ else:
 
     st.markdown("#### 🔍 Le tue partite nel girone:")
 
-    # Raccogliamo le partite della coppia dai gironi
     partite_mie_in_corso = []
     partite_mie_in_coda = []
     partite_mie_da_giocare_dopo = []
@@ -595,7 +595,6 @@ else:
               unsafe_allow_html=True,
           )
 
-    # --- AGGIUNTA: CLASSIFICA COMPLETA DEL GIRONE INTERESSATO ---
     if girone_mio:
       st.markdown("---")
       st.markdown(
