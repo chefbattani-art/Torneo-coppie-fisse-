@@ -516,7 +516,8 @@ if db["stato"] == "gironi":
   ricalcola_classifiche_gironi()
   num_tavoli = db.get("num_tavoli", 6)
 
-  if db.get("fasi_finali_configurate", False):
+  # Visibile solo se le fasi finali sono configurate E l'utente è amministratore
+  if db.get("fasi_finali_configurate", False) and is_admin:
     if st.button(
         "⬅️ Torna alla schermata delle Fasi Finali", use_container_width=True
     ):
