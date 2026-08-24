@@ -532,6 +532,7 @@ else:
           testo_evidenziato = evidenzia_nome_coppia(
               testo_scontro, coppia_selezionata
           )
+          match_id_mio = m["id"]
           st.markdown(
               f"""
                     <div style="background-color: #fffde7; border: 2px solid #ffae00; padding: 10px; border-radius: 8px; margin-bottom: 6px; text-align: center;">
@@ -541,6 +542,41 @@ else:
                     """,
               unsafe_allow_html=True,
           )
+
+          # Form inserimento risultato direttamente dal box personale della partita in corso
+          with st.expander(
+              f"📝 Inserisci Risultato Finale (Tav. {m.get('tavolo', '')})"
+          ):
+            gol_p1_mio = st.pills(
+                f"Gol {m['c1']}",
+                options=[0, 1, 2, 3, 4, 5, 6, 7],
+                default=int(m.get("gol1", 0)),
+                key=f"user_pers_g1_{match_id_mio}",
+            )
+            gol_p2_mio = st.pills(
+                f"Gol {m['c2']}",
+                options=[0, 1, 2, 3, 4, 5, 6, 7],
+                default=int(m.get("gol2", 0)),
+                key=f"user_pers_g2_{match_id_mio}",
+            )
+            if st.button(
+                "✅ Conferma e Registra Risultato",
+                key=f"btn_save_pers_{match_id_mio}",
+                use_container_width=True,
+            ):
+              m["gol1"] = int(gol_p1_mio) if gol_p1_mio is not None else 0
+              m["gol2"] = int(gol_p2_mio) if gol_p2_mio is not None else 0
+              m["giocata"] = True
+              m["in_corso"] = False
+              m["tavolo"] = None
+              ricalcola_classifiche_gironi()
+              salva_dati(db)
+              st.success(
+                  "Risultato registrato con successo! Classifica aggiornata e"
+                  " tavolo liberato."
+              )
+              st.rerun()
+
         for m in partite_mie_in_coda:
           testo_scontro = f"{m['c1']} vs {m['c2']}"
           testo_evidenziato = evidenzia_nome_coppia(
