@@ -506,13 +506,16 @@ else:
     # Raccogliamo le partite della coppia dai gironi
     partite_mie_in_corso = []
     partite_mie_in_coda = []
+    partite_mie_da_giocare_dopo = []
     partite_mie_fatte = []
 
     if girone_mio and girone_mio in db["calendario_gironi"]:
       # Calcoliamo la coda globale per capire se sono nei prossimi incontri
-      max_t = max(
-          [len(t) for t in db["calendario_gironi"].values()]
-      ) if db["calendario_gironi"] else 0
+      max_t = (
+          max([len(t) for t in db["calendario_gironi"].values()])
+          if db["calendario_gironi"]
+          else 0
+      )
       tutte_p_girone = []
       for t_num in range(1, max_t + 1):
         for g_n, turni in db["calendario_gironi"].items():
@@ -536,8 +539,7 @@ else:
             elif m in coda_globale:
               partite_mie_in_coda.append(m)
             else:
-              # In attesa nei turni successivi
-              pass
+              partite_mie_da_giocare_dopo.append(m)
 
     col_m1, col_m2 = st.columns(2)
 
@@ -562,6 +564,21 @@ else:
                     <div style="background-color: #d4edda; border: 1.5px solid #c3e6cb; padding: 10px; border-radius: 8px; margin-bottom: 6px; text-align: center; color: #155724;">
                         <b>⏳ IN CODA (Prossimo turno)</b><br>
                         <b>{m['c1']} vs {m['c2']}</b>
+                    </div>
+                    """,
+              unsafe_allow_html=True,
+          )
+
+      st.markdown("---")
+      st.markdown("**📅 Tutte le partite ancora da disputare:**")
+      if not partite_mie_da_giocare_dopo:
+        st.info("Non hai altre partite future in attesa nei prossimi turni.")
+      else:
+        for m in partite_mie_da_giocare_dopo:
+          st.markdown(
+              f"""
+                    <div style="background-color: #f8f9fa; border: 1px solid #ced4da; padding: 8px; border-radius: 6px; margin-bottom: 6px; text-align: center;">
+                        <span style="font-size: 13px; color: #333;"><b>{m['c1']} vs {m['c2']}</b></span>
                     </div>
                     """,
               unsafe_allow_html=True,
