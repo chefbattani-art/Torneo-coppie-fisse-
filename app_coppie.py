@@ -287,19 +287,6 @@ if db["stato"] != "setup":
   )
   st.sidebar.markdown("---")
 
-# SELETTORE COPPIA PER GIOCATORI
-st.sidebar.subheader("📱 Vista Giocatore")
-tutte_le_coppie = []
-for g_lst in db["gironi"].values():
-  tutte_le_coppie.extend(g_lst)
-
-coppia_selezionata = st.sidebar.selectbox(
-    "Seleziona la tua coppia:",
-    ["-- Nessuna (Solo Visualizzazione) --"] + sorted(tutte_le_coppie),
-)
-
-st.sidebar.markdown("---")
-
 modalita_admin = st.sidebar.checkbox("Modalità Amministratore (PIN)")
 is_admin = False
 if modalita_admin:
@@ -368,7 +355,7 @@ st.markdown(
 
 st.markdown(
     """
-    <div style="padding: 10px; background-color: #f0f2f6; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+    <div style="padding: 10px; background-color: #f0f2f6; border-radius: 8px; text-align: center; margin-bottom: 15px;">
         🔄 <a href="javascript:window.location.reload(true)" style="text-decoration: none; color: #262730; font-weight: bold; font-size: 15px;">
             Aggiorna pagina browser per vedere i risultati in tempo reale
         </a>
@@ -376,6 +363,23 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+# SELETTORE COPPIA NELLA SCHERMATA PRINCIPALE (IN ALTO) + AVVISO
+tutte_le_coppie = []
+for g_lst in db["gironi"].values():
+  tutte_le_coppie.extend(g_lst)
+
+coppia_selezionata = st.selectbox(
+    "📱 Seleziona la tua coppia:",
+    ["-- Nessuna (Solo Visualizzazione) --"] + sorted(tutte_le_coppie),
+)
+
+st.info(
+    "💡 **Seleziona la tua coppia** dall'elenco qui sopra per poter inserire"
+    " direttamente il tuo risultato quando giochi la tua partita!"
+)
+
+st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
 # 1. SETUP
 if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
@@ -553,7 +557,6 @@ if db["stato"] == "gironi":
       t for t in range(1, num_tavoli + 1) if t not in tavoli_occupati_ids
   ]
 
-  # Assegnazione automatica attiva per tutti (Admin e Ospiti)
   if tavoli_liberi_disponibili and partite_da_giocare:
     cambiato = False
     for tavolo_libero in tavoli_liberi_disponibili:
@@ -588,7 +591,6 @@ if db["stato"] == "gironi":
         )
         match_id = m["id"]
 
-        # Controllo se la partita riguarda la coppia selezionata o se è admin
         fa_al_caso_nostro = (
             is_admin
             or coppia_selezionata == m["c1"]
@@ -658,12 +660,6 @@ if db["stato"] == "gironi":
                     "Risultato registrato con successo! Tavolo liberato."
                 )
                 st.rerun()
-          else:
-            st.info(
-                "🔒 Il modulo per inserire il risultato compare solo per la"
-                " coppia in campo (seleziona la tua coppia nella barra"
-                " laterale)."
-            )
 
           if is_admin:
             with st.expander(f"⚙️ Opzioni Admin Tavolo {m.get('tavolo', '')}"):
