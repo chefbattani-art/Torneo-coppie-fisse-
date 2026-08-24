@@ -175,15 +175,14 @@ def crea_abbinamenti_fascia_a_perfetti(classificate_per_girone):
         return ("RIPOSO", g_nome, pos_idx + 1)
 
     abbinamenti = [
-        (get_sq(g0, 0), get_sq(g3, 3)), # 1ª G1 vs 4ª G4
-        (get_sq(g1, 1), get_sq(g2, 2)), # 2ª G2 vs 3ª G3
-        (get_sq(g1, 0), get_sq(g2, 3)), # 1ª G2 vs 4ª G3
-        (get_sq(g0, 1), get_sq(g3, 2)), # 2ª G1 vs 3ª G4
-        
-        (get_sq(g2, 0), get_sq(g0, 3)), # 1ª G3 vs 4ª G1
-        (get_sq(g3, 1), get_sq(g1, 2)), # 2ª G4 vs 3ª G2
-        (get_sq(g2, 1), get_sq(g0, 2)), # 2ª G3 vs 3ª G1
-        (get_sq(g3, 0), get_sq(g1, 3))  # 1ª G4 vs 4ª G2
+        (get_sq(g0, 0), get_sq(g3, 3)),
+        (get_sq(g1, 1), get_sq(g2, 2)),
+        (get_sq(g1, 0), get_sq(g2, 3)),
+        (get_sq(g0, 1), get_sq(g3, 2)),
+        (get_sq(g2, 0), get_sq(g0, 3)),
+        (get_sq(g3, 1), get_sq(g1, 2)),
+        (get_sq(g2, 1), get_sq(g0, 2)),
+        (get_sq(g3, 0), get_sq(g1, 3))
     ]
     return abbinamenti
 
@@ -224,7 +223,6 @@ def crea_abbinamenti_fascia_b(classificate_per_girone):
     return abbinamenti
 
 def verifica_conflitto_stesso_girone(s1_nome, s2_nome, mappa_girone_pos):
-    """Ritorna True se le due squadre appartengono allo stesso girone ed una è 1ª e l'altra è 2ª"""
     g1, p1 = mappa_girone_pos.get(s1_nome, ("", 0))
     g2, p2 = mappa_girone_pos.get(s2_nome, ("", 0))
     if g1 and g2 and g1 == g2:
@@ -468,42 +466,31 @@ if db["stato"] == "gironi":
             st.info("Nessuna partita in corso al momento.")
         else:
             for m in partite_in_corso:
-                tavolo_str = f"<b>🏟️ Biliardino {m.get('tavolo')}</b>" if m.get('tavolo') else "<b>🏟️ In campo</b>"
+                tavolo_str = f"<b>🏟️ Biliardino {m.get('tavolo')} - {m['girone']}</b>" if m.get('tavolo') else f"<b>🏟️ In campo - {m['girone']}</b>"
                 match_id = m['id']
                 
                 with st.container():
                     st.markdown(
                         f"""
-                        <div style="background-color: #fffde7; border: 2px solid #fbc02d; padding: 14px; border-radius: 8px; margin-bottom: 6px; color: #5d4037;">
-                            {tavolo_str} - <b>{m['girone']}</b><br>
-                            <b style="font-size: 16px;">{m['c1']} vs {m['c2']}</b>
+                        <div style="background-color: #fffde7; border: 3px solid #ffae00; padding: 16px; border-radius: 12px; margin-bottom: 10px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.08);">
+                            <div style="font-size: 15px; color: #b78103; font-weight: bold; margin-bottom: 6px;">{tavolo_str}</div>
+                            <div style="font-size: 18px; font-weight: bold; color: #111; margin-top: 4px;">{m['c1']} vs {m['c2']}</div>
                         </div>
                         """,
                         unsafe_allow_html=True
                     )
                     
-                    if is_admin:
-                        st.markdown(
-                            f"""
-                            <div style="background-color: #f1f3f5; padding: 8px 12px; border-radius: 6px; margin-top: 8px; margin-bottom: 2px; text-align: center;">
-                                <span style="font-size: 16px; font-weight: bold; color: #212529;">⚽ Gol: {m['c1']}</span>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                        rg1 = st.radio("Gol S1_hidden", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"ic_rg1_{match_id}", label_visibility="collapsed")
+                    # Inserimento diretto aperto a tutti senza codici
+                    with st.expander(f"📝 Inserisci Risultato Tavolo {m.get('tavolo', '')}"):
+                        st.markdown(f"<div style='text-align: center; font-weight: bold; font-size: 14px;'>{m['c1']} vs {m['c2']}</div>", unsafe_allow_html=True)
                         
-                        st.markdown(
-                            f"""
-                            <div style="background-color: #f1f3f5; padding: 8px 12px; border-radius: 6px; margin-top: 8px; margin-bottom: 2px; text-align: center;">
-                                <span style="font-size: 16px; font-weight: bold; color: #212529;">⚽ Gol: {m['c2']}</span>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                        rg2 = st.radio("Gol S2_hidden", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"ic_rg2_{match_id}", label_visibility="collapsed")
+                        col_r1, col_r2 = st.columns(2)
+                        with col_r1:
+                            rg1 = st.number_input(f"Gol {m['c1']}", min_value=0, max_value=20, value=int(m.get('gol1', 0)), key=f"user_g1_{match_id}")
+                        with col_r2:
+                            rg2 = st.number_input(f"Gol {m['c2']}", min_value=0, max_value=20, value=int(m.get('gol2', 0)), key=f"user_g2_{match_id}")
                         
-                        if st.button("💾 Registra e Libera Tavolo", key=f"ic_save_{match_id}", use_container_width=True):
+                        if st.button("✅ Conferma e Registra Risultato", key=f"user_save_{match_id}", use_container_width=True):
                             m['gol1'] = rg1
                             m['gol2'] = rg2
                             m['giocata'] = True
@@ -511,9 +498,18 @@ if db["stato"] == "gironi":
                             m['tavolo'] = None
                             ricalcola_classifiche_gironi()
                             salva_dati(db)
-                            st.success("Partita registrata!")
+                            st.success("Risultato registrato con successo! Tavolo liberato.")
                             st.rerun()
-                    st.markdown("<hr style='margin: 5px 0 15px 0;'>", unsafe_allow_html=True)
+
+                    if is_admin:
+                        with st.expander(f"⚙️ Opzioni Admin Tavolo {m.get('tavolo', '')}"):
+                            if st.button("🛑 Libera tavolo senza salvare (Annulla/Sposta)", key=f"admin_libera_{match_id}", use_container_width=True):
+                                m['in_corso'] = False
+                                m['tavolo'] = None
+                                salva_dati(db)
+                                st.rerun()
+
+                    st.markdown("<hr style='margin: 10px 0 20px 0;'>", unsafe_allow_html=True)
 
     with col_coda:
         partite_in_coda_correnti = partite_da_giocare[:num_tavoli]
@@ -525,8 +521,8 @@ if db["stato"] == "gironi":
             for idx, m in enumerate(partite_in_coda_correnti):
                 st.markdown(
                     f"""
-                    <div style="background-color: #d4edda; border: 1px solid #c3e6cb; padding: 10px; border-radius: 5px; margin-bottom: 8px; color: #155724;">
-                        <b>⏳ {idx+1}. {m['girone']}</b><br>{m['c1']} vs {m['c2']}
+                    <div style="background-color: #d4edda; border: 1.5px solid #c3e6cb; padding: 12px; border-radius: 8px; margin-bottom: 8px; color: #155724; text-align: center;">
+                        <b>⏳ {idx+1}. {m['girone']}</b><br><b>{m['c1']} vs {m['c2']}</b>
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -608,7 +604,7 @@ if db["stato"] == "gironi":
                             stato_testo = f"<b>{m['gol1']} - {m['gol2']}</b>"
                         elif m.get("in_corso", False):
                             bg_color = "#fffde7"
-                            border_color = "#fff59d"
+                            border_color = "#ffae00"
                             stato_testo = f"🔥 In corso (Tav. {m.get('tavolo', 'N/D')})"
                         else:
                             bg_color = "#f8f9fa"
@@ -617,15 +613,12 @@ if db["stato"] == "gironi":
 
                         st.markdown(
                             f"""
-                            <div style="background-color: {bg_color}; border: 1.5px solid {border_color}; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                                <div style="flex: 1; text-align: left; font-weight: bold; color: #212529; font-size: 14px;">
-                                    🤝 {m['c1']}
+                            <div style="background-color: {bg_color}; border: 1.5px solid {border_color}; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; text-align: center;">
+                                <div style="font-weight: bold; color: #212529; font-size: 15px;">
+                                    🤝 {m['c1']} &nbsp;&nbsp; <span style="color: #666; font-size: 13px;">VS</span> &nbsp;&nbsp; {m['c2']} 🤝
                                 </div>
-                                <div style="padding: 0 12px; text-align: center; font-weight: bold; color: #495057; font-size: 14px; white-space: nowrap;">
+                                <div style="margin-top: 4px; font-weight: bold; color: #495057; font-size: 14px;">
                                     {stato_testo}
-                                </div>
-                                <div style="flex: 1; text-align: right; font-weight: bold; color: #212529; font-size: 14px;">
-                                    {m['c2']} 🤝
                                 </div>
                             </div>
                             """,
@@ -634,27 +627,13 @@ if db["stato"] == "gironi":
 
                         if is_admin:
                             with st.expander(f"⚙️ Gestisci Risultato: {m['c1']} vs {m['c2']}"):
-                                st.markdown(
-                                    f"""
-                                    <div style="background-color: #f1f3f5; padding: 4px 8px; border-radius: 5px; margin-top: 4px; text-align: center;">
-                                        <span style="font-size: 14px; font-weight: bold; color: #212529;">⚽ Gol: {m['c1']}</span>
-                                    </div>
-                                    """,
-                                    unsafe_allow_html=True
-                                )
-                                rg1 = st.radio("Gol S1_hidden", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"rg1_{match_id}", label_visibility="collapsed")
+                                col_rg1, col_rg2 = st.columns(2)
+                                with col_rg1:
+                                    rg1 = st.number_input("Gol S1", min_value=0, max_value=20, value=int(m.get('gol1', 0)), key=f"admin_g1_{match_id}")
+                                with col_rg2:
+                                    rg2 = st.number_input("Gol S2", min_value=0, max_value=20, value=int(m.get('gol2', 0)), key=f"admin_g2_{match_id}")
                                 
-                                st.markdown(
-                                    f"""
-                                    <div style="background-color: #f1f3f5; padding: 4px 8px; border-radius: 5px; margin-top: 4px; text-align: center;">
-                                        <span style="font-size: 14px; font-weight: bold; color: #212529;">⚽ Gol: {m['c2']}</span>
-                                    </div>
-                                    """,
-                                    unsafe_allow_html=True
-                                )
-                                rg2 = st.radio("Gol S2_hidden", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"rg2_{match_id}", label_visibility="collapsed")
-                                
-                                if st.button("💾 Salva Risultato", key=f"save_{match_id}", use_container_width=True):
+                                if st.button("💾 Salva Risultato (Admin)", key=f"save_{match_id}", use_container_width=True):
                                     m['gol1'] = rg1
                                     m['gol2'] = rg2
                                     m['giocata'] = True
@@ -750,7 +729,7 @@ elif db["stato"] == "fasi_finali":
             
             st.markdown(
                 f"""
-                <div style="background: linear-gradient(90deg, #1f77b4 0%, #4682b4 100%); padding: 10px 16px; border-radius: 8px; margin: 20px 0 12px 0; color: white;">
+                <div style="background: linear-gradient(90deg, #1f77b4 0%, #4682b4 100%); padding: 10px 16px; border-radius: 8px; margin: 20px 0 12px 0; color: white; text-align: center;">
                     <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: white;">⚡ {nome_etichetta}</h3>
                 </div>
                 """,
@@ -772,9 +751,6 @@ elif db["stato"] == "fasi_finali":
                 s1_sottotitolo = f"{p1_val}° del {g1_val}" if g1_val and p1_val else ""
                 s2_sottotitolo = f"{p2_val}° del {g2_val}" if g2_val and p2_val else ""
                 
-                s1_display = f"{s1_nome}<br><span style='font-size:12px; color:#666; font-weight:normal;'>({s1_sottotitolo})</span>" if s1_sottotitolo else s1_nome
-                s2_display = f"{s2_nome}<br><span style='font-size:12px; color:#666; font-weight:normal;'>({s2_sottotitolo})</span>" if s2_sottotitolo else s2_nome
-                
                 if s2_nome == "RIPOSO":
                     m['giocata'] = True
                     m['vincente'] = s1_nome
@@ -791,8 +767,6 @@ elif db["stato"] == "fasi_finali":
                 if m["giocata"]:
                     box_bg = "#f1f8e9"
                     border_c = "#81c784"
-                    s1_style = "font-weight: bold; color: #2e7d32;" if m['vincente'] == s1_nome else "color: #555;"
-                    s2_style = "font-weight: bold; color: #2e7d32;" if m['vincente'] == s2_nome else "color: #555;"
                     centro_testo = f"<span style='font-size: 14px; font-weight: bold; background-color: #2e7d32; color: white; padding: 6px 12px; border-radius: 6px;'>Vince: {m['vincente']}</span>"
                     vincitori_turno.append(m['vincente'])
                     perdente_match = s2_nome if m['vincente'] == s1_nome else s1_nome
@@ -801,21 +775,18 @@ elif db["stato"] == "fasi_finali":
                     tutti_giocati = False
                     box_bg = "#f8f9fa"
                     border_c = "#ced4da"
-                    s1_style = "font-weight: bold; color: #212529;"
-                    s2_style = "font-weight: bold; color: #212529;"
                     centro_testo = "<span style='font-size: 14px; font-weight: bold; background-color: #e9ecef; color: #495057; padding: 6px 10px; border-radius: 6px;'>VS</span>"
 
                 st.markdown(
                     f"""
-                    <div style="background-color: {box_bg}; border: 2px solid {border_c}; padding: 16px 20px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                        <div style="flex: 1; text-align: left; font-size: 16px; {s1_style}">
-                            🤝 {s1_display}
+                    <div style="background-color: {box_bg}; border: 2px solid {border_c}; padding: 16px 20px; border-radius: 12px; margin-bottom: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                        <div style="font-size: 16px; font-weight: bold; color: #212529;">
+                            🤝 {s1_nome} <span style="font-size: 13px; color: #666; font-weight: normal;">({s1_sottotitolo})</span>
+                            &nbsp;&nbsp; VS &nbsp;&nbsp;
+                            {s2_nome} <span style="font-size: 13px; color: #666; font-weight: normal;">({s2_sottotitolo})</span> 🤝
                         </div>
-                        <div style="padding: 0 15px; text-align: center; min-width: 140px;">
+                        <div style="margin-top: 10px;">
                             {centro_testo}
-                        </div>
-                        <div style="flex: 1; text-align: right; font-size: 16px; {s2_style}">
-                            {s2_display} 🤝
                         </div>
                     </div>
                     """,
@@ -867,12 +838,9 @@ elif db["stato"] == "fasi_finali":
                     g_v, p_v = mappa_girone_pos.get(v, ("", ""))
                     vincitori_dettagli.append((v, g_v, p_v))
                     
-                # APPLICAZIONE REOLA: Evitare scontro tra 1ª e 2ª dello stesso girone prima della finale
                 if len(vincitori_dettagli) == 4 and chiave_tabellone == "tabellone_a":
-                    # Se in semifinale (4 squadre) c'è conflitto tra 1ª e 2ª dello stesso girone, scambiamo gli abbinamenti
                     sq1, sq2, sq3, sq4 = vincitori_dettagli
                     if verifica_conflitto_stesso_girone(sq1[0], sq2[0], mappa_girone_pos):
-                        # Scambiamo sq2 con sq3 per evitare lo scontro
                         vincitori_dettagli = [sq1, sq3, sq2, sq4]
                 
                 nuove_partite = []
@@ -897,7 +865,7 @@ elif db["stato"] == "fasi_finali":
         if db[chiave_34]:
             st.markdown(
                 """
-                <div style="background: linear-gradient(90deg, #d97706 0%, #f59e0b 100%); padding: 10px 16px; border-radius: 8px; margin: 25px 0 12px 0; color: white;">
+                <div style="background: linear-gradient(90deg, #d97706 0%, #f59e0b 100%); padding: 10px 16px; border-radius: 8px; margin: 25px 0 12px 0; color: white; text-align: center;">
                     <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: white;">🥉 FINALE 3° / 4° POSTO</h3>
                 </div>
                 """,
@@ -912,9 +880,6 @@ elif db["stato"] == "fasi_finali":
             tq_s1_sub = f"{tq_p1}° del {tq_g1}" if tq_g1 and tq_p1 else ""
             tq_s2_sub = f"{tq_p2}° del {tq_g2}" if tq_g2 and tq_p2 else ""
             
-            tq_s1_disp = f"{tq_match['s1']}<br><span style='font-size:12px; color:#666; font-weight:normal;'>({tq_s1_sub})</span>" if tq_s1_sub else tq_match['s1']
-            tq_s2_disp = f"{tq_match['s2']}<br><span style='font-size:12px; color:#666; font-weight:normal;'>({tq_s2_sub})</span>" if tq_s2_sub else tq_match['s2']
-            
             if tq_match["giocata"]:
                 tq_bg = "#fef3c7"
                 tq_border = "#f59e0b"
@@ -928,15 +893,14 @@ elif db["stato"] == "fasi_finali":
 
             st.markdown(
                 f"""
-                <div style="background-color: {tq_bg}; border: 2px solid {tq_border}; padding: 16px 20px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                    <div style="flex: 1; text-align: left; font-size: 16px; font-weight: bold;">
-                        🤝 {tq_s1_disp}
+                <div style="background-color: {tq_bg}; border: 2px solid {tq_border}; padding: 16px 20px; border-radius: 12px; margin-bottom: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="font-size: 16px; font-weight: bold;">
+                        🤝 {tq_match['s1']} <span style="font-size: 13px; color: #666; font-weight: normal;">({tq_s1_sub})</span>
+                        &nbsp;&nbsp; VS &nbsp;&nbsp;
+                        {tq_match['s2']} <span style="font-size: 13px; color: #666; font-weight: normal;">({tq_s2_sub})</span> 🤝
                     </div>
-                    <div style="padding: 0 15px; text-align: center; min-width: 140px;">
+                    <div style="margin-top: 10px;">
                         {tq_centro}
-                    </div>
-                    <div style="flex: 1; text-align: right; font-size: 16px; font-weight: bold;">
-                        {tq_s2_disp} 🤝
                     </div>
                 </div>
                 """,
