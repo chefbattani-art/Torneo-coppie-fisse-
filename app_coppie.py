@@ -148,6 +148,7 @@ def genera_pdf_coppie():
     return bytes(pdf.output())
 
 def ottieni_nome_turno_dinamico(num_partite_turno):
+    tot_squadre = num_partite_turno * 2
     if num_partite_turno == 1:
         return "🏆 FINALE"
     elif num_partite_turno == 2:
@@ -158,73 +159,93 @@ def ottieni_nome_turno_dinamico(num_partite_turno):
         return "⭐ OTTAVI DI FINALE"
     elif num_partite_turno == 16:
         return "🚀 SEDICESIMI DI FINALE"
+    elif num_partite_turno == 32:
+        return "⚡ TRENTADUESIMI DI FINALE"
     else:
-        return f"Eliminazione Diretta ({num_partite_turno * 2} Coppie)"
+        return f"Eliminazione Diretta ({tot_squadre} Coppie)"
 
-def crea_abbinamenti_protetti(classificate_per_girone):
-    nomi_gironi = list(classificate_per_girone.keys())
-    num_g = len(nomi_gironi)
-    abbinamenti = []
+def crea_abbinamenti_fascia_a_perfetti(classificate_per_girone):
+    """
+    Crea abbinamenti del 1° turno di Fascia A posizionando le squadre nei rami corretti 
+    del tabellone per evitare incontri anticipati tra stesso girone (1ª vs 2ª in finale, 1ª vs 4ª in semi).
+    Suppone 4 gironi (A, B, C, D).
+    """
+    nomi_g = list(classificate_per_girone.keys())
+    if len(nomi_g) < 4:
+        # Fallback se ci sono meno di 4 gironi
+        return crea_abbinamenti_rigorosi_generico(classificate_per_girone)
     
-    if num_g == 4:
-        gA, gB, gC, gD = nomi_gironi[0], nomi_gironi[1], nomi_gironi[2], nomi_gironi[3]
-        sqA = classificate_per_girone[gA]
-        sqB = classificate_per_girone[gB]
-        sqC = classificate_per_girone[gC]
-        sqD = classificate_per_girone[gD]
+    g0, g1, g2, g3 = nomi_g[0], nomi_g[1], nomi_g[2], nomi_g[3]
+    
+    squadre_g = {g: classificate_per_girone[g] for g in nomi_g}
+    
+    # Estraiamo le posizioni
+    def get_sq(g_nome, pos_idx):
+        lst = squadre_g.get(g_nome, [])
+        if pos_idx < len(lst):
+            return (lst[pos_idx], g_nome, pos_idx + 1)
+        return ("RIPOSO", g_nome, pos_idx + 1)
+
+    # Struttura del tabellone standard a 16 squadre (o 8 in base ai gironi) per separare i lati
+    # Metà superiore e Metà inferiore per fare incontrare 1ª e 2ª solo in finale
+    # Esempio per 4 gironi (16 squadre totali ideali o 4 per girone = 16):
+    # Match 1: 1ª Girone A vs 4ª Girone C
+    # Match 2: 2ª Girone B vs 3ª Girone D
+    # Match 3: 2ª Girone A vs 3ª Girone C
+    # Match 4: 1ª Girone B vs 4ª Girone D
+    # (e specularmente per G3 e G4)
+    
+    # 1ª di un girone incontra la 4ª di un altro (es. 1A vs 4C, 1B vs 4D, 1C vs 4A, 1D vs 4B) -> si possono incontrare in semifinale
+    # 2ª di un girone incontra la 3ª di un altro (es. 2A vs 3C, 2B vs 3D, 2C vs 3A, 2D vs 3B) -> 1ª e 2ª dello stesso girone sono sui lati opposti (es. 1A è sopra, 2A è sotto) e si incontrano solo in FINALE.
+    
+    abbinamenti = [
+        (get_sq(g0, 0), get_sq(g2, 3)), # 1ª G1 vs 4ª G3
+        (get_sq(g1, 1), get_sq(g3, 2)), # 2ª G2 vs 3ª G4
+        (get_sq(g0, 1), get_sq(g2, 2)), # 2ª G1 vs 3ª G3
+        (get_sq(g1, 0), get_sq(g3, 3)), # 1ª G2 vs 4ª G4
         
-        match_slots = [
-            ((sqA, 0), (sqD, 3)),
-            ((sqB, 1), (sqC, 2)),
-            ((sqC, 0), (sqB, 3)),
-            ((sqD, 1), (sqA, 2)),
-            ((sqB, 0), (sqC, 3)),
-            ((sqA, 1), (sqD, 2)),
-            ((sqC, 0) if len(sqC)>0 else (sqA,0), (sqA, 3) if len(sqA)>3 else (sqA,0)),
-            ((sqD, 0) if len(sqD)>0 else (sqB,0), (sqB, 3) if len(sqB)>3 else (sqB,0)),
-        ]
+        (get_sq(g2, 0), get_sq(g0, 3)), # 1ª G3 vs 4ª G1
+        (get_sq(g3, 1), get_sq(g1, 2)), # 2ª G4 vs 3ª G2
+        (get_sq(g2, 1), get_sq(g0, 2)), # 2ª G3 vs 3ª G1
+        (get_sq(g3, 0), get_sq(g1, 3))  # 1ª G4 vs 4ª G2
+    ]
+    
+    return abbinamenti
+
+def crea_abbinamenti_rigorosi_generico(classificate_per_girone):
+    nomi_gironi = list(classificate_per_girone.keys())
+    prime, seconde, terze, quarte = [], [], [], []
+    for g_n in nomi_gironi:
+        lst = classificate_per_girone[g_n]
+        if len(lst) > 0: prime.append((lst[0], g_n, 1))
+        if len(lst) > 1: seconde.append((lst[1], g_n, 2))
+        if len(lst) > 2: terze.append((lst[2], g_n, 3))
+        if len(lst) > 3: quarte.append((lst[3], g_n, 4))
         
-        gia_inserite = set()
-        for s1_ref, s2_ref in match_slots:
-            s1_lista, s1_idx = s1_ref
-            s2_lista, s2_idx = s2_ref
+    abbinamenti = []
+    for i in range(len(prime)):
+        p = prime[i]
+        q = quarte[(i + 2) % len(quarte)] if len(quarte) > 0 else ("RIPOSO", "", 4)
+        abbinamenti.append((p, q))
+    for i in range(len(seconde)):
+        s = seconde[i]
+        t = terze[(i + 2) % len(terze)] if len(terze) > 0 else ("RIPOSO", "", 3)
+        abbinamenti.append((s, t))
+    return abbinamenti
+
+def crea_abbinamenti_fascia_b(classificate_per_girone):
+    tutte_b = []
+    for g_n, lista in classificate_per_girone.items():
+        for idx in range(4, len(lista)):
+            tutte_b.append((lista[idx], g_n, idx + 1))
             
-            nome_s1 = s1_lista[s1_idx] if len(s1_lista) > s1_idx else ("RIPOSO" if len(s1_lista)==0 else s1_lista[0])
-            gir_s1 = [k for k, v in classificate_per_girone.items() if s1_lista == v][0]
-            
-            nome_s2 = s2_lista[s2_idx] if len(s2_lista) > s2_idx else ("RIPOSO" if len(s2_lista)==0 else s2_lista[0])
-            gir_s2 = [k for k, v in classificate_per_girone.items() if s2_lista == v][0]
-            
-            if nome_s1 != "RIPOSO" and nome_s1 in gia_inserite:
-                continue
-            if nome_s2 != "RIPOSO" and nome_s2 in gia_inserite:
-                continue
-                
-            if nome_s1 != "RIPOSO": gia_inserite.add(nome_s1)
-            if nome_s2 != "RIPOSO": gia_inserite.add(nome_s2)
-            
-            abbinamenti.append(((nome_s1, gir_s1, s1_idx + 1), (nome_s2, gir_s2, s2_idx + 1)))
-    else:
-        tutte_le_prime = []
-        for g_n, lista in classificate_per_girone.items():
-            for idx, sq in enumerate(lista):
-                tutte_le_prime.append((sq, g_n, idx + 1))
-        
-        gia_inserite = set()
-        for i in range(0, len(tutte_le_prime), 2):
-            if i + 1 < len(tutte_le_prime):
-                s1 = tutte_le_prime[i]
-                s2 = tutte_le_prime[i+1]
-                if s1[0] not in gia_inserite and s2[0] not in gia_inserite:
-                    gia_inserite.add(s1[0])
-                    gia_inserite.add(s2[0])
-                    abbinamenti.append(((s1[0], s1[1], s1[2]), (s2[0], s2[1], s2[2])))
-            else:
-                s1 = tutte_le_prime[i]
-                if s1[0] not in gia_inserite:
-                    gia_inserite.add(s1[0])
-                    abbinamenti.append(((s1[0], s1[1], s1[2]), ("RIPOSO", "", 0)))
-                
+    random.shuffle(tutte_b)
+    abbinamenti = []
+    for i in range(0, len(tutte_b), 2):
+        if i + 1 < len(tutte_b):
+            abbinamenti.append((tutte_b[i], tutte_b[i+1]))
+        else:
+            abbinamenti.append((tutte_b[i], ("RIPOSO", "", 0)))
     return abbinamenti
 
 # --- BARRA LATERALE ---
@@ -529,7 +550,7 @@ if db["stato"] == "gironi":
 
     st.markdown("---")
 
-    st.subheader("📊 Classifiche dei Gironi (con Scontri Diretti e Differenza Reti)")
+    st.subheader("📊 Classifiche dei Gironi (Verde: Fascia A | Rosso: Fascia B)")
     nomi_gironi_chiavi = list(db["gironi"].keys())
     for i in range(0, len(nomi_gironi_chiavi), 2):
         col_gironi = st.columns(2)
@@ -665,7 +686,7 @@ if db["stato"] == "gironi":
         btn_testo = "🔄 Ricrea / Resetta Fasi Finali da Zero" if db.get("fasi_finali_configurate", False) else "🏆 Genera Fasi Finali (Fascia A e Fascia B)"
         if st.button(btn_testo, use_container_width=True):
             classificate_a = {}
-            classificate_b = {}
+            classificate_b_raw = {}
             for g_nome in db["gironi"]:
                 dati_girone = db["punti_gironi"][g_nome]
                 sorted_c = sorted(
@@ -675,10 +696,10 @@ if db["stato"] == "gironi":
                 )
                 squadre_girone = [c[0] for c in sorted_c]
                 classificate_a[g_nome] = squadre_girone[:4]
-                classificate_b[g_nome] = squadre_girone[4:]
+                classificate_b_raw[g_nome] = squadre_girone
             
-            abbinamenti_a = crea_abbinamenti_protetti(classificate_a)
-            abbinamenti_b = crea_abbinamenti_protetti(classificate_b)
+            abbinamenti_a = crea_abbinamenti_fascia_a_perfetti(classificate_a)
+            abbinamenti_b = crea_abbinamenti_fascia_b(classificate_b_raw)
             
             turno_a_iniziale = []
             for i, (s1_info, s2_info) in enumerate(abbinamenti_a):
@@ -686,7 +707,7 @@ if db["stato"] == "gironi":
                     "id": f"fa_t1_m{i}",
                     "s1": s1_info[0], "g1": s1_info[1], "p1": s1_info[2],
                     "s2": s2_info[0], "g2": s2_info[1], "p2": s2_info[2],
-                    "giocata": False, "gol1": 0, "gol2": 0, "vincente": None
+                    "giocata": False, "vincente": None
                 })
                 
             turno_b_iniziale = []
@@ -695,7 +716,7 @@ if db["stato"] == "gironi":
                     "id": f"fb_t1_m{i}",
                     "s1": s1_info[0], "g1": s1_info[1], "p1": s1_info[2],
                     "s2": s2_info[0], "g2": s2_info[1], "p2": s2_info[2],
-                    "giocata": False, "gol1": 0, "gol2": 0, "vincente": None
+                    "giocata": False, "vincente": None
                 })
                 
             db["tabellone_a"] = [ {"turno": 1, "partite": turno_a_iniziale} ]
@@ -706,13 +727,13 @@ if db["stato"] == "gironi":
             db["stato"] = "fasi_finali"
             db["fasi_finali_configurate"] = True
             salva_dati(db)
-            st.success("Fasi finali rigenerate da zero con successo!")
+            st.success("Fasi finali generate correttamente con le regole richieste!")
             st.rerun()
 
 # 3. FASI FINALI
 elif db["stato"] == "fasi_finali":
     st.subheader("🏆 Fasi Finali: Tabelloni a Eliminazione Diretta")
-    st.info("💡 Gestione turni pulita: i tabelloni partono correttamente dal turno iniziale configurato.")
+    st.info("💡 Nessun inserimento di gol richiesto: decidi direttamente la coppia vincitrice di ogni scontro con un semplice click!")
     
     tab_a_view, tab_b_view = st.tabs(["⭐ Fascia A (Torneo Principale)", "🔻 Fascia B (Torneo Secondario)"])
     
@@ -789,7 +810,7 @@ elif db["stato"] == "fasi_finali":
                     border_c = "#81c784"
                     s1_style = "font-weight: bold; color: #2e7d32;" if m['vincente'] == s1_nome else "color: #555;"
                     s2_style = "font-weight: bold; color: #2e7d32;" if m['vincente'] == s2_nome else "color: #555;"
-                    centro_testo = f"<span style='font-size: 18px; font-weight: bold; background-color: #2e7d32; color: white; padding: 4px 12px; border-radius: 6px;'>{m['gol1']} - {m['gol2']}</span><br><span style='font-size: 11px; color: #2e7d32; font-weight: bold;'>Vince: {m['vincente']}</span>"
+                    centro_testo = f"<span style='font-size: 14px; font-weight: bold; background-color: #2e7d32; color: white; padding: 6px 12px; border-radius: 6px;'>Vince: {m['vincente']}</span>"
                     vincitori_turno.append(m['vincente'])
                     perdente_match = s2_nome if m['vincente'] == s1_nome else s1_nome
                     perdenti_turno.append(perdente_match)
@@ -799,15 +820,15 @@ elif db["stato"] == "fasi_finali":
                     border_c = "#ced4da"
                     s1_style = "font-weight: bold; color: #212529;"
                     s2_style = "font-weight: bold; color: #212529;"
-                    centro_testo = "<span style='font-size: 15px; font-weight: bold; background-color: #e9ecef; color: #495057; padding: 4px 10px; border-radius: 6px;'>VS</span>"
+                    centro_testo = "<span style='font-size: 14px; font-weight: bold; background-color: #e9ecef; color: #495057; padding: 6px 10px; border-radius: 6px;'>VS</span>"
 
                 st.markdown(
                     f"""
-                    <div style="background-color: {box_bg}; border: 2px solid {border_c}; padding: 14px 18px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="background-color: {box_bg}; border: 2px solid {border_c}; padding: 16px 20px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                         <div style="flex: 1; text-align: left; font-size: 16px; {s1_style}">
                             🤝 {s1_display}
                         </div>
-                        <div style="padding: 0 15px; text-align: center; min-width: 90px;">
+                        <div style="padding: 0 15px; text-align: center; min-width: 140px;">
                             {centro_testo}
                         </div>
                         <div style="flex: 1; text-align: right; font-size: 16px; {s2_style}">
@@ -819,40 +840,22 @@ elif db["stato"] == "fasi_finali":
                 )
                 
                 if is_admin:
-                    with st.expander(f"⚙️ Inserisci / Modifica Risultato: {s1_nome} vs {s2_nome}"):
-                        st.markdown(
-                            f"""
-                            <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
-                                <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {s1_nome}</span>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                        rg1 = st.radio("Gol S1_hidden", list(range(8)), index=int(m.get('gol1', 0)), horizontal=True, key=f"ff_rg1_{match_id}", label_visibility="collapsed")
-                        
-                        st.markdown(
-                            f"""
-                            <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
-                                <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {s2_nome}</span>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                        rg2 = st.radio("Gol S2_hidden", list(range(8)), index=int(m.get('gol2', 0)), horizontal=True, key=f"ff_rg2_{match_id}", label_visibility="collapsed")
-                        
-                        if st.button("💾 Salva / Aggiorna Risultato", key=f"ff_save_{match_id}", use_container_width=True):
-                            m['gol1'] = rg1
-                            m['gol2'] = rg2
-                            m['giocata'] = True
-                            if rg1 > rg2:
+                    with st.expander(f"⚙️ Decreta Vincitore Scontro: {s1_nome} vs {s2_nome}"):
+                        col_v1, col_v2 = st.columns(2)
+                        with col_v1:
+                            if st.button(f"🏆 Vince: {s1_nome}", key=f"win_s1_{match_id}", use_container_width=True):
+                                m['giocata'] = True
                                 m['vincente'] = s1_nome
-                            elif rg2 > rg1:
+                                salva_dati(db)
+                                st.success(f"Vittoria assegnata a {s1_nome}!")
+                                st.rerun()
+                        with col_v2:
+                            if st.button(f"🏆 Vince: {s2_nome}", key=f"win_s2_{match_id}", use_container_width=True):
+                                m['giocata'] = True
                                 m['vincente'] = s2_nome
-                            else:
-                                m['vincente'] = s1_nome
-                            salva_dati(db)
-                            st.success("Risultato aggiornato con successo!")
-                            st.rerun()
+                                salva_dati(db)
+                                st.success(f"Vittoria assegnata a {s2_nome}!")
+                                st.rerun()
 
             if nome_etichetta == "🏆 FINALE" and tutti_giocati and len(partite_turno) == 1:
                 fin_m = partite_turno[0]
@@ -860,7 +863,7 @@ elif db["stato"] == "fasi_finali":
                     campione = fin_m["vincente"]
                     secondo_posto = fin_m['s2'] if campione == fin_m['s1'] else fin_m['s1']
                 
-            # ATTIVAZIONE RIGOROSA DEL 3°/4° POSTO SOLO DALLE SEMIFINALI (num_part == 2)
+            # ATTIVAZIONE 3°/4° POSTO DALLE SEMIFINALI
             if tutti_giocati and nome_etichetta == "⚔️ SEMIFINALI" and len(perdenti_turno) == 2 and not db[chiave_34]:
                 if is_admin:
                     p1, p2 = perdenti_turno[0], perdenti_turno[1]
@@ -871,7 +874,7 @@ elif db["stato"] == "fasi_finali":
                             "id": f"{chiave_tabellone}_terzo_quarto",
                             "s1": p1, "g1": g_p1, "p1": pos_p1,
                             "s2": p2, "g2": g_p2, "p2": pos_p2,
-                            "giocata": False, "gol1": 0, "gol2": 0, "vincente": None
+                            "giocata": False, "vincente": None
                         }]
                         salva_dati(db)
 
@@ -891,7 +894,7 @@ elif db["stato"] == "fasi_finali":
                             "id": f"{chiave_tabellone}_t{prossimo_turno_num}_m{i//2}",
                             "s1": s1_info[0], "g1": s1_info[1], "p1": s1_info[2],
                             "s2": s2_info[0], "g2": s2_info[1], "p2": s2_info[2],
-                            "giocata": False, "gol1": 0, "gol2": 0, "vincente": None
+                            "giocata": False, "vincente": None
                         })
                 
                 turno_esistente = next((t for t in turni_tab if t['turno'] == prossimo_turno_num), None)
@@ -922,21 +925,21 @@ elif db["stato"] == "fasi_finali":
             if tq_match["giocata"]:
                 tq_bg = "#fef3c7"
                 tq_border = "#f59e0b"
-                tq_centro = f"<span style='font-size: 18px; font-weight: bold; background-color: #d97706; color: white; padding: 4px 12px; border-radius: 6px;'>{tq_match['gol1']} - {tq_match['gol2']}</span><br><span style='font-size: 11px; color: #d97706; font-weight: bold;'>3° Posto: {tq_match['vincente']}</span>"
+                tq_centro = f"<span style='font-size: 14px; font-weight: bold; background-color: #d97706; color: white; padding: 6px 12px; border-radius: 6px;'>3° Posto: {tq_match['vincente']}</span>"
                 terzo_posto = tq_match["vincente"]
                 quarto_posto = tq_match['s2'] if terzo_posto == tq_match['s1'] else tq_match['s1']
             else:
                 tq_bg = "#f8f9fa"
                 tq_border = "#ced4da"
-                tq_centro = "<span style='font-size: 15px; font-weight: bold; background-color: #e9ecef; color: #495057; padding: 4px 10px; border-radius: 6px;'>VS</span>"
+                tq_centro = "<span style='font-size: 14px; font-weight: bold; background-color: #e9ecef; color: #495057; padding: 6px 10px; border-radius: 6px;'>VS</span>"
 
             st.markdown(
                 f"""
-                <div style="background-color: {tq_bg}; border: 2px solid {tq_border}; padding: 14px 18px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <div style="background-color: {tq_bg}; border: 2px solid {tq_border}; padding: 16px 20px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                     <div style="flex: 1; text-align: left; font-size: 16px; font-weight: bold;">
                         🤝 {tq_s1_disp}
                     </div>
-                    <div style="padding: 0 15px; text-align: center; min-width: 90px;">
+                    <div style="padding: 0 15px; text-align: center; min-width: 140px;">
                         {tq_centro}
                     </div>
                     <div style="flex: 1; text-align: right; font-size: 16px; font-weight: bold;">
@@ -948,40 +951,22 @@ elif db["stato"] == "fasi_finali":
             )
             
             if is_admin:
-                with st.expander(f"⚙️ Inserisci / Modifica 3°/4° Posto"):
-                    st.markdown(
-                        f"""
-                        <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
-                            <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {tq_match['s1']}</span>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-                    rg1 = st.radio("Gol S1_hidden", list(range(8)), index=int(tq_match.get('gol1', 0)), horizontal=True, key=f"tq_rg1_{tq_id}", label_visibility="collapsed")
-                    
-                    st.markdown(
-                        f"""
-                        <div style="background-color: #f1f3f5; padding: 6px 10px; border-radius: 5px; margin-top: 6px; text-align: center;">
-                            <span style="font-size: 15px; font-weight: bold; color: #212529;">⚽ Gol: {tq_match['s2']}</span>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-                    rg2 = st.radio("Gol S2_hidden", list(range(8)), index=int(tq_match.get('gol2', 0)), horizontal=True, key=f"tq_rg2_{tq_id}", label_visibility="collapsed")
-                    
-                    if st.button("💾 Salva 3°/4° Posto", key=f"tq_save_{tq_id}", use_container_width=True):
-                        tq_match['gol1'] = rg1
-                        tq_match['gol2'] = rg2
-                        tq_match['giocata'] = True
-                        if rg1 > rg2:
+                with st.expander(f"⚙️ Decreta Vincitore 3°/4° Posto"):
+                    col_tq1, col_tq2 = st.columns(2)
+                    with col_tq1:
+                        if st.button(f"🥉 Vince 3° Posto: {tq_match['s1']}", key=f"tq_win_s1_{tq_id}", use_container_width=True):
+                            tq_match['giocata'] = True
                             tq_match['vincente'] = tq_match['s1']
-                        elif rg2 > rg1:
+                            salva_dati(db)
+                            st.success(f"Assegnato 3° posto a {tq_match['s1']}!")
+                            st.rerun()
+                    with col_tq2:
+                        if st.button(f"🥉 Vince 3° Posto: {tq_match['s2']}", key=f"tq_win_s2_{tq_id}", use_container_width=True):
+                            tq_match['giocata'] = True
                             tq_match['vincente'] = tq_match['s2']
-                        else:
-                            tq_match['vincente'] = tq_match['s1']
-                        salva_dati(db)
-                        st.success("Risultato 3°/4° posto salvato!")
-                        st.rerun()
+                            salva_dati(db)
+                            st.success(f"Assegnato 3° posto a {tq_match['s2']}!")
+                            st.rerun()
 
         if campione:
             st.markdown("---")
