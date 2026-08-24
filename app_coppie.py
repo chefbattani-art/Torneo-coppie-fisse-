@@ -423,11 +423,11 @@ if coppia_selezionata == "-- Seleziona la tua coppia per accedere --":
 else:
   st.success(f"✅ Accesso effettuato come: **{coppia_selezionata}**")
 
-  # --- CRUSCOTTO PERSONALE / OCCHIO SULLA COPPIA SELEZIONATA ---
+  # --- CRUSCOTTO PERSONALE / OCCHIO SULLA COPPIA SELEZIONATA (RESTYLING) ---
   with st.expander(
       f"👁️ Segui la tua coppia: {coppia_selezionata}", expanded=True
   ):
-    # 1. Trova il girone di appartenenza e posizione in classifica
+    # Trova il girone di appartenenza e posizione in classifica
     girone_mio = None
     pos_mia = None
     info_mie = None
@@ -453,26 +453,31 @@ else:
               info_mie = stats
         break
 
-    col_info1, col_info2, col_info3 = st.columns(3)
-    with col_info1:
-      st.markdown(
-          f"**📁 Girone:** `{girone_mio if girone_mio else 'Non assegnato'}`"
-      )
-    with col_info2:
-      st.markdown(
-          f"**📊 Posizione:** `{pos_mia}° posto`"
-          if pos_mia
-          else "**📊 Posizione:** `N.D.`"
-      )
-    with col_info3:
-      if info_mie:
-        st.markdown(
-            f"**🏆 Punti / DR:** `{info_mie['punti']} pt` (DR: `{info_mie['dr']}`)"
-        )
-      else:
-        st.markdown("**🏆 Punti:** `0 pt`")
+    # -- BOX RIEPILOGO STATISTICHE (GRAFICA CARD PROFESSIONALE) --
+    st.markdown(
+        f"""
+        <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #ced4da; border-radius: 12px; padding: 18px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #6c757d; font-weight: bold; margin-bottom: 4px;">Riepilogo Squadra</div>
+            <div style="font-size: 20px; font-weight: 800; color: #212529; margin-bottom: 12px;">🤝 {coppia_selezionata}</div>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px 14px; flex: 1; min-width: 110px; text-align: center;">
+                    <div style="font-size: 11px; color: #6c757d; font-weight: bold;">GIRONE</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #0d6efd; margin-top: 2px;">{girone_mio if girone_mio else 'N.D.'}</div>
+                </div>
+                <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px 14px; flex: 1; min-width: 110px; text-align: center;">
+                    <div style="font-size: 11px; color: #6c757d; font-weight: bold;">POSIZIONE</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #198754; margin-top: 2px;">{str(pos_mia) + '° posto' if pos_mia else 'N.D.'}</div>
+                </div>
+                <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px 14px; flex: 1; min-width: 110px; text-align: center;">
+                    <div style="font-size: 11px; color: #6c757d; font-weight: bold;">PUNTI / DR</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #d97706; margin-top: 2px;">{info_mie['punti'] if info_mie else 0} pt <span style="font-size: 12px; font-weight: normal; color: #666;">(DR: {info_mie['dr'] if info_mie else 0})</span></div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("---")
     st.markdown("#### 🔍 Le tue partite nel girone:")
 
     # Raccogliamo le partite della coppia dai gironi
@@ -482,7 +487,6 @@ else:
     partite_mie_fatte = []
 
     if girone_mio and girone_mio in db["calendario_gironi"]:
-      # Calcoliamo la coda globale per capire se sono nei prossimi incontri
       max_t = (
           max([len(t) for t in db["calendario_gironi"].values()])
           if db["calendario_gironi"]
@@ -587,6 +591,59 @@ else:
                     """,
               unsafe_allow_html=True,
           )
+
+    # --- AGGIUNTA: CLASSIFICA COMPLETA DEL GIRONE INTERESSATO ---
+    if girone_mio:
+      st.markdown("---")
+      st.markdown(
+          f"#### 📊 Classifica Completa - {girone_mio} (Verde: Fascia A |"
+          " Rosso: Fascia B)"
+      )
+      dati_girone = db["punti_gironi"][girone_mio]
+      sorted_c = sorted(
+          dati_girone.items(),
+          key=lambda x: (
+              x[1]["punti"],
+              x[1]["scontri_diretti_pt"],
+              x[1]["dr"],
+              x[1]["gf"],
+          ),
+          reverse=True,
+      )
+
+      data_g = []
+      for idx, (coppia, info) in enumerate(sorted_c):
+        gioc, tot = calcola_partite_giocate_coppia(girone_mio, coppia)
+        fascia_assegnata = "⭐ A" if idx < 4 else "🔻 B"
+        data_g.append({
+            "Pos": f"{idx+1}°",
+            "Coppia": coppia,
+            "Pt": info["punti"],
+            "DR": info["dr"],
+            "GF": info["gf"],
+            "Gioc": f"{gioc}/{tot}",
+            "Fascia": fascia_assegnata,
+        })
+
+      df_g = pd.DataFrame(data_g)
+
+      def colora_fasce_mio_girone(val):
+        try:
+          pos = int(str(val).replace("°", ""))
+          if pos <= 4:
+            return (
+                "background-color: #d4edda; color: #155724; font-weight: bold;"
+            )
+          else:
+            return "background-color: #f8d7da; color: #721c24;"
+        except:
+          return ""
+
+      if not df_g.empty:
+        df_styled = df_g.style.map(colora_fasce_mio_girone, subset=["Pos"])
+        st.dataframe(df_styled, hide_index=True, use_container_width=True)
+      else:
+        st.dataframe(df_g, hide_index=True, use_container_width=True)
 
 st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
