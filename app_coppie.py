@@ -579,7 +579,9 @@ if db["stato"] == "gironi":
               f"""
                         <div style="background-color: #fffde7; border: 3px solid #ffae00; padding: 16px; border-radius: 12px; margin-bottom: 10px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.08);">
                             <div style="font-size: 15px; color: #b78103; font-weight: bold; margin-bottom: 6px;">{tavolo_str}</div>
-                            <div class="match-teams" style="font-size: 18px; font-weight: bold; color: #111; margin-top: 4px;">{m['c1']} vs {m['c2']}</div>
+                            <div style="font-size: 16px; font-weight: bold; color: #111; line-height: 1.4;">🤝 {m['c1']}</div>
+                            <div style="margin: 4px 0; font-size: 13px; font-weight: bold; color: #666;">VS</div>
+                            <div style="font-size: 16px; font-weight: bold; color: #111; line-height: 1.4;">🤝 {m['c2']}</div>
                         </div>
                         """,
               unsafe_allow_html=True,
@@ -589,9 +591,8 @@ if db["stato"] == "gironi":
               f"📝 Inserisci Risultato Tavolo {m.get('tavolo', '')}"
           ):
             st.markdown(
-                f"<div class='match-teams' style='text-align: center;"
-                f" font-weight: bold; font-size: 14px;'>{m['c1']} vs"
-                f" {m['c2']}</div>",
+                f"<div style='text-align: center; font-weight: bold;"
+                f" font-size: 14px;'>{m['c1']} vs {m['c2']}</div>",
                 unsafe_allow_html=True,
             )
 
@@ -657,7 +658,10 @@ if db["stato"] == "gironi":
         st.markdown(
             f"""
                     <div style="background-color: #d4edda; border: 1.5px solid #c3e6cb; padding: 12px; border-radius: 8px; margin-bottom: 8px; color: #155724; text-align: center;">
-                        <b>⏳ {idx+1}. {m['girone']}</b><br><span class="match-teams"><b>{m['c1']} vs {m['c2']}</b></span>
+                        <b>⏳ {idx+1}. {m['girone']}</b><br>
+                        <div style="font-weight: bold; font-size: 14px; margin-top: 4px;">{m['c1']}</div>
+                        <div style="font-size: 11px; color: #155724;">VS</div>
+                        <div style="font-weight: bold; font-size: 14px;">{m['c2']}</div>
                     </div>
                     """,
             unsafe_allow_html=True,
@@ -760,11 +764,17 @@ if db["stato"] == "gironi":
 
             st.markdown(
                 f"""
-                            <div style="background-color: {bg_color}; border: 1.5px solid {border_color}; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; text-align: center;">
-                                <div class="match-teams" style="font-weight: bold; color: #212529; font-size: 15px;">
-                                    🤝 {m['c1']} &nbsp;&nbsp; <span style="color: #666; font-size: 13px;">VS</span> &nbsp;&nbsp; {m['c2']} 🤝
+                            <div style="background-color: {bg_color}; border: 1.5px solid {border_color}; padding: 12px 14px; border-radius: 8px; margin-bottom: 8px; text-align: center;">
+                                <div style="font-weight: bold; color: #212529; font-size: 15px; line-height: 1.4;">
+                                    🤝 {m['c1']}
                                 </div>
-                                <div style="margin-top: 4px; font-weight: bold; color: #495057; font-size: 14px;">
+                                <div style="margin: 3px 0; font-size: 12px; color: #666; font-weight: bold;">
+                                    VS
+                                </div>
+                                <div style="font-weight: bold; color: #212529; font-size: 15px; line-height: 1.4;">
+                                    {m['c2']} 🤝
+                                </div>
+                                <div style="margin-top: 6px; font-weight: bold; color: #495057; font-size: 14px;">
                                     {stato_testo}
                                 </div>
                             </div>
@@ -975,10 +985,14 @@ elif db["stato"] == "fasi_finali":
         st.markdown(
             f"""
                     <div style="background-color: {box_bg}; border: 2px solid {border_c}; padding: 16px 20px; border-radius: 12px; margin-bottom: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                        <div class="match-teams" style="font-size: 16px; font-weight: bold; color: #212529;">
-                            🤝 {s1_nome} <span style="font-size: 13px; color: #666; font-weight: normal;">({s1_sottotitolo})</span>
-                            &nbsp;&nbsp; VS &nbsp;&nbsp;
-                            {s2_nome} <span style="font-size: 13px; color: #666; font-weight: normal;">({s2_sottotitolo})</span> 🤝
+                        <div style="font-size: 16px; font-weight: bold; color: #212529; line-height: 1.4;">
+                            🤝 {s1_nome} <span style="font-size: 12px; color: #666; font-weight: normal; display: block;">({s1_sottotitolo})</span>
+                        </div>
+                        <div style="margin: 6px 0; font-size: 13px; font-weight: bold; color: #666;">
+                            VS
+                        </div>
+                        <div style="font-size: 16px; font-weight: bold; color: #212529; line-height: 1.4;">
+                            🤝 {s2_nome} <span style="font-size: 12px; color: #666; font-weight: normal; display: block;">({s2_sottotitolo})</span>
                         </div>
                         <div style="margin-top: 10px;">
                             {centro_testo}
@@ -1128,10 +1142,14 @@ elif db["stato"] == "fasi_finali":
       st.markdown(
           f"""
                 <div style="background-color: {tq_bg}; border: 2px solid {tq_border}; padding: 16px 20px; border-radius: 12px; margin-bottom: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                    <div class="match-teams" style="font-size: 16px; font-weight: bold;">
-                        🤝 {tq_match['s1']} <span style="font-size: 13px; color: #666; font-weight: normal;">({tq_s1_sub})</span>
-                        &nbsp;&nbsp; VS &nbsp;&nbsp;
-                        {tq_match['s2']} <span style="font-size: 13px; color: #666; font-weight: normal;">({tq_s2_sub})</span> 🤝
+                    <div style="font-size: 16px; font-weight: bold; line-height: 1.4;">
+                        🤝 {tq_match['s1']} <span style="font-size: 12px; color: #666; font-weight: normal; display: block;">({tq_s1_sub})</span>
+                    </div>
+                    <div style="margin: 6px 0; font-size: 13px; font-weight: bold; color: #666;">
+                        VS
+                    </div>
+                    <div style="font-size: 16px; font-weight: bold; line-height: 1.4;">
+                        🤝 {tq_match['s2']} <span style="font-size: 12px; color: #666; font-weight: normal; display: block;">({tq_s2_sub})</span>
                     </div>
                     <div style="margin-top: 10px;">
                         {tq_centro}
@@ -1196,17 +1214,3 @@ elif db["stato"] == "fasi_finali":
         "terzo_quarto_b",
         "Tabellone Eliminazione Diretta - Fascia B",
     )
-
-# --- CSS Personalizzato per impedire ai nomi lunghi di andare a capo ---
-st.markdown(
-    """
-<style>
-    .match-teams {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-</style>
-""",
-    unsafe_allow_html=True,
-)
