@@ -353,6 +353,27 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Messaggio informativo sullo svolgimento del torneo
+st.markdown(
+    """
+    <div style="padding: 12px 14px; background-color: #e3f2fd; border-left: 5px solid #2196f3; border-radius: 6px; font-size: 14px; color: #0d47a1; margin-bottom: 12px; line-height: 1.5;">
+        <b>ℹ️ Come funziona il torneo:</b><br>
+        L'app è strutturata per far sì che il torneo vada avanti in maniera autonoma e automatica. Ovviamente chi organizza può modificare eventuali errori di gol o partite segnate errate. Il torneo è stato progettato con l'intelligenza artificiale, quindi i sorteggi dei gironi sono puramente casuali; le fasi a eliminazione diretta seguono invece il criterio consueto dei nostri tornei con tabellone cartaceo. Vi chiediamo di collaborare inserendo il proprio nome in modo che chi vince inserisca il risultato esatto, agevolando così anche gli organizzatori.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Voce informativa in rosso
+st.markdown(
+    """
+    <div style="padding: 12px 14px; background-color: #ffebee; border-left: 5px solid #f44336; border-radius: 6px; font-size: 14px; color: #b71c1c; margin-bottom: 15px; font-weight: bold; line-height: 1.5;">
+        🚨 Chi vince è pregato di inserire il risultato esatto e chi è in ordine della coda delle partite di essere pronto a salire al primo calcetto che si libera.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.markdown(
     """
     <div style="padding: 10px; background-color: #f0f2f6; border-radius: 8px; text-align: center; margin-bottom: 15px;">
