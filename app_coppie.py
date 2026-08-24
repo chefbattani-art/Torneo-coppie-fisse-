@@ -59,6 +59,13 @@ def pulisci_nome(testo):
   return testo.strip()
 
 
+def evidenzia_nome_coppia(testo_match, mia_coppia):
+  """Evidenzia la propria coppia in rosso e grassetto all'interno della stringa della partita"""
+  return (
+      testo_match.replace(mia_coppia, f"<span style='color: #d32f2f; font-weight: 800;'>{mia_coppia}</span>")
+  )
+
+
 def ricalcola_classifiche_gironi():
   for g_nome, coppie_lista in db["gironi"].items():
     stats = {
@@ -549,21 +556,25 @@ else:
         st.info("Nessuna partita attiva o in coda adesso per te.")
       else:
         for m in partite_mie_in_corso:
+          testo_scontro = f"{m['c1']} vs {m['c2']}"
+          testo_evidenziato = evidenzia_nome_coppia(testo_scontro, coppia_selezionata)
           st.markdown(
               f"""
                     <div style="background-color: #fffde7; border: 2px solid #ffae00; padding: 10px; border-radius: 8px; margin-bottom: 6px; text-align: center;">
                         <span style="color: #b78103; font-weight: bold;">🏟️ IN CORSO (Biliardino {m.get('tavolo', 'N/D')})</span><br>
-                        <b>{m['c1']} vs {m['c2']}</b>
+                        <b>{testo_evidenziato}</b>
                     </div>
                     """,
               unsafe_allow_html=True,
           )
         for m in partite_mie_in_coda:
+          testo_scontro = f"{m['c1']} vs {m['c2']}"
+          testo_evidenziato = evidenzia_nome_coppia(testo_scontro, coppia_selezionata)
           st.markdown(
               f"""
                     <div style="background-color: #d4edda; border: 1.5px solid #c3e6cb; padding: 10px; border-radius: 8px; margin-bottom: 6px; text-align: center; color: #155724;">
                         <b>⏳ IN CODA (Prossimo turno)</b><br>
-                        <b>{m['c1']} vs {m['c2']}</b>
+                        <b>{testo_evidenziato}</b>
                     </div>
                     """,
               unsafe_allow_html=True,
@@ -575,10 +586,12 @@ else:
         st.info("Non hai altre partite future in attesa nei prossimi turni.")
       else:
         for m in partite_mie_da_giocare_dopo:
+          testo_scontro = f"{m['c1']} vs {m['c2']}"
+          testo_evidenziato = evidenzia_nome_coppia(testo_scontro, coppia_selezionata)
           st.markdown(
               f"""
                     <div style="background-color: #f8f9fa; border: 1px solid #ced4da; padding: 8px; border-radius: 6px; margin-bottom: 6px; text-align: center;">
-                        <span style="font-size: 13px; color: #333;"><b>{m['c1']} vs {m['c2']}</b></span>
+                        <span style="font-size: 13px; color: #333;"><b>{testo_evidenziato}</b></span>
                     </div>
                     """,
               unsafe_allow_html=True,
@@ -590,10 +603,12 @@ else:
         st.info("Non hai ancora disputato partite.")
       else:
         for m in partite_mie_fatte:
+          testo_scontro = f"{m['c1']} vs {m['c2']}"
+          testo_evidenziato = evidenzia_nome_coppia(testo_scontro, coppia_selezionata)
           st.markdown(
               f"""
                     <div style="background-color: #f8f9fa; border: 1px solid #ced4da; padding: 8px; border-radius: 6px; margin-bottom: 6px; text-align: center;">
-                        <span style="font-size: 13px; color: #666;">{m['c1']} vs {m['c2']}</span><br>
+                        <span style="font-size: 13px; color: #666;">{testo_evidenziato}</span><br>
                         <b style="color: #2e7d32; font-size: 15px;">Risultato: {m['gol1']} - {m['gol2']}</b>
                     </div>
                     """,
