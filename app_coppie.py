@@ -157,10 +157,6 @@ def ottieni_nome_turno_dinamico(num_partite_turno):
         return "🔥 QUARTI DI FINALE"
     elif num_partite_turno == 8:
         return "⭐ OTTAVI DI FINALE"
-    elif num_partite_turno == 16:
-        return "🚀 SEDICESIMI DI FINALE"
-    elif num_partite_turno == 32:
-        return "⚡ TRENTADUESIMI DI FINALE"
     else:
         return f"Eliminazione Diretta ({tot_squadre} Coppie)"
 
@@ -178,11 +174,12 @@ def crea_abbinamenti_fascia_a_perfetti(classificate_per_girone):
             return (lst[pos_idx], g_nome, pos_idx + 1)
         return ("RIPOSO", g_nome, pos_idx + 1)
 
+    # Abbinamenti Quarti corretti per separare 1ª e 2ª dello stesso girone in rami opposti
     abbinamenti = [
-        (get_sq(g0, 0), get_sq(g2, 3)), # 1ª G1 vs 4ª G3
-        (get_sq(g1, 1), get_sq(g3, 2)), # 2ª G2 vs 3ª G4
-        (get_sq(g0, 1), get_sq(g2, 2)), # 2ª G1 vs 3ª G3
-        (get_sq(g1, 0), get_sq(g3, 3)), # 1ª G2 vs 4ª G4
+        (get_sq(g0, 0), get_sq(g3, 3)), # 1ª G1 vs 4ª G4
+        (get_sq(g1, 1), get_sq(g2, 2)), # 2ª G2 vs 3ª G3
+        (get_sq(g1, 0), get_sq(g2, 3)), # 1ª G2 vs 4ª G3
+        (get_sq(g0, 1), get_sq(g3, 2)), # 2ª G1 vs 3ª G4
         
         (get_sq(g2, 0), get_sq(g0, 3)), # 1ª G3 vs 4ª G1
         (get_sq(g3, 1), get_sq(g1, 2)), # 2ª G4 vs 3ª G2
@@ -204,11 +201,11 @@ def crea_abbinamenti_rigorosi_generico(classificate_per_girone):
     abbinamenti = []
     for i in range(len(prime)):
         p = prime[i]
-        q = quarte[(i + 2) % len(quarte)] if len(quarte) > 0 else ("RIPOSO", "", 4)
+        q = quarte[(i + 1) % len(quarte)] if len(quarte) > 0 else ("RIPOSO", "", 4)
         abbinamenti.append((p, q))
     for i in range(len(seconde)):
         s = seconde[i]
-        t = terze[(i + 2) % len(terze)] if len(terze) > 0 else ("RIPOSO", "", 3)
+        t = terze[(i + 1) % len(terze)] if len(terze) > 0 else ("RIPOSO", "", 3)
         abbinamenti.append((s, t))
     return abbinamenti
 
@@ -374,7 +371,7 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                                     "tavolo": None,
                                     "gol1": 0, "gol2": 0
                                 })
-                        turni_turno.append({"turno": t + 1, "partite": partite_turno})
+                        turni_girone.append({"turno": t + 1, "partite": partite_turno})
                         squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
                     
                     calendario_totale[g_nome] = turni_girone
