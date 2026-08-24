@@ -338,6 +338,43 @@ else:
 
 st.sidebar.markdown("---")
 
+
+# --- 🛠️ AREA AMMINISTRATORE (IN ALTO A SINISTRA SULLA SCHERMATA PRINCIPALE) ---
+with st.expander("🛠️ Area Amministratore"):
+  password_inserita = st.text_input(
+      "Password amministratore (0000)", type="password", key="admin_pwd_main"
+  )
+
+  if password_inserita == "0000":
+    st.success("🔓 Accesso amministratore consentito.")
+    st.markdown("#### Gestione Rapida Elenco Coppie")
+    whatsapp_text_admin = st.text_area(
+        "Incolla qui la lista con i numeri (es. 1 Fiore Gaffo):", height=120
+    )
+    if st.button("Carica e pulisci lista in automatico"):
+      if whatsapp_text_admin:
+        righe = whatsapp_text_admin.strip().split("\n")
+        nuove_coppie = []
+        for r in righe:
+          nome_c = pulisci_nome(r)
+          if nome_c:
+            nuove_coppie.append(nome_c)
+        if nuove_coppie:
+          db["coppie"] = nuove_coppie
+          salva_dati(db)
+          st.success(
+              f"Caricate con successo {len(nuove_coppie)} coppie pulite!"
+          )
+          st.rerun()
+
+    st.markdown("#### Coppie registrate:")
+  elif password_inserita != "":
+    st.error("❌ Password errata.")
+  else:
+    st.info("Inserisci la password (0000) per gestire le impostazioni.")
+
+st.markdown("---")
+
 # --- INTERFACCIA PRINCIPALE ---
 st.markdown(
     """
@@ -372,7 +409,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Box aggiorna pagina aggiornato
+# Box aggiorna pagina
 st.markdown(
     """
     <div style="padding: 10px; background-color: #f0f2f6; border-radius: 8px; text-align: center; margin-bottom: 15px;">
@@ -384,39 +421,42 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# SELETTORE COPPIA (VISIBILE SOLO SE NON SIAMO NELLE FASI FINALI)
-coppia_selezionata = "-- Nessuna (Solo Visualizzazione) --"
+# --- SELETTORE COPPIA (ORA OBBLIGATORIO) ---
+tutte_le_coppie = []
+for g_lst in db["gironi"].values():
+  tutte_le_coppie.extend(g_lst)
 
-if db["stato"] != "fasi_finali":
-  tutte_le_coppie = []
-  for g_lst in db["gironi"].values():
-    tutte_le_coppie.extend(g_lst)
+if not tutte_le_coppie and db.get("coppie"):
+  tutte_le_coppie = db["coppie"]
 
-  opzioni_selettore = ["-- Nessuna (Solo Visualizzazione) --"] + sorted(
-      tutte_le_coppie
+opzioni_selettore = ["-- Seleziona la tua coppia per accedere --"] + sorted(
+    tutte_le_coppie
+)
+
+if "coppia_selezionata" not in st.session_state:
+  st.session_state["coppia_selezionata"] = (
+      "-- Seleziona la tua coppia per accedere --"
   )
 
-  if "coppia_selezionata" not in st.session_state:
-    st.session_state["coppia_selezionata"] = (
-        "-- Nessuna (Solo Visualizzazione) --"
-    )
+coppia_selezionata = st.selectbox(
+    "📱 Seleziona la tua coppia:",
+    options=opzioni_selettore,
+    key="coppia_selezionata",
+)
 
-  coppia_selezionata = st.selectbox(
-      "📱 Seleziona la tua coppia:",
-      options=opzioni_selettore,
-      key="coppia_selezionata",
-      bind="query-params",
+if coppia_selettore_val := (
+    coppia_selezionata == "-- Seleziona la tua coppia per accedere --"
+):
+  st.warning(
+      "⚠️ **Attenzione:** Devi selezionare la tua coppia dal menu a tendina qui"
+      " sopra per sbloccare l'accesso al torneo, vedere le partite e inserire i"
+      " risultati."
   )
+  st.stop()
+else:
+  st.success(f"✅ Accesso effettuato come: **{coppia_selezionata}**")
 
-  st.info(
-      "💡 **Seleziona la tua coppia** dall'elenco qui sopra per poter inserire"
-      " direttamente il tuo risultato quando giochi la tua partita! La scelta"
-      " rimarrà memorizzata anche se aggiorni la pagina."
-  )
-
-  st.markdown(
-      "<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True
-  )
+st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
 # 1. SETUP
 if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
@@ -425,11 +465,11 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
   if not is_admin:
     st.warning(
         "⚠️ Configurazione bloccata. Accedi come amministratore dalla barra"
-        " laterale con il PIN."
+        " laterale con il PIN o dall'area in alto."
     )
   else:
     whatsapp_text = st.text_area(
-        "Incolla qui la lista delle coppie da WhatsApp (es. 🤝 Mario / Luigi):",
+        "Incolla qui la lista delle coppie da WhatsApp (es. 1 Fiore Gaffo):",
         height=150,
     )
 
