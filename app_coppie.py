@@ -540,7 +540,8 @@ if db["stato"] == "gironi":
       t for t in range(1, num_tavoli + 1) if t not in tavoli_occupati_ids
   ]
 
-  if is_admin and tavoli_liberi_disponibili and partite_da_giocare:
+  # Assegnazione automatica attiva per tutti (Admin e Ospiti)
+  if tavoli_liberi_disponibili and partite_da_giocare:
     cambiato = False
     for tavolo_libero in tavoli_liberi_disponibili:
       if partite_da_giocare:
