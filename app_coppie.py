@@ -390,7 +390,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Come funziona il torneo inserito dentro una tendina (st.expander)
 with st.expander("ℹ️ Come funziona il torneo"):
   st.markdown(
       """
@@ -399,7 +398,6 @@ with st.expander("ℹ️ Come funziona il torneo"):
       unsafe_allow_html=True,
   )
 
-# Voce informativa in rosso
 st.markdown(
     """
     <div style="padding: 12px 14px; background-color: #ffebee; border-left: 5px solid #f44336; border-radius: 6px; font-size: 14px; color: #b71c1c; margin-bottom: 15px; font-weight: bold; line-height: 1.5;">
@@ -409,7 +407,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Box aggiorna pagina
 st.markdown(
     """
     <div style="padding: 10px; background-color: #f0f2f6; border-radius: 8px; text-align: center; margin-bottom: 15px;">
@@ -434,7 +431,7 @@ opzioni_selettore = ["-- Seleziona la tua coppia per accedere --"] + sorted(
 )
 
 if "coppia_selezionata" not in st.session_state:
-  st.session_state["coppia_selezionata"] = (
+  st.session_state["coppia_selettore"] = (
       "-- Seleziona la tua coppia per accedere --"
   )
 
@@ -444,9 +441,7 @@ coppia_selezionata = st.selectbox(
     key="coppia_selezionata",
 )
 
-if coppia_selettore_val := (
-    coppia_selezionata == "-- Seleziona la tua coppia per accedere --"
-):
+if coppia_selezionata == "-- Seleziona la tua coppia per accedere --":
   st.warning(
       "⚠️ **Attenzione:** Devi selezionare la tua coppia dal menu a tendina qui"
       " sopra per sbloccare l'accesso al torneo, vedere le partite e inserire i"
@@ -455,6 +450,138 @@ if coppia_selettore_val := (
   st.stop()
 else:
   st.success(f"✅ Accesso effettuato come: **{coppia_selezionata}**")
+
+  # --- CRUSCOTTO PERSONALE / OCCHIO SULLA COPPIA SELEZIONATA ---
+  with st.expander(
+      f"👁️ Segui la tua coppia: {coppia_selezionata}", expanded=True
+  ):
+    # 1. Trova il girone di appartenenza e posizione in classifica
+    girone_mio = None
+    pos_mia = None
+    info_mie = None
+    for g_nome, lista_c in db["gironi"].items():
+      if coppia_selezionata in lista_c:
+        girone_mio = g_nome
+        ricalcola_classifiche_gironi()
+        if g_nome in db["punti_gironi"]:
+          dati_g = db["punti_gironi"][g_nome]
+          sorted_c = sorted(
+              dati_g.items(),
+              key=lambda x: (
+                  x[1]["punti"],
+                  x[1]["scontri_diretti_pt"],
+                  x[1]["dr"],
+                  x[1]["gf"],
+              ),
+              reverse=True,
+          )
+          for idx, (c_nome, stats) in enumerate(sorted_c):
+            if c_nome == coppia_selezionata:
+              pos_mia = idx + 1
+              info_mie = stats
+        break
+
+    col_info1, col_info2, col_info3 = st.columns(3)
+    with col_info1:
+      st.markdown(
+          f"**📁 Girone:** `{girone_mio if girone_mio else 'Non assegnato'}`"
+      )
+    with col_info2:
+      st.markdown(
+          f"**📊 Posizione:** `{pos_mia}° posto`"
+          if pos_mia
+          else "**📊 Posizione:** `N.D.`"
+      )
+    with col_info3:
+      if info_mie:
+        st.markdown(
+            f"**🏆 Punti / DR:** `{info_mie['punti']} pt` (DR: `{info_mie['dr']}`)"
+        )
+      else:
+        st.markdown("**🏆 Punti:** `0 pt`")
+
+    st.markdown("---")
+    st.markdown("#### 🔍 Le tue partite nel girone:")
+
+    # Raccogliamo le partite della coppia dai gironi
+    partite_mie_in_corso = []
+    partite_mie_in_coda = []
+    partite_mie_fatte = []
+
+    if girone_mio and girone_mio in db["calendario_gironi"]:
+      # Calcoliamo la coda globale per capire se sono nei prossimi incontri
+      max_t = max(
+          [len(t) for t in db["calendario_gironi"].values()]
+      ) if db["calendario_gironi"] else 0
+      tutte_p_girone = []
+      for t_num in range(1, max_t + 1):
+        for g_n, turni in db["calendario_gironi"].items():
+          for t_obj in turni:
+            if t_obj["turno"] == t_num:
+              tutte_p_girone.extend(t_obj["partite"])
+
+      da_giocare_tot = [
+          p for p in tutte_p_girone if not p.get("giocata", False)
+      ]
+      num_tavoli_conf = db.get("num_tavoli", 6)
+      coda_globale = da_giocare_tot[:num_tavoli_conf]
+
+      for turno_obj in db["calendario_gironi"][girone_mio]:
+        for m in turno_obj["partite"]:
+          if m["c1"] == coppia_selezionata or m["c2"] == coppia_selezionata:
+            if m.get("giocata", False):
+              partite_mie_fatte.append(m)
+            elif m.get("in_corso", False):
+              partite_mie_in_corso.append(m)
+            elif m in coda_globale:
+              partite_mie_in_coda.append(m)
+            else:
+              # In attesa nei turni successivi
+              pass
+
+    col_m1, col_m2 = st.columns(2)
+
+    with col_m1:
+      st.markdown("**🔥 Partite in Corso / In Coda per te:**")
+      if not partite_mie_in_corso and not partite_mie_in_coda:
+        st.info("Nessuna partita attiva o in coda adesso per te.")
+      else:
+        for m in partite_mie_in_corso:
+          st.markdown(
+              f"""
+                    <div style="background-color: #fffde7; border: 2px solid #ffae00; padding: 10px; border-radius: 8px; margin-bottom: 6px; text-align: center;">
+                        <span style="color: #b78103; font-weight: bold;">🏟️ IN CORSO (Biliardino {m.get('tavolo', 'N/D')})</span><br>
+                        <b>{m['c1']} vs {m['c2']}</b>
+                    </div>
+                    """,
+              unsafe_allow_html=True,
+          )
+        for m in partite_mie_in_coda:
+          st.markdown(
+              f"""
+                    <div style="background-color: #d4edda; border: 1.5px solid #c3e6cb; padding: 10px; border-radius: 8px; margin-bottom: 6px; text-align: center; color: #155724;">
+                        <b>⏳ IN CODA (Prossimo turno)</b><br>
+                        <b>{m['c1']} vs {m['c2']}</b>
+                    </div>
+                    """,
+              unsafe_allow_html=True,
+          )
+
+    with col_m2:
+      st.markdown("**✅ Partite già effettuate:**")
+      if not partite_mie_fatte:
+        st.info("Non hai ancora disputato partite.")
+      else:
+        for m in partite_mie_fatte:
+          st.markdown(
+              f"""
+                    <div style="background-color: #f8f9fa; border: 1px solid #ced4da; padding: 8px; border-radius: 6px; margin-bottom: 6px; text-align: center;">
+                        <span style="font-size: 13px; color: #666;">{m['c1']} vs {m['c2']}</span><br>
+                        <b style="color: #2e7d32; font-size: 15px;">Risultato: {m['gol1']} - {m['gol2']}</b>
+                    </div>
+                    """,
+              unsafe_allow_html=True,
+          )
 
 st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
