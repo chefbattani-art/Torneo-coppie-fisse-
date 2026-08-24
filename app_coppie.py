@@ -1,6 +1,10 @@
-# --- CRUSCOTTO PERSONALE (VERSIONE INTEGRATA E COLORATA) ---
+# --- CRUSCOTTO PERSONALE (CORRETTO) ---
 
-if "db" in locals() and "coppia_selezionata" in locals() and coppia_selezionata:
+if (
+    "coppia_selezionata" in st.session_state
+    and st.session_state["coppia_selezionata"]
+    != "-- Seleziona la tua coppia per accedere --"
+):
   girone_mio = None
   pos_mia = None
   info_mie = None
