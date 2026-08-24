@@ -364,34 +364,39 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# SELETTORE COPPIA NELLA SCHERMATA PRINCIPALE (IN ALTO) + PERSISTENZA URL + AVVISO
-tutte_le_coppie = []
-for g_lst in db["gironi"].values():
-  tutte_le_coppie.extend(g_lst)
+# SELETTORE COPPIA (VISIBILE SOLO SE NON SIAMO NELLE FASI FINALI)
+coppia_selezionata = "-- Nessuna (Solo Visualizzazione) --"
 
-opzioni_selettore = ["-- Nessuna (Solo Visualizzazione) --"] + sorted(
-    tutte_le_coppie
-)
+if db["stato"] != "fasi_finali":
+  tutte_le_coppie = []
+  for g_lst in db["gironi"].values():
+    tutte_le_coppie.extend(g_lst)
 
-if "coppia_selezionata" not in st.session_state:
-  st.session_state["coppia_selezionata"] = (
-      "-- Nessuna (Solo Visualizzazione) --"
+  opzioni_selettore = ["-- Nessuna (Solo Visualizzazione) --"] + sorted(
+      tutte_le_coppie
   )
 
-coppia_selezionata = st.selectbox(
-    "📱 Seleziona la tua coppia:",
-    options=opzioni_selettore,
-    key="coppia_selezionata",
-    bind="query-params",
-)
+  if "coppia_selezionata" not in st.session_state:
+    st.session_state["coppia_selezionata"] = (
+        "-- Nessuna (Solo Visualizzazione) --"
+    )
 
-st.info(
-    "💡 **Seleziona la tua coppia** dall'elenco qui sopra per poter inserire"
-    " direttamente il tuo risultato quando giochi la tua partita! La scelta"
-    " rimarrà memorizzata anche se aggiorni la pagina."
-)
+  coppia_selezionata = st.selectbox(
+      "📱 Seleziona la tua coppia:",
+      options=opzioni_selettore,
+      key="coppia_selezionata",
+      bind="query-params",
+  )
 
-st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+  st.info(
+      "💡 **Seleziona la tua coppia** dall'elenco qui sopra per poter inserire"
+      " direttamente il tuo risultato quando giochi la tua partita! La scelta"
+      " rimarrà memorizzata anche se aggiorni la pagina."
+  )
+
+  st.markdown(
+      "<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True
+  )
 
 # 1. SETUP
 if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
@@ -516,7 +521,6 @@ if db["stato"] == "gironi":
   ricalcola_classifiche_gironi()
   num_tavoli = db.get("num_tavoli", 6)
 
-  # Visibile solo se le fasi finali sono configurate E l'utente è amministratore
   if db.get("fasi_finali_configurate", False) and is_admin:
     if st.button(
         "⬅️ Torna alla schermata delle Fasi Finali", use_container_width=True
