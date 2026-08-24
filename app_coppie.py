@@ -511,13 +511,20 @@ else:
 
   # HTML & CSS unificato per il cruscotto personale
   punti_str = f"{info_mie['punti']} pt" if info_mie else "0 pt"
-  dr_str = f"+{info_mie['dr']}" if info_mie and info_mie['dr'] >= 0 else str(info_mie['dr'] if info_mie else 0)
+  dr_str = (
+      f"+{info_mie['dr']}"
+      if info_mie and info_mie["dr"] >= 0
+      else str(info_mie["dr"] if info_mie else 0)
+  )
   pos_str = f"{pos_mia}° Posto" if pos_mia else "N.D."
 
   # Generazione righe partite fatte HTML
   html_partite_fatte = ""
   if not partite_mie_fatte:
-    html_partite_fatte = '<div style="font-size: 12px; color: #718096; text-align: center;">Nessuna partita disputata ancora.</div>'
+    html_partite_fatte = (
+        '<div style="font-size: 12px; color: #718096; text-align:'
+        ' center;">Nessuna partita disputata ancora.</div>'
+    )
   else:
     for m in partite_mie_fatte:
       html_partite_fatte += f"""
@@ -530,7 +537,10 @@ else:
   # Generazione righe partite da giocare HTML
   html_partite_mancanti = ""
   if not partite_mie_in_corso and not partite_mie_in_coda:
-    html_partite_mancanti = '<div style="font-size: 12px; color: #718096; text-align: center;">Nessuna partita attiva o in coda adesso.</div>'
+    html_partite_mancanti = (
+        '<div style="font-size: 12px; color: #718096; text-align:'
+        ' center;">Nessuna partita attiva o in coda adesso.</div>'
+    )
   else:
     for m in partite_mie_in_corso:
       html_partite_mancanti += f"""
@@ -560,12 +570,12 @@ else:
         reverse=True,
     )
     for idx, (c_nome, stats) in enumerate(sorted_girone):
-      is_tuo = (c_nome == coppia_selezionata)
+      is_tuo = c_nome == coppia_selezionata
       bg_riga = "#ebf8ff" if is_tuo else "transparent"
       font_w = "bold" if is_tuo else "normal"
       colore_testo = "#2b6cb0" if is_tuo else "#2d3748"
       stella = " ⭐" if is_tuo else ""
-       dr_val = f"+{stats['dr']}" if stats['dr'] >= 0 else str(stats['dr'])
+      dr_val = f"+{stats['dr']}" if stats["dr"] >= 0 else str(stats["dr"])
 
       html_righe_classifica += f"""
       <tr style="background: {bg_riga}; font-weight: {font_w}; color: {colore_testo}; border-bottom: 1px solid #edf2f7;">
@@ -577,7 +587,8 @@ else:
       """
 
   # Widget completo unificato con la nuova grafica
-  st.markdown(f"""
+  st.markdown(
+      f"""
   <div style="font-family: 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; border-radius: 16px; padding: 20px; max-width: 480px; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.05); color: #2d3748; margin-bottom: 25px;">
     
     <!-- Intestazione Girone -->
@@ -629,7 +640,9 @@ else:
     </div>
 
   </div>
-  """, unsafe_allow_html=True)
+  """,
+      unsafe_allow_html=True,
+  )
 
 st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
