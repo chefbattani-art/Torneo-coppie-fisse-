@@ -61,8 +61,9 @@ def pulisci_nome(testo):
 
 def evidenzia_nome_coppia(testo_match, mia_coppia):
   """Evidenzia la propria coppia in rosso e grassetto all'interno della stringa della partita"""
-  return (
-      testo_match.replace(mia_coppia, f"<span style='color: #d32f2f; font-weight: 800;'>{mia_coppia}</span>")
+  return testo_match.replace(
+      mia_coppia,
+      f"<span style='color: #d32f2f; font-weight: 800;'>{mia_coppia}</span>",
   )
 
 
@@ -346,42 +347,6 @@ else:
 st.sidebar.markdown("---")
 
 
-# --- 🛠️ AREA AMMINISTRATORE (IN ALTO A SINISTRA SULLA SCHERMATA PRINCIPALE) ---
-with st.expander("🛠️ Area Amministratore"):
-  password_inserita = st.text_input(
-      "Password amministratore (0000)", type="password", key="admin_pwd_main"
-  )
-
-  if password_inserita == "0000":
-    st.success("🔓 Accesso amministratore consentito.")
-    st.markdown("#### Gestione Rapida Elenco Coppie")
-    whatsapp_text_admin = st.text_area(
-        "Incolla qui la lista con i numeri (es. 1 Fiore Gaffo):", height=120
-    )
-    if st.button("Carica e pulisci lista in automatico"):
-      if whatsapp_text_admin:
-        righe = whatsapp_text_admin.strip().split("\n")
-        nuove_coppie = []
-        for r in righe:
-          nome_c = pulisci_nome(r)
-          if nome_c:
-            nuove_coppie.append(nome_c)
-        if nuove_coppie:
-          db["coppie"] = nuove_coppie
-          salva_dati(db)
-          st.success(
-              f"Caricate con successo {len(nuove_coppie)} coppie pulite!"
-          )
-          st.rerun()
-
-    st.markdown("#### Coppie registrate:")
-  elif password_inserita != "":
-    st.error("❌ Password errata.")
-  else:
-    st.info("Inserisci la password (0000) per gestire le impostazioni.")
-
-st.markdown("---")
-
 # --- INTERFACCIA PRINCIPALE ---
 st.markdown(
     """
@@ -557,7 +522,9 @@ else:
       else:
         for m in partite_mie_in_corso:
           testo_scontro = f"{m['c1']} vs {m['c2']}"
-          testo_evidenziato = evidenzia_nome_coppia(testo_scontro, coppia_selezionata)
+          testo_evidenziato = evidenzia_nome_coppia(
+              testo_scontro, coppia_selezionata
+          )
           st.markdown(
               f"""
                     <div style="background-color: #fffde7; border: 2px solid #ffae00; padding: 10px; border-radius: 8px; margin-bottom: 6px; text-align: center;">
@@ -569,7 +536,9 @@ else:
           )
         for m in partite_mie_in_coda:
           testo_scontro = f"{m['c1']} vs {m['c2']}"
-          testo_evidenziato = evidenzia_nome_coppia(testo_scontro, coppia_selezionata)
+          testo_evidenziato = evidenzia_nome_coppia(
+              testo_scontro, coppia_selezionata
+          )
           st.markdown(
               f"""
                     <div style="background-color: #d4edda; border: 1.5px solid #c3e6cb; padding: 10px; border-radius: 8px; margin-bottom: 6px; text-align: center; color: #155724;">
@@ -587,7 +556,9 @@ else:
       else:
         for m in partite_mie_da_giocare_dopo:
           testo_scontro = f"{m['c1']} vs {m['c2']}"
-          testo_evidenziato = evidenzia_nome_coppia(testo_scontro, coppia_selezionata)
+          testo_evidenziato = evidenzia_nome_coppia(
+              testo_scontro, coppia_selezionata
+          )
           st.markdown(
               f"""
                     <div style="background-color: #f8f9fa; border: 1px solid #ced4da; padding: 8px; border-radius: 6px; margin-bottom: 6px; text-align: center;">
@@ -604,7 +575,9 @@ else:
       else:
         for m in partite_mie_fatte:
           testo_scontro = f"{m['c1']} vs {m['c2']}"
-          testo_evidenziato = evidenzia_nome_coppia(testo_scontro, coppia_selezionata)
+          testo_evidenziato = evidenzia_nome_coppia(
+              testo_scontro, coppia_selezionata
+          )
           st.markdown(
               f"""
                     <div style="background-color: #f8f9fa; border: 1px solid #ced4da; padding: 8px; border-radius: 6px; margin-bottom: 6px; text-align: center;">
@@ -624,7 +597,7 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
   if not is_admin:
     st.warning(
         "⚠️ Configurazione bloccata. Accedi come amministratore dalla barra"
-        " laterale con il PIN o dall'area in alto."
+        " laterale con il PIN."
     )
   else:
     whatsapp_text = st.text_area(
