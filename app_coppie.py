@@ -165,39 +165,19 @@ def ottieni_nome_turno_dinamico(num_partite_turno):
         return f"Eliminazione Diretta ({tot_squadre} Coppie)"
 
 def crea_abbinamenti_fascia_a_perfetti(classificate_per_girone):
-    """
-    Crea abbinamenti del 1° turno di Fascia A posizionando le squadre nei rami corretti 
-    del tabellone per evitare incontri anticipati tra stesso girone (1ª vs 2ª in finale, 1ª vs 4ª in semi).
-    Suppone 4 gironi (A, B, C, D).
-    """
     nomi_g = list(classificate_per_girone.keys())
     if len(nomi_g) < 4:
-        # Fallback se ci sono meno di 4 gironi
         return crea_abbinamenti_rigorosi_generico(classificate_per_girone)
     
     g0, g1, g2, g3 = nomi_g[0], nomi_g[1], nomi_g[2], nomi_g[3]
-    
     squadre_g = {g: classificate_per_girone[g] for g in nomi_g}
     
-    # Estraiamo le posizioni
     def get_sq(g_nome, pos_idx):
         lst = squadre_g.get(g_nome, [])
         if pos_idx < len(lst):
             return (lst[pos_idx], g_nome, pos_idx + 1)
         return ("RIPOSO", g_nome, pos_idx + 1)
 
-    # Struttura del tabellone standard a 16 squadre (o 8 in base ai gironi) per separare i lati
-    # Metà superiore e Metà inferiore per fare incontrare 1ª e 2ª solo in finale
-    # Esempio per 4 gironi (16 squadre totali ideali o 4 per girone = 16):
-    # Match 1: 1ª Girone A vs 4ª Girone C
-    # Match 2: 2ª Girone B vs 3ª Girone D
-    # Match 3: 2ª Girone A vs 3ª Girone C
-    # Match 4: 1ª Girone B vs 4ª Girone D
-    # (e specularmente per G3 e G4)
-    
-    # 1ª di un girone incontra la 4ª di un altro (es. 1A vs 4C, 1B vs 4D, 1C vs 4A, 1D vs 4B) -> si possono incontrare in semifinale
-    # 2ª di un girone incontra la 3ª di un altro (es. 2A vs 3C, 2B vs 3D, 2C vs 3A, 2D vs 3B) -> 1ª e 2ª dello stesso girone sono sui lati opposti (es. 1A è sopra, 2A è sotto) e si incontrano solo in FINALE.
-    
     abbinamenti = [
         (get_sq(g0, 0), get_sq(g2, 3)), # 1ª G1 vs 4ª G3
         (get_sq(g1, 1), get_sq(g3, 2)), # 2ª G2 vs 3ª G4
@@ -209,7 +189,6 @@ def crea_abbinamenti_fascia_a_perfetti(classificate_per_girone):
         (get_sq(g2, 1), get_sq(g0, 2)), # 2ª G3 vs 3ª G1
         (get_sq(g3, 0), get_sq(g1, 3))  # 1ª G4 vs 4ª G2
     ]
-    
     return abbinamenti
 
 def crea_abbinamenti_rigorosi_generico(classificate_per_girone):
@@ -395,7 +374,7 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                                     "tavolo": None,
                                     "gol1": 0, "gol2": 0
                                 })
-                        turni_girone.append({"turno": t + 1, "partite": partite_turno})
+                        turni_turno.append({"turno": t + 1, "partite": partite_turno})
                         squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
                     
                     calendario_totale[g_nome] = turni_girone
@@ -741,9 +720,16 @@ elif db["stato"] == "fasi_finali":
         st.markdown(f"### 📋 {titolo_tab}")
         turni_tab = db[chiave_tabellone]
         
+        # Mappa ufficiale definitiva basata sui gironi reali
         mappa_girone_pos = {}
         for g_nome, lista_sq in db["gironi"].items():
-            for idx, sq in enumerate(lista_sq):
+            dati_girone = db["punti_gironi"][g_nome]
+            sorted_c = sorted(
+                dati_girone.items(),
+                key=lambda x: (x[1]["punti"], x[1]["scontri_diretti_pt"], x[1]["dr"], x[1]["gf"]),
+                reverse=True
+            )
+            for idx, (sq, info) in enumerate(sorted_c):
                 mappa_girone_pos[sq] = (g_nome, idx + 1)
 
         campione = None
@@ -776,15 +762,9 @@ elif db["stato"] == "fasi_finali":
                 s1_nome = m['s1']
                 s2_nome = m['s2']
                 
-                g1_val = m.get('g1', '')
-                p1_val = m.get('p1', '')
-                if not g1_val and s1_nome in mappa_girone_pos:
-                    g1_val, p1_val = mappa_girone_pos[s1_nome]
-                
-                g2_val = m.get('g2', '')
-                p2_val = m.get('p2', '')
-                if not g2_val and s2_nome in mappa_girone_pos:
-                    g2_val, p2_val = mappa_girone_pos[s2_nome]
+                # Sincronizzazione dinamica per prendere SEMPRE il girone e la posizione REALE aggiornati
+                g1_val, p1_val = mappa_girone_pos.get(s1_nome, ("", ""))
+                g2_val, p2_val = mappa_girone_pos.get(s2_nome, ("", ""))
                 
                 s1_sottotitolo = f"{p1_val}° del {g1_val}" if g1_val and p1_val else ""
                 s2_sottotitolo = f"{p2_val}° del {g2_val}" if g2_val and p2_val else ""
@@ -916,8 +896,11 @@ elif db["stato"] == "fasi_finali":
             tq_match = db[chiave_34][0]
             tq_id = tq_match['id']
             
-            tq_s1_sub = f"{tq_match.get('p1','')}° del {tq_match.get('g1','')}" if tq_match.get('g1','') else ""
-            tq_s2_sub = f"{tq_match.get('p2','')}° del {tq_match.get('g2','')}" if tq_match.get('g2','') else ""
+            tq_g1, tq_p1 = mappa_girone_pos.get(tq_match['s1'], ("", ""))
+            tq_g2, tq_p2 = mappa_girone_pos.get(tq_match['s2'], ("", ""))
+            
+            tq_s1_sub = f"{tq_p1}° del {tq_g1}" if tq_g1 and tq_p1 else ""
+            tq_s2_sub = f"{tq_p2}° del {tq_g2}" if tq_g2 and tq_p2 else ""
             
             tq_s1_disp = f"{tq_match['s1']}<br><span style='font-size:12px; color:#666; font-weight:normal;'>({tq_s1_sub})</span>" if tq_s1_sub else tq_match['s1']
             tq_s2_disp = f"{tq_match['s2']}<br><span style='font-size:12px; color:#666; font-weight:normal;'>({tq_s2_sub})</span>" if tq_s2_sub else tq_match['s2']
