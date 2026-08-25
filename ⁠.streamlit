@@ -1,2 +1,2 @@
-[theme]
-base="dark"
+streamlit>=1.40
+streamlit-autorefresh>=1.0.1
