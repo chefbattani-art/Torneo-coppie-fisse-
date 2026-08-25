@@ -1045,6 +1045,7 @@ if db["stato"] == "gironi":
                 m["in_corso"] = False
                 m["tavolo"] = None
                 salva_dati(db)
+                st.success("Tavolo liberato con successo!")
                 st.rerun()
 
           st.markdown(
