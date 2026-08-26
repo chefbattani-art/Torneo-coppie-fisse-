@@ -15,21 +15,29 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- STILE GRAFICO GLOBALE (DARK / GAMING NEON) ---
+# --- STILE GRAFICO GLOBALE (DARK / GAMING NEON OTTIMIZZATO SMARTPHONE) ---
 st.markdown(
     """
     <style>
-        /* Sfondo principale e font */
+        /* Sfondo principale e font globale ottimizzato per smartphone */
         .stApp {
             background: radial-gradient(circle at 50% 0%, #111b27 0%, #070a0f 50%, #020406 100%);
-            color: #f0f6fc;
+            color: #f0f6fc !important;
             font-family: 'Inter', sans-serif;
         }
         
-        /* Sidebar in stile gaming scuro */
+        /* Correzione forzata per evitare sfondi chiari imprevisti nei container di testo */
+        div.stMarkdown, div.stText, p, span, label {
+            color: #f0f6fc !important;
+        }
+
+        /* Sidebar in stile gaming scuro ad alto contrasto */
         section[data-testid="stSidebar"] {
             background: linear-gradient(180deg, #0d1117, #06090d);
             border-right: 1px solid #1f2937;
+        }
+        section[data-testid="stSidebar"] * {
+            color: #f0f6fc !important;
         }
         
         /* Card e box personalizzati con bordo neon sfumato */
@@ -53,23 +61,46 @@ st.markdown(
         }
 
         /* Intestazioni stile e-sport */
-        h1, h2, h3, h4 {
+        h1, h2, h3, h4, h5, h6 {
             color: #ffffff !important;
             letter-spacing: 0.5px;
         }
         
-        /* Pulsanti personalizzati */
+        /* Pulsanti personalizzati grandi e ben visibili da mobile */
         div.stButton > button {
             border-radius: 10px;
             font-weight: 700;
             border: 1px solid #30363d;
             background: linear-gradient(180deg, #21262d, #161b22);
-            color: #f0f6fc;
+            color: #f0f6fc !important;
+            padding: 12px 20px;
+            font-size: 16px;
             transition: all 0.3s ease;
         }
         div.stButton > button:hover {
             border-color: #58a6ff;
             box-shadow: 0 0 12px rgba(88, 166, 255, 0.4);
+        }
+
+        /* Ottimizzazione Selectbox e input per smartphone */
+        div[data-baseweb="select"] > div {
+            background-color: #161b22 !important;
+            color: #f0f6fc !important;
+            border-color: #30363d !important;
+            border-radius: 10px !important;
+        }
+        
+        /* Stile per i componenti Pills / Selezione punteggi mobili */
+        div[data-testid="stPills"] button {
+            background-color: #161b22 !important;
+            color: #f0f6fc !important;
+            border: 1px solid #30363d !important;
+            font-weight: bold !important;
+        }
+        div[data-testid="stPills"] button[aria-selected="true"] {
+            background-color: #238636 !important;
+            color: #ffffff !important;
+            border-color: #3fb950 !important;
         }
     </style>
     """,
