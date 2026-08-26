@@ -15,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- STILE GRAFICO GLOBALE: CYBERPUNK & NEON ARCADE ESPORTS (CONFIX SAFARI DARK MODE) ---
+# --- STILE GRAFICO GLOBALE: CYBERPUNK & NEON ARCADE ESPORTS (CON FIX SELECTBOX & SAFARI) ---
 st.markdown(
     """
     <style>
@@ -43,6 +43,31 @@ st.markdown(
             background: linear-gradient(180deg, #070a17, #020408);
             border-right: 2px solid rgba(0, 242, 254, 0.2);
             box-shadow: 8px 0 30px rgba(0, 242, 254, 0.08);
+        }
+
+        /* --- FORZA SFONDO E TESTO SCURO PER I SELECTBOX (MENU A TENDINA) --- */
+        div[data-baseweb="select"] > div {
+            background-color: #161f30 !important;
+            color: white !important;
+            border-color: #00f2fe !important;
+        }
+        div[data-baseweb="select"] span {
+            color: white !important;
+        }
+        div[data-baseweb="popover"] div {
+            background-color: #161f30 !important;
+            color: white !important;
+        }
+        ul[data-baseweb="menu"] {
+            background-color: #161f30 !important;
+        }
+        li[data-baseweb="option"] {
+            background-color: #161f30 !important;
+            color: white !important;
+        }
+        li[data-baseweb="option"]:hover {
+            background-color: #1d3557 !important;
+            color: #00f2fe !important;
         }
 
         /* Correzione per componenti nativi che Safari inverte in bianco */
