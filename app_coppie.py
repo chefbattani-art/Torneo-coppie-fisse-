@@ -859,7 +859,7 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
             squadre.append("RIPOSO")
 
           n = len(squadre)
-          turni_girone = []
+          turni_girone_lista = []
 
           for t in range(n - 1):
             partite_turno = []
@@ -879,10 +879,10 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                     "gol1": 0,
                     "gol2": 0,
                 })
-            turni_turno.append({"turno": t + 1, "partite": partite_turno})
+            turni_girone_lista.append({"turno": t + 1, "partite": partite_turno})
             squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
 
-          calendario_totale[g_nome] = turni_girone
+          calendario_totale[g_nome] = turni_girone_lista
 
         db["calendario_gironi"] = calendario_totale
         db["stato"] = "gironi"
