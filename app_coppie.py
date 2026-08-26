@@ -91,14 +91,36 @@ st.markdown(
             transform: translateY(-2px);
         }
 
-        /* Stile personalizzato super luminoso per tabelle e classifiche */
+        /* STILE CLASSIFICA POTENZIATO: EFFETTO TECNOLOGICO / ELETTRICO SUPER VISIBILE */
         [data-testid="stDataFrame"] {
-            border: 2px solid #00f2fe;
-            border-radius: 16px;
+            border: 3px solid #00f2fe;
+            border-radius: 18px;
             overflow: hidden;
-            box-shadow: 0 0 25px rgba(0, 242, 254, 0.35), inset 0 0 15px rgba(0, 242, 254, 0.15);
-            background: rgba(10, 14, 23, 0.9);
-            padding: 4px;
+            box-shadow: 0 0 35px rgba(0, 242, 254, 0.5), inset 0 0 20px rgba(0, 242, 254, 0.25);
+            background: rgba(7, 11, 19, 0.95);
+            padding: 8px;
+            font-size: 16px !important;
+        }
+        
+        /* Ingrandimento e spaziatura righe e intestazioni tabelle */
+        [data-testid="stDataFrame"] table {
+            font-size: 16px !important;
+        }
+        
+        [data-testid="stDataFrame"] th {
+            background-color: rgba(0, 242, 254, 0.15) !important;
+            color: #39d3ff !important;
+            font-family: 'Rajdhani', sans-serif !important;
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        [data-testid="stDataFrame"] td {
+            padding: 12px 10px !important;
+            color: #f0f6fc !important;
+            font-weight: 600 !important;
         }
     </style>
     """,
@@ -741,9 +763,11 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
       if girone_mio:
         st.markdown("---")
         st.markdown(
-            f"#### 📊 Classifica Completa - {girone_mio} (Verde: Fascia A |"
-            " Rosso: Fascia B)"
+            f"<h3 style='color: #00f2fe; text-shadow: 0 0 10px rgba(0,242,254,0.6);'>📊 Classifica Completa - {girone_mio}</h3>",
+            unsafe_allow_html=True
         )
+        st.markdown("<p style='font-size: 14px; color: #8b949e; margin-top: -10px;'><span class='neon-green'>■ Fascia A (Top 4)</span> | <span class='neon-red'>■ Fascia B</span></p>", unsafe_allow_html=True)
+        
         dati_girone = db["punti_gironi"][girone_mio]
         sorted_c = sorted(
             dati_girone.items(),
@@ -771,7 +795,15 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
           })
 
         df_g = pd.DataFrame(data_g)
-        st.dataframe(df_g, hide_index=True, use_container_width=True)
+        
+        def colora_fasce(valore):
+            if "A" in str(valore):
+                return 'color: #3fb950; font-weight: bold; font-size: 16px; text-shadow: 0 0 10px rgba(63,185,80,0.8);'
+            elif "B" in str(valore):
+                return 'color: #ff7b72; font-weight: bold; font-size: 16px; text-shadow: 0 0 10px rgba(255,123,114,0.8);'
+            return 'font-size: 15px;'
+
+        st.dataframe(df_g.style.applymap(colora_fasce, subset=['Fascia']), hide_index=True, use_container_width=True)
 
 st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
 
@@ -1082,7 +1114,9 @@ if db["stato"] == "gironi":
         )
 
   st.markdown("---")
-  st.subheader("📊 Classifiche dei Gironi")
+  st.markdown("<h2 style='color: #00f2fe; text-shadow: 0 0 15px rgba(0,242,254,0.7); text-align: center;'>📊 CLASSIFICHE GENERALI DEI GIRONI</h2>", unsafe_allow_html=True)
+  st.markdown("<p style='text-align: center; color: #8b949e; margin-bottom: 25px;'>Visualizzazione ingrandita e potenziata in stile tecnologico/elettrico</p>", unsafe_allow_html=True)
+
   nomi_gironi_chiavi = list(db["gironi"].keys())
   for i in range(0, len(nomi_gironi_chiavi), 2):
     col_gironi = st.columns(2)
@@ -1090,7 +1124,9 @@ if db["stato"] == "gironi":
       if i + j < len(nomi_gironi_chiavi):
         g_nome = nomi_gironi_chiavi[i + j]
         with col_gironi[j]:
-          st.markdown(f"**📁 {g_nome}**")
+          st.markdown(f"<h3 style='color: #ffffff; border-left: 4px solid #00f2fe; padding-left: 10px; margin-bottom: 8px;'>📁 {g_nome}</h3>", unsafe_allow_html=True)
+          st.markdown("<p style='font-size: 13px; color: #8b949e; margin-bottom: 8px;'><span class='neon-green'>■ Fascia A (1°-4°)</span> | <span class='neon-red'>■ Fascia B (5°+)</span></p>", unsafe_allow_html=True)
+          
           dati_girone = db["punti_gironi"][g_nome]
           sorted_c = sorted(
               dati_girone.items(),
@@ -1118,7 +1154,15 @@ if db["stato"] == "gironi":
             })
 
           df_g = pd.DataFrame(data_g)
-          st.dataframe(df_g, hide_index=True, use_container_width=True)
+          
+          def colora_fasce(valore):
+              if "A" in str(valore):
+                  return 'color: #3fb950; font-weight: bold; font-size: 16px; text-shadow: 0 0 10px rgba(63,185,80,0.8);'
+              elif "B" in str(valore):
+                  return 'color: #ff7b72; font-weight: bold; font-size: 16px; text-shadow: 0 0 10px rgba(255,123,114,0.8);'
+              return 'font-size: 15px;'
+
+          st.dataframe(df_g.style.applymap(colora_fasce, subset=['Fascia']), hide_index=True, use_container_width=True)
 
   st.markdown("---")
   st.subheader("📅 Incontri per Girone")
