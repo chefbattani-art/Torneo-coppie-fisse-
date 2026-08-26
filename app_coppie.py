@@ -172,13 +172,6 @@ def pulisci_nome(testo):
   return testo.strip()
 
 
-def evidenzia_nome_coppia(testo_match, mia_coppia):
-  return testo_match.replace(
-      mia_coppia,
-      f"<span style='color: #ff3366; font-weight: 800; text-shadow: 0 0 12px rgba(255,51,102,0.9);'>{mia_coppia}</span>",
-  )
-
-
 def ricalcola_classifiche_gironi():
   for g_nome, coppie_lista in db["gironi"].items():
     stats = {
@@ -257,19 +250,6 @@ def ricalcola_classifiche_gironi():
             stats[c]["scontri_diretti_pt"] = 0
 
     db["punti_gironi"][g_nome] = stats
-
-
-def calcola_partite_giocate_coppia(g_nome, coppia):
-  giocate = 0
-  totali = 0
-  if g_nome in db["calendario_gironi"]:
-    for turno_obj in db["calendario_gironi"][g_nome]:
-      for m in turno_obj["partite"]:
-        if m["c1"] == coppia or m["c2"] == coppia:
-          totali += 1
-          if m.get("giocata", False):
-            giocate += 1
-  return giocate, totali
 
 
 def genera_pdf_coppie():
@@ -495,7 +475,7 @@ else:
       unsafe_allow_html=True,
   )
 
-# --- DETTAGLIO SQUADRA UTENTE ---
+# --- DETTAGLIO SQUADRA UTENTE E STATO PARTITE ---
 if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
   if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
     with st.expander(
@@ -526,6 +506,54 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
                 info_mie = stats
           break
 
+      # Calcolo Partita in Corso o in Coda per la coppia selezionata
+      match_in_corso_coppia = None
+      pos_in_coda = None
+
+      if db["stato"] == "gironi":
+        # Raccogliamo tutte le partite del girone o del torneo per trovarne lo stato
+        num_tavoli = db.get("num_tavoli", 6)
+        max_turni = (
+            max([len(turni) for turni in db["calendario_gironi"].values()])
+            if db["calendario_gironi"]
+            else 0
+        )
+        partite_aperte = []
+        for t_num in range(1, max_turni + 1):
+          for g_n, turni_girone in db["calendario_gironi"].items():
+            for t_obj in turni_girone:
+              if t_obj["turno"] == t_num:
+                for m in t_obj["partite"]:
+                  if not m.get("giocata", False):
+                    if (
+                        m["c1"] == coppia_selezionata
+                        or m["c2"] == coppia_selezionata
+                    ):
+                      if m.get("in_corso", False):
+                        match_in_corso_coppia = m
+                      else:
+                        partite_aperte.append(m)
+
+        # Controlliamo la posizione in coda tra le non giocate
+        # Ricostruiamo la coda esatta simulata nel loop principale
+        all_da_giocare = []
+        for t_num in range(1, max_turni + 1):
+          for g_n in sorted(db["calendario_gironi"].keys()):
+            for t_obj in db["calendario_gironi"][g_n]:
+              if t_obj["turno"] == t_num:
+                for m in t_obj["partite"]:
+                  if not m.get("giocata", False) and not m.get(
+                      "in_corso", False
+                  ):
+                    all_da_giocare.append(m)
+
+        for idx_coda, m_coda in enumerate(all_da_giocare[:num_tavoli]):
+          if (
+              m_coda["c1"] == coppia_selezionata
+              or m_coda["c2"] == coppia_selezionata
+          ):
+            pos_in_coda = idx_coda + 1
+
       st.markdown(
           f"""
           <div class="neon-box-main">
@@ -549,6 +577,78 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
           """,
           unsafe_allow_html=True,
       )
+
+      # AGGIUNTA: Sezione Partita in Corso o in Coda integrata nel box
+      if match_in_corso_coppia:
+        avversario = (
+            match_in_corso_coppia["c2"]
+            if match_in_corso_coppia["c1"] == coppia_selezionata
+            else match_in_corso_coppia["c1"]
+        )
+        tavolo_num = match_in_corso_coppia.get("tavolo", "N.D.")
+        match_id = match_in_corso_coppia["id"]
+
+        st.markdown(
+            f"""
+            <div style="background: linear-gradient(135deg, rgba(30, 20, 10, 0.95) 0%, rgba(12, 8, 4, 0.98) 100%); border: 2px solid #ffaa00; border-radius: 14px; padding: 16px; margin-bottom: 20px; text-align: center; box-shadow: 0 0 25px rgba(255,170,0,0.3);">
+                <div class="neon-gold" style="font-size: 15px; font-weight: bold; margin-bottom: 6px;">🔴 PARTITA IN CORSO AL BILIARDINO {tavolo_num}!</div>
+                <div style="font-size: 16px; color: #ffffff;">Stai giocando contro: <b>{avversario}</b></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        with st.expander(
+            "⚙️ Gestisci e Inserisci Risultato della Tua Partita", expanded=True
+        ):
+          gol_p1 = st.number_input(
+              f"Gol {match_in_corso_coppia['c1']}",
+              0,
+              10,
+              int(match_in_corso_coppia.get("gol1", 0)),
+              key=f"riepilogo_g1_{match_id}",
+          )
+          gol_p2 = st.number_input(
+              f"Gol {match_in_corso_coppia['c2']}",
+              0,
+              10,
+              int(match_in_corso_coppia.get("gol2", 0)),
+              key=f"riepilogo_g2_{match_id}",
+          )
+          if st.button(
+              "✅ Salva e Registra Risultato",
+              key=f"riepilogo_save_{match_id}",
+              use_container_width=True,
+          ):
+            match_in_corso_coppia["gol1"] = int(gol_p1)
+            match_in_corso_coppia["gol2"] = int(gol_p2)
+            match_in_corso_coppia["giocata"] = True
+            match_in_corso_coppia["in_corso"] = False
+            match_in_corso_coppia["tavolo"] = None
+            ricalcola_classifiche_gironi()
+            salva_dati(db)
+            st.success("Risultato salvato con successo!")
+            st.rerun()
+
+      elif pos_in_coda is not None:
+        st.markdown(
+            f"""
+            <div style="background: linear-gradient(135deg, rgba(8, 36, 20, 0.9) 0%, rgba(2, 16, 8, 0.95) 100%); border: 1.5px solid #00ff66; border-radius: 14px; padding: 14px; margin-bottom: 20px; text-align: center; box-shadow: 0 0 20px rgba(0,255,102,0.2);">
+                <div class="neon-green" style="font-size: 14px; font-weight: bold;">⏳ PARTITE IN CODA</div>
+                <div style="font-size: 14px; color: #ffffff; margin-top: 4px;">La tua coppia è in posizione <b>#{pos_in_coda}</b> nella coda d'attesa per il prossimo biliardino libero. Teniti pronto!</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+      else:
+        st.markdown(
+            """
+            <div style="background: rgba(16, 22, 36, 0.7); border: 1.5px solid rgba(0, 242, 254, 0.2); border-radius: 12px; padding: 12px; text-align: center; color: #8b949e; font-size: 13px; margin-bottom: 20px;">
+                🟢 Nessuna partita attiva o in coda al momento per questa coppia.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 # 1. SETUP INIZIALE
 if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
@@ -817,16 +917,18 @@ if db["stato"] == "gironi":
             with st.expander(
                 f"📝 Inserisci Risultato Tavolo {m.get('tavolo', '')}"
             ):
-              gol_p1 = st.pills(
+              gol_p1 = st.number_input(
                   f"Gol {m['c1']}",
-                  options=[0, 1, 2, 3, 4, 5, 6, 7],
-                  default=int(m.get("gol1", 0)),
+                  0,
+                  10,
+                  int(m.get("gol1", 0)),
                   key=f"user_g1_{match_id}",
               )
-              gol_p2 = st.pills(
+              gol_p2 = st.number_input(
                   f"Gol {m['c2']}",
-                  options=[0, 1, 2, 3, 4, 5, 6, 7],
-                  default=int(m.get("gol2", 0)),
+                  0,
+                  10,
+                  int(m.get("gol2", 0)),
                   key=f"user_g2_{match_id}",
               )
               if st.button(
@@ -834,8 +936,8 @@ if db["stato"] == "gironi":
                   key=f"user_save_{match_id}",
                   use_container_width=True,
               ):
-                m["gol1"] = int(gol_p1) if gol_p1 is not None else 0
-                m["gol2"] = int(gol_p2) if gol_p2 is not None else 0
+                m["gol1"] = int(gol_p1)
+                m["gol2"] = int(gol_p2)
                 m["giocata"] = True
                 m["in_corso"] = False
                 m["tavolo"] = None
