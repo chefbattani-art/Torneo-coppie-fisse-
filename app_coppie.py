@@ -15,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- STILE GRAFICO GLOBALE (DARK / GAMING NEON OTTIMIZZATO SMARTPHONE) ---
+# --- STILE GRAFICO GLOBALE (DARK / GAMING NEON OTTIMIZZATO SMARTPHONE + FORZATURA TESTI BIANCHI) ---
 st.markdown(
     """
     <style>
@@ -26,9 +26,19 @@ st.markdown(
             font-family: 'Inter', sans-serif;
         }
         
-        /* Correzione forzata per evitare sfondi chiari imprevisti nei container di testo */
-        div.stMarkdown, div.stText, p, span, label {
+        /* Correzione forzata per evitare sfondi chiari o scritte invisibili nei container di testo */
+        div.stMarkdown, div.stText, p, span, label, div[data-baseweb="select"] span {
             color: #f0f6fc !important;
+        }
+
+        /* Tabelle e Dataframe in stile dark */
+        table, th, td {
+            background-color: #161b22 !important;
+            color: #f0f6fc !important;
+        }
+        thead th {
+            background-color: #21262d !important;
+            color: #ffffff !important;
         }
 
         /* Sidebar in stile gaming scuro ad alto contrasto */
@@ -517,7 +527,10 @@ if coppia_selezionata != coppia_url:
 
 # LOGICA DI BLOCCO / BYPASS ADMIN
 if is_admin:
-  st.success("🛡️ **Modalità Amministratore attiva:** Accesso completo sbloccato senza obbligo di selezione coppia.")
+  st.success(
+      "🛡️ **Modalità Amministratore attiva:** Accesso completo sbloccato senza"
+      " obbligo di selezione coppia."
+  )
 elif coppia_selezionata == "-- Seleziona la tua coppia per accedere --":
   st.warning(
       "⚠️ **Attenzione:** Devi selezionare la tua coppia dal menu a tendina qui"
