@@ -15,14 +15,20 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- STILE GRAFICO GLOBALE (GAMING NEON ARCADE / ESPORTS) ---
+# --- STILE GRAFICO GLOBALE (GAMING NEON ARCADE / ESPORTS & SFONDO TECH) ---
 st.markdown(
     """
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;600;800&display=swap');
 
+        /* Sfondo generale dell'app in stile gaming scuro/tech con trama e bagliore */
         .stApp {
-            background: radial-gradient(circle at 50% 10%, #120e2e 0%, #070913 45%, #020305 100%);
+            background-color: #070913;
+            background-image: 
+                radial-gradient(circle at 50% 10%, rgba(20, 30, 60, 0.7) 0%, transparent 65%),
+                linear-gradient(to right, rgba(0, 242, 254, 0.04) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 242, 254, 0.04) 1px, transparent 1px);
+            background-size: 100% 100%, 32px 32px, 32px 32px;
             color: #f0f6fc;
             font-family: 'Inter', sans-serif;
         }
@@ -85,11 +91,14 @@ st.markdown(
             transform: translateY(-2px);
         }
 
-        div[data-testid="stDataFrame"] {
-            border: 1px solid rgba(88, 166, 255, 0.2);
-            border-radius: 12px;
+        /* Stile personalizzato super luminoso per tabelle e classifiche */
+        [data-testid="stDataFrame"] {
+            border: 2px solid #00f2fe;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.35), inset 0 0 15px rgba(0, 242, 254, 0.15);
+            background: rgba(10, 14, 23, 0.9);
+            padding: 4px;
         }
     </style>
     """,
@@ -870,7 +879,7 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                     "gol1": 0,
                     "gol2": 0,
                 })
-            turni_girone.append({"turno": t + 1, "partite": partite_turno})
+            turni_turno.append({"turno": t + 1, "partite": partite_turno})
             squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
 
           calendario_totale[g_nome] = turni_girone
