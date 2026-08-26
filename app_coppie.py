@@ -335,7 +335,6 @@ def selettore_gol_bottoni(prefix, default_val=0):
   cols = st.columns(8)
   for g in range(8):
     with cols[g]:
-      # Evidenzia il bottone del valore attualmente selezionato
       btn_label = f"✨ {g}" if val_corrente == g else str(g)
       if st.button(btn_label, key=f"btn_gol_{prefix}_{g}", use_container_width=True):
         st.session_state[prefix] = g
