@@ -1,4 +1,4 @@
-l[theme]
+[theme]
 base = "dark"
 primaryColor = "#00ffcc"
 backgroundColor = "#0a0e17"
