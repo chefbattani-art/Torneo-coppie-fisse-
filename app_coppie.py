@@ -1,6 +1,4 @@
-Programma torneo coppie fisse 
-
-import json
+mport json
 import os
 import random
 import re
