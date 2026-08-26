@@ -833,7 +833,7 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                     "gol1": 0,
                     "gol2": 0,
                 })
-            turni_turno.append({"turno": t + 1, "partite": partite_turno})
+            turni_girone.append({"turno": t + 1, "partite": partite_turno})
             squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
 
           calendario_totale[g_nome] = turni_girone
@@ -1181,9 +1181,7 @@ if db["stato"] == "gironi":
 # 3. FASI FINALI
 elif db["stato"] == "fasi_finali":
   st.subheader("🏆 Fasi Finali: Tabelloni a Eliminazione Diretta")
-  tab_a_view, tab_b_view = st.tabs(
-      ["⭐ Fascia A", "🔻 Fascia B"]
-  )
+  tab_a_view, tab_b_view = st.tabs(["⭐ Fascia A", "🔻 Fascia B"])
 
 
   def gestisci_tabellone(chiave_tabellone, chiave_34, titolo_tab):
