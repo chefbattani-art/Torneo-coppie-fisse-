@@ -172,13 +172,6 @@ def pulisci_nome(testo):
   return testo.strip()
 
 
-def evidenzia_nome_coppia(testo_match, mia_coppia):
-  return testo_match.replace(
-      mia_coppia,
-      f"<span style='color: #ff3366; font-weight: 800; text-shadow: 0 0 12px rgba(255,51,102,0.9);'>{mia_coppia}</span>",
-  )
-
-
 def ricalcola_classifiche_gironi():
   for g_nome, coppie_lista in db["gironi"].items():
     stats = {
@@ -216,7 +209,6 @@ def ricalcola_classifiche_gironi():
               stats[c1]["perse"] += 1
             else:
               pt_s1, pt_s2 = 2, 2
-              # Pareggio a calcetto non conta come vittoria o sconfitta classica se non desiderato, oppure bilanciamo come pari
 
             stats[c1]["punti"] += pt_s1
             stats[c2]["punti"] += pt_s2
@@ -228,7 +220,6 @@ def ricalcola_classifiche_gironi():
       for c in coppie_lista:
         stats[c]["dr"] = stats[c]["gf"] - stats[c]["gs"]
 
-      # Calcolo Scontri Diretti / Classifica Avulsa
       punti_gruppo = {}
       for c in coppie_lista:
         p = stats[c]["punti"]
@@ -259,19 +250,6 @@ def ricalcola_classifiche_gironi():
             stats[c]["scontri_diretti_pt"] = 0
 
     db["punti_gironi"][g_nome] = stats
-
-
-def calcola_partite_giocate_coppia(g_nome, coppia):
-  giocate = 0
-  totali = 0
-  if g_nome in db["calendario_gironi"]:
-    for turno_obj in db["calendario_gironi"][g_nome]:
-      for m in turno_obj["partite"]:
-        if m["c1"] == coppia or m["c2"] == coppia:
-          totali += 1
-          if m.get("giocata", False):
-            giocate += 1
-  return giocate, totali
 
 
 def genera_pdf_coppie():
@@ -319,11 +297,6 @@ def ottieni_nome_turno_dinamico(num_partite_turno):
 
 
 def crea_abbinamenti_fascia_a_6_squadre(classificate_lista):
-  """Gestione specifica per gironi da 6 squadre:
-
-  1° e 2° accedono direttamente alle semifinali attendendo le vincenti dei
-  play-in (3° vs 6° e 4° vs 5°).
-  """
   if len(classificate_lista) >= 6:
     s1, s2, s3, s4, s5, s6 = (
         classificate_lista[0],
@@ -333,14 +306,12 @@ def crea_abbinamenti_fascia_a_6_squadre(classificate_lista):
         classificate_lista[4],
         classificate_lista[5],
     )
-    # Turno 1 (Play-in): 3° vs 6° e 4° vs 5°
     partite_turno_1 = [
         ((s3, "Girone", 3), (s6, "Girone", 6)),
         ((s4, "Girone", 4), (s5, "Girone", 5)),
     ]
     return partite_turno_1
   else:
-    # Fallback standard se le squadre sono diverse da 6
     abbinamenti = []
     for i in range(min(2, len(classificate_lista))):
       if i + 3 < len(classificate_lista):
@@ -917,54 +888,40 @@ if db["stato"] == "gironi":
               reverse=True,
           )
 
-          # Tabella Pulita in stile sportivo
-          righe_tabella = []
+          # Tabella pulita e ordinata con DataFrame nativo di Streamlit
+          dati_per_df = []
           for idx, (coppia, info) in enumerate(sorted_c):
             posizione = idx + 1
-            colore_stile = (
-                "color: #00ff66; font-weight: bold;"
-                if posizione <= soglia_passaggio
-                else "color: #ff3366;"
-            )
-            bordo_stile = (
-                "border: 1px solid #00ff66; background: rgba(0,255,102,0.05);"
-                if posizione <= soglia_passaggio
-                else "border: 1px solid #374151; background: rgba(16,22,36,0.6);"
-            )
+            dati_per_df.append({
+                "Pos": f"{posizione}°",
+                "Coppia": coppia,
+                "Pt": info["punti"],
+                "G": info["partite_giocate"],
+                "V": info["vinte"],
+                "P": info["perse"],
+                "Diff": f"{info['dr']:+d}",
+            })
 
-            righe_tabella.append(
-                f"""
-                <tr style="{bordo_stile}">
-                    <td style="padding: 10px; text-align: center; {colore_stile}">{posizione}°</td>
-                    <td style="padding: 10px; {colore_stile}">🤝 {coppia}</td>
-                    <td style="padding: 10px; text-align: center; font-weight: bold; color: #fff;">{info['punti']}</td>
-                    <td style="padding: 10px; text-align: center; color: #8b949e;">{info['partite_giocate']}</td>
-                    <td style="padding: 10px; text-align: center; color: #00ff66;">{info['vinte']}</td>
-                    <td style="padding: 10px; text-align: center; color: #ff3366;">{info['perse']}</td>
-                    <td style="padding: 10px; text-align: center; color: #00f2fe;">{info['dr']:+d}</td>
-                </tr>
-                """
-            )
+          df_classifica = pd.DataFrame(dati_per_df)
 
-          tabella_html = f"""
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px; border-radius: 8px; overflow: hidden;">
-                <thead>
-                    <tr style="background: #132238; color: #00f2fe; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;">
-                        <th style="padding: 10px; text-align: center;">Pos</th>
-                        <th style="padding: 10px; text-align: left;">Coppia</th>
-                        <th style="padding: 10px; text-align: center;">Pt</th>
-                        <th style="padding: 10px; text-align: center;">G</th>
-                        <th style="padding: 10px; text-align: center;">V</th>
-                        <th style="padding: 10px; text-align: center;">P</th>
-                        <th style="padding: 10px; text-align: center;">Diff</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {''.join(righe_tabella)}
-                </tbody>
-            </table>
-            """
-          st.markdown(tabella_html, unsafe_allow_html=True)
+
+          def colora_righe(row):
+            pos_int = int(row["Pos"].replace("°", ""))
+            if pos_int <= soglia_passaggio:
+              return [
+                  "background-color: rgba(0, 255, 102, 0.15); color: #00ff66; font-weight: bold;"
+              ] * len(row)
+            else:
+              return [
+                  "background-color: rgba(255, 51, 102, 0.1); color: #ff3366;"
+              ] * len(row)
+
+
+          st.dataframe(
+              df_classifica.style.apply(colora_righe, axis=1),
+              use_container_width=True,
+              hide_index=True,
+          )
 
   st.markdown("---")
   st.subheader("📅 Incontri per Girone")
@@ -1044,7 +1001,6 @@ if db["stato"] == "gironi":
         classificate_a[g_nome] = squadre_girone[:num_passano]
         classificate_b_raw[g_nome] = squadre_girone
 
-      # Generazione Tabellone con la regola richiesta (es. per girone da 6: 3v6 e 4v5, poi 1 e 2 attendono le vincenti)
       for g_nome, lista_squadre in classificate_a.items():
         abbinamenti_raw = crea_abbinamenti_fascia_a_6_squadre(lista_squadre)
         turno_a_iniziale = [
@@ -1062,7 +1018,7 @@ if db["stato"] == "gironi":
             for i, (s1, s2) in enumerate(abbinamenti_raw)
         ]
         db["tabellone_a"] = [{"turno": 1, "partite": turno_a_iniziale}]
-        break  # Gestiamo il primo girone principale o generalizziamo
+        break
 
       db["tabellone_b"] = []
       db["terzo_quarto_a"] = []
@@ -1187,7 +1143,6 @@ elif db["stato"] == "fasi_finali":
               fin_m["s2"] if campione == fin_m["s1"] else fin_m["s1"]
           )
 
-      # Gestione Semifinali -> Inserimento automatico finale 3°/4° posto con le perdenti
       if (
           tutti_giocati
           and "SEMIFINALI" in nome_etichetta
@@ -1212,10 +1167,8 @@ elif db["stato"] == "fasi_finali":
             }]
             salva_dati(db)
 
-      # Avanzamento automatico Turno 1 (Play-in) -> Turno 2 (Semifinali con 1° e 2° classificata)
       if tutti_giocati and t_num == 1:
         prossimo_turno_num = t_num + 1
-        # Troviamo la 1° e la 2° classificata del girone per inserirle direttamente in semifinale
         squadre_girone_ordinate = []
         for g_n in db["gironi"]:
           dati_g = db["punti_gironi"][g_n]
@@ -1232,16 +1185,17 @@ elif db["stato"] == "fasi_finali":
           squadre_girone_ordinate = [item[0] for item in sorted_g]
           break
 
-        prima = squadre_girone_ordinate[0] if len(squadre_girone_ordinate) > 0 else ""
-        seconda = squadre_girone_ordinate[1] if len(squadre_girone_ordinate) > 1 else ""
+        prima = (
+            squadre_girone_ordinate[0] if len(squadre_girone_ordinate) > 0 else ""
+        )
+        seconda = (
+            squadre_girone_ordinate[1] if len(squadre_girone_ordinate) > 1 else ""
+        )
 
-        # Vincitore Play-in tra 4° e 5° sfida la 2° classificata
-        # Vincitore Play-in tra 3° e 6° sfida la 1° classificata
-        vincenti_playin = vincitori_turno  # [vincente_3_6, vincente_4_5]
-        
+        vincenti_playin = vincitori_turno
+
         semifinali_partite = []
         if len(vincenti_playin) >= 2:
-          # Semifinale 1: 1° vs Vincente (3° vs 6°)
           semifinali_partite.append({
               "id": f"{chiave_tabellone}_t2_m0",
               "s1": prima,
@@ -1253,7 +1207,6 @@ elif db["stato"] == "fasi_finali":
               "giocata": False,
               "vincente": None,
           })
-          # Semifinale 2: 2° vs Vincente (4° vs 5°)
           semifinali_partite.append({
               "id": f"{chiave_tabellone}_t2_m1",
               "s1": seconda,
@@ -1276,7 +1229,6 @@ elif db["stato"] == "fasi_finali":
           salva_dati(db)
           st.rerun()
 
-      # Avanzamento Semifinali -> Finale 1°-2° posto
       elif tutti_giocati and t_num == 2:
         prossimo_turno_num = t_num + 1
         vincitori_semi = vincitori_turno
