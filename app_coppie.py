@@ -322,7 +322,7 @@ def crea_abbinamenti_fascia_a_6_squadre(classificate_lista):
     return abbinamenti
 
 
-# --- SELETTORE GOL CON BOTTONI DA 0 A 7 ---
+# --- SELETTORE GOL CON BOTTONI IN GRIGLIA 4x2 (OTTIMIZZATO MOBILE) ---
 def selettore_gol_bottoni(prefix, default_val=0):
   if prefix not in st.session_state:
     st.session_state[prefix] = int(default_val)
@@ -333,9 +333,19 @@ def selettore_gol_bottoni(prefix, default_val=0):
       unsafe_allow_html=True,
   )
 
-  cols = st.columns(8)
-  for g in range(8):
-    with cols[g]:
+  # Prima riga: da 0 a 3
+  cols1 = st.columns(4)
+  for g in range(4):
+    with cols1[g]:
+      btn_label = f"✨ {g}" if val_corrente == g else str(g)
+      if st.button(btn_label, key=f"btn_gol_{prefix}_{g}", use_container_width=True):
+        st.session_state[prefix] = g
+        st.rerun()
+
+  # Seconda riga: da 4 a 7
+  cols2 = st.columns(4)
+  for g in range(4, 8):
+    with cols2[g - 4]:
       btn_label = f"✨ {g}" if val_corrente == g else str(g)
       if st.button(btn_label, key=f"btn_gol_{prefix}_{g}", use_container_width=True):
         st.session_state[prefix] = g
