@@ -172,6 +172,13 @@ def pulisci_nome(testo):
   return testo.strip()
 
 
+def evidenzia_nome_coppia(testo_match, mia_coppia):
+  return testo_match.replace(
+      mia_coppia,
+      f"<span style='color: #ff3366; font-weight: 800; text-shadow: 0 0 12px rgba(255,51,102,0.9);'>{mia_coppia}</span>",
+  )
+
+
 def ricalcola_classifiche_gironi():
   for g_nome, coppie_lista in db["gironi"].items():
     stats = {
@@ -250,6 +257,19 @@ def ricalcola_classifiche_gironi():
             stats[c]["scontri_diretti_pt"] = 0
 
     db["punti_gironi"][g_nome] = stats
+
+
+def calcola_partite_giocate_coppia(g_nome, coppia):
+  giocate = 0
+  totali = 0
+  if g_nome in db["calendario_gironi"]:
+    for turno_obj in db["calendario_gironi"][g_nome]:
+      for m in turno_obj["partite"]:
+        if m["c1"] == coppia or m["c2"] == coppia:
+          totali += 1
+          if m.get("giocata", False):
+            giocate += 1
+  return giocate, totali
 
 
 def genera_pdf_coppie():
@@ -864,64 +884,69 @@ if db["stato"] == "gironi":
   st.markdown("---")
   st.subheader("📊 Classifiche Ufficiali dei Gironi")
   st.markdown(
-      '<p style="font-size: 13px; color: #8b949e; margin-bottom: 15px;">Legenda: <span style="color: #00ff66; font-weight: bold;">Verde = In zona qualificazione</span> | <span style="color: #ff3366; font-weight: bold;">Rosso = In fase di eliminazione / fuori</span></p>',
+      '<div style="background: rgba(16,22,36,0.8); border: 1px solid #00f2fe; padding: 10px 14px; border-radius: 10px; margin-bottom: 15px; font-size: 13px; color: #8b949e; text-align: center;"><b>Legenda:</b> <span style="color: #00ff66; font-weight: bold;">🟢 Zona Qualificazione</span> | <span style="color: #ff3366; font-weight: bold;">🔴 Zona Eliminazione</span></div>',
       unsafe_allow_html=True,
   )
 
   nomi_gironi_chiavi = list(db["gironi"].keys())
-  for i in range(0, len(nomi_gironi_chiavi), 2):
-    col_gironi = st.columns(2)
-    for j in range(2):
-      if i + j < len(nomi_gironi_chiavi):
-        g_nome = nomi_gironi_chiavi[i + j]
-        with col_gironi[j]:
-          st.markdown(f"**📁 {g_nome}**")
-          dati_girone = db["punti_gironi"][g_nome]
-          sorted_c = sorted(
-              dati_girone.items(),
-              key=lambda x: (
-                  x[1]["punti"],
-                  x[1]["scontri_diretti_pt"],
-                  x[1]["dr"],
-                  x[1]["gf"],
-              ),
-              reverse=True,
-          )
+  for g_nome in nomi_gironi_chiavi:
+    with st.container():
+      st.markdown(
+          f"""
+                <div style="background: linear-gradient(135deg, rgba(16, 22, 36, 0.95) 0%, rgba(8, 12, 20, 0.98) 100%); border: 2px solid #00f2fe; border-radius: 14px; padding: 14px; margin-bottom: 18px; box-shadow: 0 0 20px rgba(0,242,254,0.2);">
+                    <div style="font-family: 'Rajdhani', sans-serif; font-size: 18px; font-weight: 900; color: #00f2fe; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">📁 {g_nome}</div>
+                """,
+          unsafe_allow_html=True,
+      )
 
-          # Tabella pulita e ordinata con DataFrame nativo di Streamlit
-          dati_per_df = []
-          for idx, (coppia, info) in enumerate(sorted_c):
-            posizione = idx + 1
-            dati_per_df.append({
-                "Pos": f"{posizione}°",
-                "Coppia": coppia,
-                "Pt": info["punti"],
-                "G": info["partite_giocate"],
-                "V": info["vinte"],
-                "P": info["perse"],
-                "Diff": f"{info['dr']:+d}",
-            })
+      dati_girone = db["punti_gironi"][g_nome]
+      sorted_c = sorted(
+          dati_girone.items(),
+          key=lambda x: (
+              x[1]["punti"],
+              x[1]["scontri_diretti_pt"],
+              x[1]["dr"],
+              x[1]["gf"],
+          ),
+          reverse=True,
+      )
 
-          df_classifica = pd.DataFrame(dati_per_df)
+      for idx, (coppia, info) in enumerate(sorted_c):
+        posizione = idx + 1
+        in_zona_verde = posizione <= soglia_passaggio
 
+        colore_bordo = (
+            "rgba(0, 255, 102, 0.6)"
+            if in_zona_verde
+            else "rgba(255, 51, 102, 0.4)"
+        )
+        colore_sfondo = (
+            "linear-gradient(135deg, rgba(0, 255, 102, 0.12) 0%, rgba(8, 12, 20, 0.9) 100%)"
+            if in_zona_verde
+            else "linear-gradient(135deg, rgba(255, 51, 102, 0.08) 0%, rgba(8, 12, 20, 0.9) 100%)"
+        )
+        simbolo_stato = "🟢" if in_zona_verde else "🔴"
+        testo_colore_pos = "#00ff66" if in_zona_verde else "#ff3366"
 
-          def colora_righe(row):
-            pos_int = int(row["Pos"].replace("°", ""))
-            if pos_int <= soglia_passaggio:
-              return [
-                  "background-color: rgba(0, 255, 102, 0.15); color: #00ff66; font-weight: bold;"
-              ] * len(row)
-            else:
-              return [
-                  "background-color: rgba(255, 51, 102, 0.1); color: #ff3366;"
-              ] * len(row)
+        st.markdown(
+            f"""
+                <div style="background: {colore_sfondo}; border: 1.5px solid {colore_bordo}; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 15px; font-weight: 900; color: {testo_colore_pos}; min-width: 28px;">{posizione}° {simbolo_stato}</span>
+                        <span style="font-size: 15px; font-weight: 700; color: #ffffff;">{coppia}</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; font-size: 13px; text-align: right;">
+                        <div><span style="color: #8b949e; font-size: 10px; display: block;">PT</span><b style="color: #ffaa00; font-size: 15px;">{info['punti']}</b></div>
+                        <div><span style="color: #8b949e; font-size: 10px; display: block;">G</span>{info['partite_giocate']}</div>
+                        <div><span style="color: #8b949e; font-size: 10px; display: block;">V/P</span>{info['vinte']}/{info['perse']}</div>
+                        <div><span style="color: #8b949e; font-size: 10px; display: block;">DR</span><span style="color: {'#00ff66' if info['dr']>=0 else '#ff3366'};">{info['dr']:+d}</span></div>
+                    </div>
+                </div>
+                """,
+            unsafe_allow_html=True,
+        )
 
-
-          st.dataframe(
-              df_classifica.style.apply(colora_righe, axis=1),
-              use_container_width=True,
-              hide_index=True,
-          )
+      st.markdown("</div>", unsafe_allow_html=True)
 
   st.markdown("---")
   st.subheader("📅 Incontri per Girone")
