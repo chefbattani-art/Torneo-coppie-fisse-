@@ -99,10 +99,11 @@ st.markdown(
         }
 
         div.stButton > button {
-            border-radius: 10px;
-            font-weight: 700;
+            border-radius: 12px;
+            font-weight: 800;
             font-family: 'Rajdhani', sans-serif;
-            font-size: 16px;
+            font-size: 20px;
+            height: 55px !important;
             letter-spacing: 1px;
             border: 1.5px solid rgba(0, 242, 254, 0.5);
             background: linear-gradient(180deg, #132238, #0a111c);
@@ -328,7 +329,7 @@ def selettore_gol_bottoni(prefix, default_val=0):
 
   val_corrente = st.session_state[prefix]
   st.markdown(
-      f"<div style='font-size: 13px; color: #8b949e; margin-bottom: 4px;'>Gol selezionati: <b class='neon-blue' style='font-size: 16px;'>{val_corrente}</b></div>",
+      f"<div style='font-size: 14px; color: #8b949e; margin-bottom: 6px;'>Gol selezionati: <b class='neon-blue' style='font-size: 18px;'>{val_corrente}</b></div>",
       unsafe_allow_html=True,
   )
 
