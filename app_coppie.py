@@ -15,18 +15,18 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- STILE GRAFICO GLOBALE (DARK / GAMING NEON AZZURRO ELETTRICO) ---
+# --- STILE GRAFICO GLOBALE (DARK / GAMING NEON AZZURRO ELETTRICO LUMINOSO) ---
 st.markdown(
     """
     <style>
-        /* Sfondo principale e font globale ottimizzato per smartphone */
+        /* Sfondo principale e font globale */
         .stApp {
             background: radial-gradient(circle at 50% 0%, #0a1128 0%, #030712 50%, #010206 100%);
             color: #f0f6fc !important;
             font-family: 'Inter', sans-serif;
         }
         
-        /* Correzione forzata per evitare sfondi chiari o scritte invisibili nei container di testo */
+        /* Correzione per evitare testi invisibili nei container */
         div.stMarkdown, div.stText, p, span, label, div[data-baseweb="select"] span {
             color: #f0f6fc !important;
         }
@@ -38,14 +38,16 @@ st.markdown(
         }
         thead th {
             background-color: #132247 !important;
-            color: #ffffff !important;
+            color: #00f0ff !important;
             border-bottom: 2px solid #00f0ff !important;
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
         }
 
-        /* Sidebar in stile gaming scuro ad alto contrasto */
+        /* Sidebar in stile gaming scuro */
         section[data-testid="stSidebar"] {
             background: linear-gradient(180deg, #070d1a, #030712);
-            border-right: 1px solid #1e3a8a;
+            border-right: 1px solid #00f0ff;
+            box-shadow: 2px 0 15px rgba(0, 240, 255, 0.15);
         }
         section[data-testid="stSidebar"] * {
             color: #f0f6fc !important;
@@ -61,37 +63,41 @@ st.markdown(
             box-shadow: 0 0 20px rgba(255, 174, 0, 0.3);
         }
 
-        /* Intestazioni stile e-sport */
+        /* Intestazioni generali con bagliore neon azzurro */
         h1, h2, h3, h4, h5, h6 {
             color: #ffffff !important;
             letter-spacing: 0.5px;
         }
         
-        /* Pulsanti personalizzati grandi e ben visibili da mobile */
+        /* Pulsanti personalizzati con bagliore al passaggio */
         div.stButton > button {
             border-radius: 10px;
             font-weight: 700;
-            border: 1px solid #1d4ed8;
-            background: linear-gradient(180deg, #1e3a8a, #0f172a);
-            color: #f0f6fc !important;
+            border: 1px solid #00f0ff;
+            background: linear-gradient(180deg, #0e2a47, #071120);
+            color: #00f0ff !important;
             padding: 12px 20px;
             font-size: 16px;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
             transition: all 0.3s ease;
         }
         div.stButton > button:hover {
             border-color: #00f0ff;
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
+            background: linear-gradient(180deg, #163d66, #0e2a47);
+            color: #ffffff !important;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.7);
         }
 
-        /* Ottimizzazione Selectbox e input per smartphone */
+        /* Selectbox e input */
         div[data-baseweb="select"] > div {
             background-color: #0d1629 !important;
             color: #f0f6fc !important;
-            border-color: #1d4ed8 !important;
+            border-color: #00f0ff !important;
             border-radius: 10px !important;
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
         }
         
-        /* Stile per i componenti Pills / Selezione punteggi mobili */
+        /* Pulsanti pillola per i punteggi */
         div[data-testid="stPills"] button {
             background-color: #0d1629 !important;
             color: #f0f6fc !important;
@@ -102,7 +108,7 @@ st.markdown(
             background-color: #0284c7 !important;
             color: #ffffff !important;
             border-color: #00f0ff !important;
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.6);
         }
     </style>
     """,
@@ -161,7 +167,7 @@ def pulisci_nome(testo):
 def evidenzia_nome_coppia(testo_match, mia_coppia):
   return testo_match.replace(
       mia_coppia,
-      f"<span style='color: #00f0ff; font-weight: 800; text-shadow: 0 0 10px rgba(0,240,255,0.6);'>{mia_coppia}</span>",
+      f"<span style='color: #00f0ff; font-weight: 800; text-shadow: 0 0 12px rgba(0,240,255,0.8);'>{mia_coppia}</span>",
   )
 
 
@@ -445,14 +451,14 @@ else:
 st.sidebar.markdown("---")
 
 
-# --- INTERFACCIA PRINCIPALE ---
+# --- INTERFACCIA PRINCIPALE CON TITOLI NEON LUMINOSI ---
 st.markdown(
     """
     <div style="text-align: left; margin-bottom: 10px;">
-        <h1 style="font-size: 28px; white-space: nowrap; margin: 0; padding: 0; color: #ffffff; text-shadow: 0 0 15px rgba(0,240,255,0.4);">
+        <h1 style="font-size: 28px; white-space: nowrap; margin: 0; padding: 0; color: #ffffff; text-shadow: 0 0 15px rgba(0,240,255,0.7), 0 0 30px rgba(0,240,255,0.4);">
             🏆 Torneo Coppie Fisse Live
         </h1>
-        <p style="font-size: 15px; color: #93c5fd; margin: 4px 0 0 0; font-weight: 500;">
+        <p style="font-size: 15px; color: #00f0ff; margin: 6px 0 0 0; font-weight: 600; text-shadow: 0 0 8px rgba(0,240,255,0.5);">
             Regolamento 3 Tocchi Uisp • Modalità Gaming Neon Azzurro Elettrico
         </p>
     </div>
@@ -470,8 +476,8 @@ with st.expander("ℹ️ Come funziona il torneo"):
 
 st.markdown(
     """
-    <div style="padding: 12px 14px; background: linear-gradient(135deg, #172554 0%, #0b1329 100%); border-left: 5px solid #00f0ff; border-radius: 8px; font-size: 14px; color: #38bdf8; margin-bottom: 15px; font-weight: bold; line-height: 1.5; box-shadow: 0 0 15px rgba(0,240,255,0.2);">
-        🚨 Chi vince è pregato di inserire il risultato esatto e chi è in ordine della coda delle partite di essere pronto a salire al primo calcetto che si libera.
+    <div style="padding: 12px 14px; background: linear-gradient(135deg, #0d234a 0%, #030b1c 100%); border: 2px solid #00f0ff; border-radius: 10px; font-size: 14px; color: #ffffff; margin-bottom: 15px; font-weight: bold; line-height: 1.5; box-shadow: 0 0 20px rgba(0,240,255,0.4);">
+        🚨 <span style="color: #00f0ff; text-shadow: 0 0 8px rgba(0,240,255,0.8);">REGOLA CHIAVE:</span> Chi vince è pregato di inserire il risultato esatto e chi è in ordine della coda delle partite di essere pronto a salire al primo calcetto che si libera.
     </div>
     """,
     unsafe_allow_html=True,
@@ -479,8 +485,8 @@ st.markdown(
 
 st.markdown(
     """
-    <div style="padding: 10px; background: #0d1629; border: 1px solid #1d4ed8; border-radius: 10px; text-align: center; margin-bottom: 15px;">
-        🔄 <a href="javascript:window.location.reload(true)" style="text-decoration: none; color: #00f0ff; font-weight: bold; font-size: 15px;">
+    <div style="padding: 10px; background: #0d1629; border: 1.5px solid #00f0ff; border-radius: 10px; text-align: center; margin-bottom: 15px; box-shadow: 0 0 12px rgba(0,240,255,0.25);">
+        🔄 <a href="javascript:window.location.reload(true)" style="text-decoration: none; color: #00f0ff; font-weight: bold; font-size: 15px; text-shadow: 0 0 8px rgba(0,240,255,0.6);">
             Aggiorna la pagina dal browser ogni volta che vuoi vedere gli aggiornamenti del torneo in corso
         </a>
     </div>
@@ -536,7 +542,7 @@ else:
 # Se l'utente è admin e non ha scelto la coppia, gestiamo una visualizzazione pulita senza cruscotto personale
 if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
   if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
-    # --- CRUSCOTTO PERSONALE / OCCHIO SULLA COPPIA SELEZIONATA (STILE DARK GAMING NEON AZZURRO) ---
+    # --- CRUSCOTTO PERSONALE / OCCHIO SULLA COPPIA SELEZIONATA (STILE NEON AZZURRO) ---
     with st.expander(
         f"👁️ Segui la tua coppia: {coppia_selezionata}", expanded=True
     ):
@@ -567,21 +573,21 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
 
       st.markdown(
           f"""
-          <div style="background: linear-gradient(135deg, #0b192c 0%, #030712 100%); border: 2px solid #00f0ff; border-radius: 14px; padding: 20px; margin-bottom: 20px; box-shadow: 0 0 25px rgba(0,240,255,0.3);">
-              <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #38bdf8; font-weight: bold; margin-bottom: 4px;">Riepilogo Squadra</div>
-              <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 14px; text-shadow: 0 0 12px rgba(0,240,255,0.6);">🤝 {coppia_selezionata}</div>
+          <div style="background: linear-gradient(135deg, #081b33 0%, #030712 100%); border: 2.5px solid #00f0ff; border-radius: 14px; padding: 20px; margin-bottom: 20px; box-shadow: 0 0 30px rgba(0,240,255,0.4);">
+              <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #00f0ff; font-weight: bold; margin-bottom: 4px; text-shadow: 0 0 6px rgba(0,240,255,0.6);">Riepilogo Squadra</div>
+              <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 14px; text-shadow: 0 0 15px rgba(0,240,255,0.8);">🤝 {coppia_selezionata}</div>
               <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                  <div style="background: #040914; border: 1px solid #1d4ed8; border-radius: 10px; padding: 12px 16px; flex: 1; min-width: 110px; text-align: center;">
+                  <div style="background: #040914; border: 1.5px solid #00f0ff; border-radius: 10px; padding: 12px 16px; flex: 1; min-width: 110px; text-align: center; box-shadow: 0 0 10px rgba(0,240,255,0.2);">
                       <div style="font-size: 11px; color: #93c5fd; font-weight: bold;">GIRONE</div>
-                      <div style="font-size: 18px; font-weight: 700; color: #00f0ff; margin-top: 2px;">{girone_mio if girone_mio else 'N.D.'}</div>
+                      <div style="font-size: 18px; font-weight: 700; color: #00f0ff; margin-top: 2px; text-shadow: 0 0 8px rgba(0,240,255,0.6);">{girone_mio if girone_mio else 'N.D.'}</div>
                   </div>
-                  <div style="background: #040914; border: 1px solid #1d4ed8; border-radius: 10px; padding: 12px 16px; flex: 1; min-width: 110px; text-align: center;">
+                  <div style="background: #040914; border: 1.5px solid #00f0ff; border-radius: 10px; padding: 12px 16px; flex: 1; min-width: 110px; text-align: center; box-shadow: 0 0 10px rgba(0,240,255,0.2);">
                       <div style="font-size: 11px; color: #93c5fd; font-weight: bold;">POSIZIONE</div>
-                      <div style="font-size: 18px; font-weight: 700; color: #3fb950; margin-top: 2px;">{str(pos_mia) + '° posto' if pos_mia else 'N.D.'}</div>
+                      <div style="font-size: 18px; font-weight: 700; color: #3fb950; margin-top: 2px; text-shadow: 0 0 8px rgba(63,185,80,0.6);">{str(pos_mia) + '° posto' if pos_mia else 'N.D.'}</div>
                   </div>
-                  <div style="background: #040914; border: 1px solid #1d4ed8; border-radius: 10px; padding: 12px 16px; flex: 1; min-width: 110px; text-align: center;">
+                  <div style="background: #040914; border: 1.5px solid #00f0ff; border-radius: 10px; padding: 12px 16px; flex: 1; min-width: 110px; text-align: center; box-shadow: 0 0 10px rgba(0,240,255,0.2);">
                       <div style="font-size: 11px; color: #93c5fd; font-weight: bold;">PUNTI / DR</div>
-                      <div style="font-size: 18px; font-weight: 700; color: #fbbf24; margin-top: 2px;">{info_mie['punti'] if info_mie else 0} pt <span style="font-size: 12px; font-weight: normal; color: #93c5fd;">(DR: {info_mie['dr'] if info_mie else 0})</span></div>
+                      <div style="font-size: 18px; font-weight: 700; color: #fbbf24; margin-top: 2px; text-shadow: 0 0 8px rgba(251,191,36,0.6);">{info_mie['punti'] if info_mie else 0} pt <span style="font-size: 12px; font-weight: normal; color: #93c5fd;">(DR: {info_mie['dr'] if info_mie else 0})</span></div>
                   </div>
               </div>
           </div>
@@ -589,7 +595,11 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
           unsafe_allow_html=True,
       )
 
-      st.markdown("#### 🔍 Le tue partite nel girone:")
+      st.markdown(
+          "<h4 style='color: #00f0ff; text-shadow: 0 0 10px"
+          " rgba(0,240,255,0.6);'>🔍 Le tue partite nel girone:</h4>",
+          unsafe_allow_html=True,
+      )
 
       partite_mie_in_corso = []
       partite_mie_in_coda = []
@@ -630,7 +640,12 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
       col_m1, col_m2 = st.columns(2)
 
       with col_m1:
-        st.markdown("**🔥 Partite in Corso / In Coda per te:**")
+        st.markdown(
+            "<p style='color: #00f0ff; font-weight: bold; text-shadow: 0 0"
+            " 8px rgba(0,240,255,0.5);'>🔥 Partite in Corso / In Coda per"
+            " te:</p>",
+            unsafe_allow_html=True,
+        )
         if not partite_mie_in_corso and not partite_mie_in_coda:
           st.info("Nessuna partita attiva o in coda adesso per te.")
         else:
@@ -642,8 +657,8 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
             match_id_mio = m["id"]
             st.markdown(
                 f"""
-                      <div style="background: linear-gradient(135deg, #261e08 0%, #141002 100%); border: 2px solid #ffae00; padding: 14px; border-radius: 10px; margin-bottom: 8px; text-align: center; box-shadow: 0 0 15px rgba(255,174,0,0.2);">
-                          <span style="color: #ffae00; font-weight: bold; font-size: 13px;">🏟️ IN CORSO (Biliardino {m.get('tavolo', 'N/D')})</span><br>
+                      <div style="background: linear-gradient(135deg, #261e08 0%, #141002 100%); border: 2px solid #ffae00; padding: 14px; border-radius: 10px; margin-bottom: 8px; text-align: center; box-shadow: 0 0 15px rgba(255,174,0,0.3);">
+                          <span style="color: #ffae00; font-weight: bold; font-size: 13px; text-shadow: 0 0 8px rgba(255,174,0,0.6);">🏟️ IN CORSO (Biliardino {m.get('tavolo', 'N/D')})</span><br>
                           <b style="color: #ffffff; font-size: 15px; display: block; margin-top: 4px;">{testo_evidenziato}</b>
                       </div>
                       """,
@@ -690,8 +705,8 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
             )
             st.markdown(
                 f"""
-                      <div style="background: linear-gradient(135deg, #091a33 0%, #030814 100%); border: 1.5px solid #00f0ff; padding: 12px; border-radius: 10px; margin-bottom: 8px; text-align: center; color: #00f0ff;">
-                          <b style="font-size: 13px;">⏳ IN CODA (Prossimo turno)</b><br>
+                      <div style="background: linear-gradient(135deg, #081b33 0%, #030712 100%); border: 2px solid #00f0ff; padding: 12px; border-radius: 10px; margin-bottom: 8px; text-align: center; color: #00f0ff; box-shadow: 0 0 15px rgba(0,240,255,0.3);">
+                          <b style="font-size: 13px; text-shadow: 0 0 6px rgba(0,240,255,0.8);">⏳ IN CODA (Prossimo turno)</b><br>
                           <b style="color: #ffffff; font-size: 15px; display: block; margin-top: 4px;">{testo_evidenziato}</b>
                       </div>
                       """,
@@ -699,7 +714,12 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
             )
 
         st.markdown("---")
-        st.markdown("**📅 Tutte le partite ancora da disputare:**")
+        st.markdown(
+            "<p style='color: #00f0ff; font-weight: bold; text-shadow: 0 0"
+            " 8px rgba(0,240,255,0.5);'>📅 Tutte le partite ancora da"
+            " disputare:</p>",
+            unsafe_allow_html=True,
+        )
         if not partite_mie_da_giocare_dopo:
           st.info("Non hai altre partite future in attesa nei prossimi turni.")
         else:
@@ -710,7 +730,7 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
             )
             st.markdown(
                 f"""
-                      <div style="background: #0d1629; border: 1px solid #1d4ed8; padding: 10px; border-radius: 8px; margin-bottom: 6px; text-align: center;">
+                      <div style="background: #0d1629; border: 1.5px solid #00f0ff; padding: 10px; border-radius: 8px; margin-bottom: 6px; text-align: center; box-shadow: 0 0 8px rgba(0,240,255,0.2);">
                           <span style="font-size: 13px; color: #e2e8f0;"><b>{testo_evidenziato}</b></span>
                       </div>
                       """,
@@ -718,7 +738,11 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
             )
 
       with col_m2:
-        st.markdown("**✅ Partite già effettuate:**")
+        st.markdown(
+            "<p style='color: #3fb950; font-weight: bold; text-shadow: 0 0"
+            " 8px rgba(63,185,80,0.5);'>✅ Partite già effettuate:</p>",
+            unsafe_allow_html=True,
+        )
         if not partite_mie_fatte:
           st.info("Non hai ancora disputato partite.")
         else:
@@ -729,9 +753,9 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
             )
             st.markdown(
                 f"""
-                      <div style="background: #0d1629; border: 1px solid #1d4ed8; padding: 10px; border-radius: 8px; margin-bottom: 6px; text-align: center;">
+                      <div style="background: #0d1629; border: 1.5px solid #238636; padding: 10px; border-radius: 8px; margin-bottom: 6px; text-align: center; box-shadow: 0 0 10px rgba(35,134,54,0.3);">
                           <span style="font-size: 13px; color: #93c5fd;">{testo_evidenziato}</span><br>
-                          <b style="color: #3fb950; font-size: 15px;">Risultato: {m['gol1']} - {m['gol2']}</b>
+                          <b style="color: #3fb950; font-size: 15px; text-shadow: 0 0 6px rgba(63,185,80,0.6);">Risultato: {m['gol1']} - {m['gol2']}</b>
                       </div>
                       """,
                 unsafe_allow_html=True,
@@ -740,8 +764,10 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
       if girone_mio:
         st.markdown("---")
         st.markdown(
-            f"#### 📊 Classifica Completa - {girone_mio} (Verde: Fascia A |"
-            " Rosso: Fascia B)"
+            f"<h4 style='color: #00f0ff; text-shadow: 0 0 10px"
+            f" rgba(0,240,255,0.6);'>📊 Classifica Completa - {girone_mio}"
+            " (Verde: Fascia A | Rosso: Fascia B)</h4>",
+            unsafe_allow_html=True,
         )
         dati_girone = db["punti_gironi"][girone_mio]
         sorted_c = sorted(
@@ -776,7 +802,8 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
             pos = int(str(val).replace("°", ""))
             if pos <= 4:
               return (
-                  "background-color: #0f2316; color: #3fb950; font-weight: bold;"
+                  "background-color: #062329; color: #00f0ff; font-weight:"
+                  " bold;"
               )
             else:
               return "background-color: #3d1b1b; color: #ff7b72;"
@@ -793,7 +820,11 @@ st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
 # 1. SETUP
 if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
-  st.subheader("1. Configurazione Iniziale Torneo a Coppie")
+  st.markdown(
+      "<h3 style='color: #00f0ff; text-shadow: 0 0 10px"
+      " rgba(0,240,255,0.6);'>1. Configurazione Iniziale Torneo a Coppie</h3>",
+      unsafe_allow_html=True,
+  )
 
   if not is_admin:
     st.warning(
@@ -891,10 +922,10 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                     "gol1": 0,
                     "gol2": 0,
                 })
-            turni_girone.append({"turno": t + 1, "partite": partite_turno})
+            turni_turno.append({"turno": t + 1, "partite": partite_turno})
             squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
 
-          calendario_totale[g_nome] = turni_girone
+          calendario_totale[g_nome] = turni_turno
 
         db["calendario_gironi"] = calendario_totale
         db["stato"] = "gironi"
@@ -984,12 +1015,20 @@ if db["stato"] == "gironi":
       key=lambda x: x.get("tavolo") if x.get("tavolo") is not None else 999,
   )
 
-  st.subheader("⚡ Stato dei Biliardini e Coda Incontri")
+  st.markdown(
+      "<h3 style='color: #00f0ff; text-shadow: 0 0 10px"
+      " rgba(0,240,255,0.6);'>⚡ Stato dei Biliardini e Coda Incontri</h3>",
+      unsafe_allow_html=True,
+  )
 
   col_ic, col_coda = st.columns(2)
 
   with col_ic:
-    st.markdown("#### 🔥 Partite in Corso ai Tavoli")
+    st.markdown(
+        "<h4 style='color: #ffae00; text-shadow: 0 0 8px"
+        " rgba(255,174,0,0.6);'>🔥 Partite in Corso ai Tavoli</h4>",
+        unsafe_allow_html=True,
+    )
     if not partite_in_corso:
       st.info("Nessuna partita in corso al momento.")
     else:
@@ -1010,10 +1049,10 @@ if db["stato"] == "gironi":
         with st.container():
           st.markdown(
               f"""
-                        <div style="background: linear-gradient(135deg, #261e08 0%, #100c02 100%); border: 3px solid #ffae00; padding: 18px; border-radius: 14px; margin-bottom: 12px; text-align: center; box-shadow: 0 4px 20px rgba(255,174,0,0.25);">
-                            <div style="font-size: 15px; color: #ffae00; font-weight: bold; margin-bottom: 8px;">{tavolo_str}</div>
+                        <div style="background: linear-gradient(135deg, #261e08 0%, #100c02 100%); border: 3px solid #ffae00; padding: 18px; border-radius: 14px; margin-bottom: 12px; text-align: center; box-shadow: 0 4px 20px rgba(255,174,0,0.3);">
+                            <div style="font-size: 15px; color: #ffae00; font-weight: bold; margin-bottom: 8px; text-shadow: 0 0 8px rgba(255,174,0,0.6);">{tavolo_str}</div>
                             <div style="font-size: 17px; font-weight: bold; color: #ffffff; line-height: 1.4;">🤝 {m['c1']}</div>
-                            <div style="margin: 4px 0; font-size: 13px; font-weight: bold; color: #93c5fd;">VS</div>
+                            <div style="margin: 4px 0; font-size: 13px; font-weight: bold; color: #00f0ff;">VS</div>
                             <div style="font-size: 17px; font-weight: bold; color: #ffffff; line-height: 1.4;">🤝 {m['c2']}</div>
                         </div>
                         """,
@@ -1085,24 +1124,29 @@ if db["stato"] == "gironi":
                 st.rerun()
 
           st.markdown(
-              "<hr style='border-color: #1d4ed8; margin: 10px 0 20px 0;'>",
+              "<hr style='border-color: #00f0ff; opacity: 0.3; margin: 10px 0"
+              " 20px 0;'>",
               unsafe_allow_html=True,
           )
 
   with col_coda:
     partite_in_coda_correnti = partite_da_giocare[:num_tavoli]
 
-    st.markdown(f"#### ⏳ In Coda (Prossimi Incontri)")
+    st.markdown(
+        "<h4 style='color: #00f0ff; text-shadow: 0 0 8px"
+        " rgba(0,240,255,0.6);'>⏳ In Coda (Prossimi Incontri)</h4>",
+        unsafe_allow_html=True,
+    )
     if not partite_in_coda_correnti:
       st.info("La coda è vuota o tutte le partite sono in corso/giocate.")
     else:
       for idx, m in enumerate(partite_in_coda_correnti):
         st.markdown(
             f"""
-                    <div style="background: linear-gradient(135deg, #091a33 0%, #030814 100%); border: 1.5px solid #00f0ff; padding: 14px; border-radius: 10px; margin-bottom: 10px; color: #00f0ff; text-align: center; box-shadow: 0 0 12px rgba(0,240,255,0.2);">
-                        <b style="font-size: 13px;">⏳ {idx+1}. {m['girone']}</b><br>
+                    <div style="background: linear-gradient(135deg, #081b33 0%, #030712 100%); border: 2px solid #00f0ff; padding: 14px; border-radius: 10px; margin-bottom: 10px; color: #00f0ff; text-align: center; box-shadow: 0 0 15px rgba(0,240,255,0.3);">
+                        <b style="font-size: 13px; text-shadow: 0 0 6px rgba(0,240,255,0.8);">⏳ {idx+1}. {m['girone']}</b><br>
                         <div style="font-weight: bold; font-size: 14px; margin-top: 4px; color: #ffffff;">{m['c1']}</div>
-                        <div style="font-size: 11px; color: #00f0ff;">VS</div>
+                        <div style="font-size: 11px; color: #00f0ff; text-shadow: 0 0 6px rgba(0,240,255,0.6);">VS</div>
                         <div style="font-weight: bold; font-size: 14px; color: #ffffff;">{m['c2']}</div>
                     </div>
                     """,
@@ -1111,12 +1155,12 @@ if db["stato"] == "gironi":
 
   st.markdown("---")
 
-  # --- SEZIONE CLASSIFICHE NEON AZZURRO ELETTRICO ---
+  # --- SEZIONE CLASSIFICHE NEON AZZURRO ELETTRICO LUMINOSO ---
   st.markdown(
       """
-      <div style="background: linear-gradient(90deg, #0d234a 0%, #050e21 100%); border: 2px solid #00f0ff; padding: 14px 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 0 20px rgba(0,240,255,0.35); text-align: center;">
-          <h3 style="margin: 0; color: #ffffff; font-size: 20px; text-shadow: 0 0 10px rgba(0,240,255,0.5);">📊 CLASSIFICHE GENERALI DEI GIRONI</h3>
-          <p style="margin: 4px 0 0 0; color: #00f0ff; font-size: 13px; font-weight: bold;">Top 4 in zona Promozione (Fascia A) • Dal 5° in poi in Fascia B</p>
+      <div style="background: linear-gradient(90deg, #082852 0%, #030b1c 100%); border: 2.5px solid #00f0ff; padding: 14px 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 0 25px rgba(0,240,255,0.5); text-align: center;">
+          <h3 style="margin: 0; color: #ffffff; font-size: 20px; text-shadow: 0 0 15px rgba(0,240,255,0.8), 0 0 30px rgba(0,240,255,0.4);">📊 CLASSIFICHE GENERALI DEI GIRONI</h3>
+          <p style="margin: 6px 0 0 0; color: #00f0ff; font-size: 13px; font-weight: bold; text-shadow: 0 0 8px rgba(0,240,255,0.6);">Top 4 in zona Promozione (Fascia A) • Dal 5° in poi in Fascia B</p>
       </div>
       """,
       unsafe_allow_html=True,
@@ -1129,10 +1173,10 @@ if db["stato"] == "gironi":
       if i + j < len(nomi_gironi_chiavi):
         g_nome = nomi_gironi_chiavi[i + j]
         with col_gironi[j]:
-          # Header del singolo girone con stile neon azzurro elettrico
+          # Header del singolo girone con neon azzurro brillante
           st.markdown(
               f"""
-              <div style="background: #0d1629; border-top: 3px solid #00f0ff; padding: 10px 14px; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 16px; color: #ffffff; box-shadow: inset 0 1px 0 rgba(0,240,255,0.3);">
+              <div style="background: #0d1629; border-top: 3px solid #00f0ff; border-left: 1px solid #00f0ff; border-right: 1px solid #00f0ff; padding: 12px 14px; border-radius: 10px 10px 0 0; font-weight: bold; font-size: 16px; color: #ffffff; text-shadow: 0 0 10px rgba(0,240,255,0.7); box-shadow: 0 -4px 15px rgba(0,240,255,0.25);">
                   📁 {g_nome}
               </div>
               """,
@@ -1180,7 +1224,7 @@ if db["stato"] == "gironi":
                     " bold;"
                 )
               else:
-                return "background-color: #1a0a1a; color: #ff7b72;"
+                return "background-color: #2b1111; color: #ff7b72;"
             except:
               return ""
 
@@ -1194,14 +1238,22 @@ if db["stato"] == "gironi":
 
   st.markdown("---")
 
-  st.subheader("📅 Incontri per Girone")
+  st.markdown(
+      "<h3 style='color: #00f0ff; text-shadow: 0 0 10px"
+      " rgba(0,240,255,0.6);'>📅 Incontri per Girone</h3>",
+      unsafe_allow_html=True,
+  )
   nomi_gironi_lista = list(db["calendario_gironi"].keys())
   if nomi_gironi_lista:
     tabs_gironi = st.tabs(nomi_gironi_lista)
 
     for idx_tab, g_nome in enumerate(nomi_gironi_lista):
       with tabs_gironi[idx_tab]:
-        st.markdown(f"### Partite - {g_nome}")
+        st.markdown(
+            f"<h4 style='color: #00f0ff; text-shadow: 0 0 8px"
+            f" rgba(0,240,255,0.5);'>Partite - {g_nome}</h4>",
+            unsafe_allow_html=True,
+        )
         turni_girone = db["calendario_gironi"][g_nome]
 
         for turno_obj in turni_girone:
@@ -1215,27 +1267,32 @@ if db["stato"] == "gironi":
               bg_color = "linear-gradient(135deg, #071f11 0%, #030d07 100%)"
               border_color = "#238636"
               stato_testo = (
-                  f"<b style='color: #3fb950;'>{m['gol1']} - {m['gol2']}</b>"
+                  f"<b style='color: #3fb950; text-shadow: 0 0 6px"
+                  f" rgba(63,185,80,0.6);'>{m['gol1']} - {m['gol2']}</b>"
               )
             elif m.get("in_corso", False):
               bg_color = "linear-gradient(135deg, #261e08 0%, #100c02 100%)"
               border_color = "#ffae00"
               stato_testo = (
-                  f"<b style='color: #ffae00;'>🔥 In corso (Tav."
+                  f"<b style='color: #ffae00; text-shadow: 0 0 6px"
+                  f" rgba(255,174,0,0.6);'>🔥 In corso (Tav."
                   f" {m.get('tavolo', 'N/D')})</b>"
               )
             else:
               bg_color = "#0d1629"
-              border_color = "#1d4ed8"
-              stato_testo = "<span style='color: #93c5fd;'>VS</span>"
+              border_color = "#00f0ff"
+              stato_testo = (
+                  "<span style='color: #00f0ff; text-shadow: 0 0 6px"
+                  " rgba(0,240,255,0.6);'>VS</span>"
+              )
 
             st.markdown(
                 f"""
-                            <div style="background: {bg_color}; border: 1.5px solid {border_color}; padding: 14px 16px; border-radius: 10px; margin-bottom: 10px; text-align: center;">
+                            <div style="background: {bg_color}; border: 1.5px solid {border_color}; padding: 14px 16px; border-radius: 10px; margin-bottom: 10px; text-align: center; box-shadow: 0 0 10px rgba(0,240,255,0.15);">
                                 <div style="font-weight: bold; color: #ffffff; font-size: 15px; line-height: 1.4;">
                                     🤝 {m['c1']}
                                 </div>
-                                <div style="margin: 3px 0; font-size: 12px; color: #93c5fd; font-weight: bold;">
+                                <div style="margin: 3px 0; font-size: 12px; color: #00f0ff; font-weight: bold; text-shadow: 0 0 6px rgba(0,240,255,0.6);">
                                     VS
                                 </div>
                                 <div style="font-weight: bold; color: #ffffff; font-size: 15px; line-height: 1.4;">
@@ -1368,7 +1425,12 @@ if db["stato"] == "gironi":
 
 # 3. FASI FINALI
 elif db["stato"] == "fasi_finali":
-  st.subheader("🏆 Fasi Finali: Tabelloni a Eliminazione Diretta")
+  st.markdown(
+      "<h3 style='color: #00f0ff; text-shadow: 0 0 10px"
+      " rgba(0,240,255,0.6);'>🏆 Fasi Finali: Tabelloni a Eliminazione"
+      " Diretta</h3>",
+      unsafe_allow_html=True,
+  )
 
   tab_a_view, tab_b_view = st.tabs(
       ["⭐ Fascia A (Torneo Principale)", "🔻 Fascia B (Torneo Secondario)"]
@@ -1376,7 +1438,11 @@ elif db["stato"] == "fasi_finali":
 
 
   def gestisci_tabellone(chiave_tabellone, chiave_34, titolo_tab):
-    st.markdown(f"### 📋 {titolo_tab}")
+    st.markdown(
+        f"<h4 style='color: #00f0ff; text-shadow: 0 0 8px"
+        f" rgba(0,240,255,0.5);'>📋 {titolo_tab}</h4>",
+        unsafe_allow_html=True,
+    )
     turni_tab = db[chiave_tabellone]
 
     mappa_girone_pos = {}
@@ -1409,8 +1475,8 @@ elif db["stato"] == "fasi_finali":
 
       st.markdown(
           f"""
-                <div style="background: linear-gradient(90deg, #0284c7 0%, #00f0ff 100%); padding: 12px 18px; border-radius: 10px; margin: 22px 0 14px 0; color: white; text-align: center; box-shadow: 0 0 20px rgba(0,240,255,0.4);">
-                    <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: white;">⚡ {nome_etichetta}</h3>
+                <div style="background: linear-gradient(90deg, #052a57 0%, #00f0ff 100%); padding: 12px 18px; border-radius: 10px; margin: 22px 0 14px 0; color: white; text-align: center; box-shadow: 0 0 25px rgba(0,240,255,0.5);">
+                    <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: white; text-shadow: 0 0 10px rgba(0,240,255,0.8);">⚡ {nome_etichetta}</h3>
                 </div>
                 """,
           unsafe_allow_html=True,
@@ -1447,27 +1513,27 @@ elif db["stato"] == "fasi_finali":
         if m["giocata"]:
           box_bg = "linear-gradient(135deg, #071f11 0%, #030d07 100%)"
           border_c = "#238636"
-          centro_testo = f"<span style='font-size: 14px; font-weight: bold; background-color: #238636; color: white; padding: 6px 14px; border-radius: 8px;'>Vince: {m['vincente']}</span>"
+          centro_testo = f"<span style='font-size: 14px; font-weight: bold; background-color: #238636; color: white; padding: 6px 14px; border-radius: 8px; box-shadow: 0 0 10px rgba(35,134,54,0.6);'>Vince: {m['vincente']}</span>"
           vincitori_turno.append(m["vincente"])
           perdente_match = s2_nome if m["vincente"] == s1_nome else s1_nome
           perdenti_turno.append(perdente_match)
         else:
           tutti_giocati = False
           box_bg = "#0d1629"
-          border_c = "#1d4ed8"
-          centro_testo = "<span style='font-size: 14px; font-weight: bold; background-color: #132247; color: #93c5fd; padding: 6px 12px; border-radius: 8px;'>VS</span>"
+          border_c = "#00f0ff"
+          centro_testo = "<span style='font-size: 14px; font-weight: bold; background-color: #071a36; color: #00f0ff; padding: 6px 12px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,240,255,0.4);'>VS</span>"
 
         st.markdown(
             f"""
-                    <div style="background: {box_bg}; border: 2px solid {border_c}; padding: 18px 22px; border-radius: 14px; margin-bottom: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                    <div style="background: {box_bg}; border: 2px solid {border_c}; padding: 18px 22px; border-radius: 14px; margin-bottom: 12px; text-align: center; box-shadow: 0 0 15px rgba(0,240,255,0.2);">
                         <div style="font-size: 17px; font-weight: bold; color: #ffffff; line-height: 1.4;">
-                            🤝 {s1_nome} <span style="font-size: 12px; color: #93c5fd; font-weight: normal; display: block;">({s1_sottotitolo})</span>
+                            🤝 {s1_nome} <span style="font-size: 12px; color: #00f0ff; font-weight: normal; display: block; text-shadow: 0 0 6px rgba(0,240,255,0.5);">({s1_sottotitolo})</span>
                         </div>
-                        <div style="margin: 6px 0; font-size: 13px; font-weight: bold; color: #93c5fd;">
+                        <div style="margin: 6px 0; font-size: 13px; font-weight: bold; color: #00f0ff; text-shadow: 0 0 6px rgba(0,240,255,0.6);">
                             VS
                         </div>
                         <div style="font-size: 17px; font-weight: bold; color: #ffffff; line-height: 1.4;">
-                            🤝 {s2_nome} <span style="font-size: 12px; color: #93c5fd; font-weight: normal; display: block;">({s2_sottotitolo})</span>
+                            🤝 {s2_nome} <span style="font-size: 12px; color: #00f0ff; font-weight: normal; display: block; text-shadow: 0 0 6px rgba(0,240,255,0.5);">({s2_sottotitolo})</span>
                         </div>
                         <div style="margin-top: 12px;">
                             {centro_testo}
@@ -1584,7 +1650,7 @@ elif db["stato"] == "fasi_finali":
     if db[chiave_34]:
       st.markdown(
           """
-                <div style="background: linear-gradient(90deg, #bb8009 0%, #d4a72c 100%); padding: 12px 18px; border-radius: 10px; margin: 25px 0 14px 0; color: white; text-align: center; box-shadow: 0 0 15px rgba(212,167,44,0.3);">
+                <div style="background: linear-gradient(90deg, #bb8009 0%, #d4a72c 100%); padding: 12px 18px; border-radius: 10px; margin: 25px 0 14px 0; color: white; text-align: center; box-shadow: 0 0 20px rgba(212,167,44,0.4);">
                     <h3 style="margin: 0; font-size: 18px; font-weight: bold; color: white;">🥉 FINALE 3° / 4° POSTO</h3>
                 </div>
                 """,
@@ -1611,20 +1677,20 @@ elif db["stato"] == "fasi_finali":
         )
       else:
         tq_bg = "#0d1629"
-        tq_border = "#1d4ed8"
-        tq_centro = "<span style='font-size: 14px; font-weight: bold; background-color: #132247; color: #93c5fd; padding: 6px 12px; border-radius: 8px;'>VS</span>"
+        tq_border = "#00f0ff"
+        tq_centro = "<span style='font-size: 14px; font-weight: bold; background-color: #071a36; color: #00f0ff; padding: 6px 12px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,240,255,0.4);'>VS</span>"
 
       st.markdown(
           f"""
-                <div style="background: {tq_bg}; border: 2px solid {tq_border}; padding: 18px 22px; border-radius: 14px; margin-bottom: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                <div style="background: {tq_bg}; border: 2px solid {tq_border}; padding: 18px 22px; border-radius: 14px; margin-bottom: 12px; text-align: center; box-shadow: 0 0 15px rgba(0,240,255,0.2);">
                     <div style="font-size: 17px; font-weight: bold; color: #ffffff; line-height: 1.4;">
-                        🤝 {tq_match['s1']} <span style="font-size: 12px; color: #93c5fd; font-weight: normal; display: block;">({tq_s1_sub})</span>
+                        🤝 {tq_match['s1']} <span style="font-size: 12px; color: #00f0ff; font-weight: normal; display: block; text-shadow: 0 0 6px rgba(0,240,255,0.5);">({tq_s1_sub})</span>
                     </div>
-                    <div style="margin: 6px 0; font-size: 13px; font-weight: bold; color: #93c5fd;">
+                    <div style="margin: 6px 0; font-size: 13px; font-weight: bold; color: #00f0ff; text-shadow: 0 0 6px rgba(0,240,255,0.6);">
                         VS
                     </div>
                     <div style="font-size: 17px; font-weight: bold; color: #ffffff; line-height: 1.4;">
-                        🤝 {tq_match['s2']} <span style="font-size: 12px; color: #93c5fd; font-weight: normal; display: block;">({tq_s2_sub})</span>
+                        🤝 {tq_match['s2']} <span style="font-size: 12px; color: #00f0ff; font-weight: normal; display: block; text-shadow: 0 0 6px rgba(0,240,255,0.5);">({tq_s2_sub})</span>
                     </div>
                     <div style="margin-top: 12px;">
                         {tq_centro}
@@ -1664,11 +1730,11 @@ elif db["stato"] == "fasi_finali":
       st.markdown("---")
       st.markdown(
           f"""
-                <div style="background: linear-gradient(135deg, #261e08 0%, #141002 100%); border: 3px solid #bb8009; padding: 30px; border-radius: 18px; text-align: center; color: #ffffff; margin-top: 25px; box-shadow: 0 0 30px rgba(187,128,9,0.3);">
-                    <h2 style="margin: 0 0 15px 0; color: #f1e05a; font-size: 26px; text-shadow: 0 0 15px rgba(241,224,90,0.4);">🏆 PODIO FINALE - {titolo_tab} 🏆</h2>
-                    <p style="font-size: 23px; margin: 12px 0; font-weight: bold; color: #f1e05a;">🥇 1° POSTO (Campioni): {campione}</p>
+                <div style="background: linear-gradient(135deg, #081b33 0%, #030712 100%); border: 3px solid #00f0ff; padding: 30px; border-radius: 18px; text-align: center; color: #ffffff; margin-top: 25px; box-shadow: 0 0 35px rgba(0,240,255,0.5);">
+                    <h2 style="margin: 0 0 15px 0; color: #00f0ff; font-size: 26px; text-shadow: 0 0 20px rgba(0,240,255,0.9);">🏆 PODIO FINALE - {titolo_tab} 🏆</h2>
+                    <p style="font-size: 23px; margin: 12px 0; font-weight: bold; color: #f1e05a; text-shadow: 0 0 10px rgba(241,224,90,0.6);">🥇 1° POSTO (Campioni): {campione}</p>
                     <p style="font-size: 20px; margin: 10px 0; font-weight: 600; color: #e2e8f0;">🥈 2° POSTO: {secondo_posto if secondo_posto else 'N.D.'}</p>
-                    <p style="font-size: 20px; margin: 10px 0; font-weight: 600; color: #00f0ff;">🥉 3° POSTO: {terzo_posto if terzo_posto else 'N.D.'}</p>
+                    <p style="font-size: 20px; margin: 10px 0; font-weight: 600; color: #00f0ff; text-shadow: 0 0 8px rgba(0,240,255,0.6);">🥉 3° POSTO: {terzo_posto if terzo_posto else 'N.D.'}</p>
                     <p style="font-size: 16px; margin: 12px 0; color: #93c5fd;">4° Posto: {quarto_posto if quarto_posto else 'N.D.'}</p>
                 </div>
                 """,
