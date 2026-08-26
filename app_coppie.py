@@ -1,4 +1,4 @@
-Import json
+import json
 import os
 import random
 import re
@@ -1632,4 +1632,4 @@ elif db["stato"] == "fasi_finali":
         "tabellone_b",
         "terzo_quarto_b",
         "Tabellone Eliminazione Diretta - Fascia B",
-    ) Mi metti tutto questo in un foglio bianco?
+    )
