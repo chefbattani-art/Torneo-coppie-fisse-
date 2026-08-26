@@ -15,11 +15,16 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- STILE GRAFICO GLOBALE: CYBERPUNK & NEON ARCADE ESPORTS ---
+# --- STILE GRAFICO GLOBALE: CYBERPUNK & NEON ARCADE ESPORTS (CONFIX SAFARI DARK MODE) ---
 st.markdown(
     """
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;800;900&family=Inter:wght@400;600;800&display=swap');
+
+        /* --- BLOCCO ANTI-SFONDO BIANCO (SAFARI & DARK MODE) --- */
+        :root {
+            color-scheme: dark !important;
+        }
 
         .stApp {
             background-color: #05070f;
@@ -31,12 +36,21 @@ st.markdown(
             background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
             color: #f0f6fc;
             font-family: 'Inter', sans-serif;
+            color-scheme: dark !important;
         }
         
         section[data-testid="stSidebar"] {
             background: linear-gradient(180deg, #070a17, #020408);
             border-right: 2px solid rgba(0, 242, 254, 0.2);
             box-shadow: 8px 0 30px rgba(0, 242, 254, 0.08);
+        }
+
+        /* Correzione per componenti nativi che Safari inverte in bianco */
+        .streamlit-expanderHeader, 
+        [data-testid="stExpander"], 
+        [data-testid="stContainer"],
+        [data-testid="stVerticalBlock"] div {
+            color-scheme: dark !important;
         }
 
         .neon-title-box {
@@ -333,7 +347,6 @@ def selettore_gol_bottoni(prefix, default_val=0):
       unsafe_allow_html=True,
   )
 
-  # Creiamo una riga unica con 8 colonne, una per ciascun numero di gol da 0 a 7
   cols = st.columns(8)
   for g in range(8):
     with cols[g]:
