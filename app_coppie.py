@@ -40,6 +40,33 @@ st.markdown(
             box-shadow: 8px 0 30px rgba(0, 242, 254, 0.08);
         }
 
+        /* Titolo Centrato, Verde con bordo Neon Blu */
+        .neon-title-box {
+            border: 2px solid #00f2fe;
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.4), inset 0 0 15px rgba(0, 242, 254, 0.1);
+            border-radius: 18px;
+            padding: 24px;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(16, 22, 36, 0.95) 0%, rgba(8, 12, 20, 0.98) 100%);
+            margin-bottom: 20px;
+        }
+        .neon-title-text {
+            color: #00ff66 !important;
+            font-family: 'Rajdhani', sans-serif !important;
+            font-size: 34px;
+            font-weight: 900;
+            text-shadow: 0 0 15px rgba(0,255,102,0.9), 0 0 30px rgba(0,255,102,0.5);
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .neon-subtitle {
+            color: #8b949e;
+            font-size: 14px;
+            margin-top: 6px;
+            font-weight: 600;
+        }
+
         /* Card Gaming Principali con Bordo Neon Elettrico */
         .neon-box-main {
             background: linear-gradient(135deg, rgba(16, 22, 36, 0.95) 0%, rgba(8, 12, 20, 0.98) 100%);
@@ -59,6 +86,43 @@ st.markdown(
             padding: 22px;
             text-align: center;
             box-shadow: 0 0 30px rgba(255, 170, 0, 0.35), inset 0 0 15px rgba(255, 170, 0, 0.1);
+        }
+
+        /* Stile Classifica Ingrandita e Visibile con Neon Verdi sulle prime 6 posizioni */
+        .ranking-header {
+            font-size: 26px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 15px;
+            font-family: 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .ranking-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            margin: 8px 0;
+            background-color: rgba(16, 22, 36, 0.85);
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            border: 1px solid #374151;
+        }
+        .ranking-row-neon {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            margin: 10px 0;
+            background: linear-gradient(135deg, rgba(10, 36, 20, 0.95) 0%, rgba(4, 16, 8, 0.98) 100%);
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 800;
+            color: #00ff66;
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.4), inset 0 0 10px rgba(0, 255, 102, 0.15);
         }
 
         /* Effetti Neon RGB Luminosi Avanzati */
@@ -126,6 +190,7 @@ def carica_dati():
       "calendario_gironi": {},
       "punti_gironi": {},
       "fasi_finali_configurate": False,
+      "num_qualificate_ knockout": 6,  # Default per la logica eliminazione diretta personalizzabile
       "tabellone_a": [],
       "tabellone_b": [],
       "terzo_quarto_a": [],
@@ -298,6 +363,25 @@ def ottieni_nome_turno_dinamico(num_partite_turno):
     return f"Eliminazione Diretta ({tot_squadre} Coppie)"
 
 
+def crea_abbinamenti_eliminazione_personalizzata(classificate_per_girone, num_passano):
+  """
+  Logica personalizzata per la scelta delle coppie che passano dal girone.
+  Es: se passano 6 coppie:
+  - 1° e 2° passano direttamente un turno (vanno in semifinale).
+  - 3ª vs 6ª -> vincente sfida la 1ª del girone (finale / 3°-4°).
+  - 4ª vs 5ª -> vincente sfida la 2ª del girone (finale / 3°-4°).
+  """
+  nomi_g = list(classificate_per_girone.keys())
+  # Prendi la classifica generale unificata o per singolo girone a seconda della struttura
+  # Per semplicità gestiamo il primo girone principale o generalizzato
+  tutte_squadre_ordinate = []
+  for g_n in nomi_g:
+    for sq in classificate_per_girone[g_n]:
+      tutte_squadre_ordinate.append((sq, g_n))
+  
+  return tutte_squadre_ordinate[:num_passano]
+
+
 def crea_abbinamenti_fascia_a_perfetti(classificate_per_girone):
   nomi_g = list(classificate_per_girone.keys())
   if len(nomi_g) < 4:
@@ -440,15 +524,12 @@ st.sidebar.markdown("---")
 
 
 # --- INTERFACCIA PRINCIPALE ---
+# TITOLO CENTRATO, VERDE CON BORDO NEON BLU
 st.markdown(
     """
-    <div style="background: linear-gradient(135deg, rgba(16, 22, 36, 0.95) 0%, rgba(8, 12, 20, 0.98) 100%); border: 2px solid #00f2fe; border-radius: 18px; padding: 24px; margin-bottom: 20px; box-shadow: 0 0 35px rgba(0,242,254,0.3);">
-        <h1 style="font-size: 32px; margin: 0; padding: 0; color: #ffffff;">
-            ⚡ <span class="neon-blue">Torneo</span> <span class="neon-purple">Coppie</span> <span class="neon-gold">Fisse</span> <span class="neon-green">Live</span>
-        </h1>
-        <p style="font-size: 14px; color: #8b949e; margin: 6px 0 0 0; font-weight: 600;">
-            Regolamento 3 Tocchi Uisp • <span class="neon-cyan">Cyber Gaming & Esports Edition</span>
-        </p>
+    <div class="neon-title-box">
+        <div class="neon-title-text">⚡ TORNEO COPPIE FISSE LIVE</div>
+        <div class="neon-subtitle">Regolamento 3 Tocchi Uisp • Cyber Gaming & Esports Edition</div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -748,8 +829,7 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
       if girone_mio:
         st.markdown("---")
         st.markdown(
-            f"#### 📊 Classifica Completa - {girone_mio} (Verde: Fascia A |"
-            " Rosso: Fascia B)"
+            f"#### 📊 Classifica Completa - {girone_mio} (Top 6 Illuminate con Neon Verde)"
         )
         dati_girone = db["punti_gironi"][girone_mio]
         sorted_c = sorted(
@@ -763,22 +843,32 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
             reverse=True,
         )
 
-        data_g = []
         for idx, (coppia, info) in enumerate(sorted_c):
+          posizione = idx + 1
           gioc, tot = calcola_partite_giocate_coppia(girone_mio, coppia)
-          fascia_assegnata = "⭐ A" if idx < 4 else "🔻 B"
-          data_g.append({
-              "Pos": f"{idx+1}°",
-              "Coppia": coppia,
-              "Pt": info["punti"],
-              "DR": info["dr"],
-              "GF": info["gf"],
-              "Gioc": f"{gioc}/{tot}",
-              "Fascia": fascia_assegnata,
-          })
-
-        df_g = pd.DataFrame(data_g)
-        st.dataframe(df_g, hide_index=True, use_container_width=True)
+          testo_riga = f"<b>{posizione}. {coppia}</b> — <b>{info['punti']} pt</b> (DR: {info['dr']}, GF: {info['gf']}, Gioc: {gioc}/{tot})"
+          
+          # Prime 6 posizioni illuminate con box neon verde
+          if posizione <= 6:
+            st.markdown(
+                f"""
+                <div class="ranking-row-neon">
+                    <span>{testo_riga}</span>
+                    <span style="font-size: 14px; background: rgba(0,255,102,0.2); padding: 4px 10px; border-radius: 6px;">✨ TOP 6 (Qualificata)</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+          else:
+            st.markdown(
+                f"""
+                <div class="ranking-row">
+                    <span>{testo_riga}</span>
+                    <span style="font-size: 14px; color: #8b949e;">Fascia B / Eliminata</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
 st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
 
@@ -917,6 +1007,15 @@ if db["stato"] == "gironi":
       salva_dati(db)
       st.rerun()
     st.markdown("---")
+
+  # SELETTORE DINAMICO DELLE COPPIE CHE PASSANO DAL GIRONE (LOGICA ELIMINAZIONE DIRETTA)
+  st.markdown("### ⚙️ Configurazione Passaggio Turno dai Gironi")
+  db["num_qualificate_knockout"] = st.selectbox(
+      "Seleziona quante coppie far passare dal girone alla fase finale:",
+      options=[4, 6, 8],
+      index=1 if db.get("num_qualificate_knockout", 6) == 6 else (0 if db.get("num_qualificate_knockout") == 4 else 2)
+  )
+  st.info(f"Regola attiva: Passano le prime **{db['num_qualificate_knockout']} coppie** in base alla classifica.")
 
   max_turni = (
       max([len(turni) for turni in db["calendario_gironi"].values()])
@@ -1089,7 +1188,7 @@ if db["stato"] == "gironi":
         )
 
   st.markdown("---")
-  st.subheader("📊 Classifiche dei Gironi")
+  st.subheader("📊 Classifiche dei Gironi (Prime 6 posizioni illuminate in Neon Verde)")
   nomi_gironi_chiavi = list(db["gironi"].keys())
   for i in range(0, len(nomi_gironi_chiavi), 2):
     col_gironi = st.columns(2)
@@ -1110,22 +1209,31 @@ if db["stato"] == "gironi":
               reverse=True,
           )
 
-          data_g = []
           for idx, (coppia, info) in enumerate(sorted_c):
+            posizione = idx + 1
             gioc, tot = calcola_partite_giocate_coppia(g_nome, coppia)
-            fascia_assegnata = "⭐ A" if idx < 4 else "🔻 B"
-            data_g.append({
-                "Pos": f"{idx+1}°",
-                "Coppia": coppia,
-                "Pt": info["punti"],
-                "DR": info["dr"],
-                "GF": info["gf"],
-                "Gioc": f"{gioc}/{tot}",
-                "Fascia": fascia_assegnata,
-            })
-
-          df_g = pd.DataFrame(data_g)
-          st.dataframe(df_g, hide_index=True, use_container_width=True)
+            testo_riga = f"<b>{posizione}. {coppia}</b> — {info['punti']} pt (DR: {info['dr']}, GF: {info['gf']}, Gioc: {gioc}/{tot})"
+            
+            if posizione <= 6:
+              st.markdown(
+                  f"""
+                  <div class="ranking-row-neon">
+                      <span>{testo_riga}</span>
+                      <span style="font-size: 12px;">✨ Top 6</span>
+                  </div>
+                  """,
+                  unsafe_allow_html=True,
+              )
+            else:
+              st.markdown(
+                  f"""
+                  <div class="ranking-row">
+                      <span>{testo_riga}</span>
+                      <span style="font-size: 12px; color: #8b949e;">Eliminata</span>
+                  </div>
+                  """,
+                  unsafe_allow_html=True,
+              )
 
   st.markdown("---")
   st.subheader("📅 Incontri per Girone")
@@ -1187,6 +1295,8 @@ if db["stato"] == "gironi":
     if st.button(btn_text, use_container_width=True):
       classificate_a = {}
       classificate_b_raw = {}
+      num_passano = db.get("num_qualificate_knockout", 6)
+      
       for g_nome in db["gironi"]:
         dati_girone = db["punti_gironi"][g_nome]
         sorted_c = sorted(
@@ -1200,7 +1310,7 @@ if db["stato"] == "gironi":
             reverse=True,
         )
         squadre_girone = [c[0] for c in sorted_c]
-        classificate_a[g_nome] = squadre_girone[:4]
+        classificate_a[g_nome] = squadre_girone[:num_passano]
         classificate_b_raw[g_nome] = squadre_girone
 
       abbinamenti_a = crea_abbinamenti_fascia_a_perfetti(classificate_a)
