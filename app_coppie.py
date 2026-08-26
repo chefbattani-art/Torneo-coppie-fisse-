@@ -321,6 +321,29 @@ def crea_abbinamenti_fascia_a_6_squadre(classificate_lista):
     return abbinamenti
 
 
+# --- SELETTORE GOL CON BOTTONI DA 0 A 7 ---
+def selettore_gol_bottoni(prefix, default_val=0):
+  if prefix not in st.session_state:
+    st.session_state[prefix] = int(default_val)
+
+  val_corrente = st.session_state[prefix]
+  st.markdown(
+      f"<div style='font-size: 13px; color: #8b949e; margin-bottom: 4px;'>Gol selezionati: <b class='neon-blue' style='font-size: 16px;'>{val_corrente}</b></div>",
+      unsafe_allow_html=True,
+  )
+
+  cols = st.columns(8)
+  for g in range(8):
+    with cols[g]:
+      # Evidenzia il bottone del valore attualmente selezionato
+      btn_label = f"✨ {g}" if val_corrente == g else str(g)
+      if st.button(btn_label, key=f"btn_gol_{prefix}_{g}", use_container_width=True):
+        st.session_state[prefix] = g
+        st.rerun()
+
+  return st.session_state[prefix]
+
+
 # --- BARRA LATERALE CYBER ---
 st.sidebar.header("⚙️ Pannello Controllo")
 
@@ -411,7 +434,7 @@ with st.expander("ℹ️ Come funziona il torneo"):
 st.markdown(
     """
     <div style="padding: 16px 20px; background: linear-gradient(135deg, rgba(48, 16, 26, 0.95) 0%, rgba(24, 6, 12, 0.98) 100%); border: 2px solid #ff3366; border-radius: 16px; font-size: 14px; color: #ff3366; margin-bottom: 20px; font-weight: bold; line-height: 1.5; box-shadow: 0 0 30px rgba(255,51,102,0.35);">
-        🚨 Chi vince è pregato di inserire il risultato esatto e chi è in coda alle partite di tenersi pronto a salire al primo calcetto libero.
+        🚨 Chi vince è pregato di inserire il risultato esatto tramite i comodi pulsanti e chi è in coda alle partite di tenersi pronto a salire al primo calcetto libero.
     </div>
     """,
     unsafe_allow_html=True,
@@ -506,19 +529,16 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
                 info_mie = stats
           break
 
-      # Calcolo Partita in Corso o in Coda per la coppia selezionata
       match_in_corso_coppia = None
       pos_in_coda = None
 
       if db["stato"] == "gironi":
-        # Raccogliamo tutte le partite del girone o del torneo per trovarne lo stato
         num_tavoli = db.get("num_tavoli", 6)
         max_turni = (
             max([len(turni) for turni in db["calendario_gironi"].values()])
             if db["calendario_gironi"]
             else 0
         )
-        partite_aperte = []
         for t_num in range(1, max_turni + 1):
           for g_n, turni_girone in db["calendario_gironi"].items():
             for t_obj in turni_girone:
@@ -531,11 +551,7 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
                     ):
                       if m.get("in_corso", False):
                         match_in_corso_coppia = m
-                      else:
-                        partite_aperte.append(m)
 
-        # Controlliamo la posizione in coda tra le non giocate
-        # Ricostruiamo la coda esatta simulata nel loop principale
         all_da_giocare = []
         for t_num in range(1, max_turni + 1):
           for g_n in sorted(db["calendario_gironi"].keys()):
@@ -578,7 +594,6 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
           unsafe_allow_html=True,
       )
 
-      # AGGIUNTA: Sezione Partita in Corso o in Coda integrata nel box
       if match_in_corso_coppia:
         avversario = (
             match_in_corso_coppia["c2"]
@@ -599,22 +614,18 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
         )
 
         with st.expander(
-            "⚙️ Gestisci e Inserisci Risultato della Tua Partita", expanded=True
+            "⚙️ Inserisci Risultato con i Bottoni", expanded=True
         ):
-          gol_p1 = st.number_input(
-              f"Gol {match_in_corso_coppia['c1']}",
-              0,
-              10,
-              int(match_in_corso_coppia.get("gol1", 0)),
-              key=f"riepilogo_g1_{match_id}",
+          st.markdown(f"**⚽ Gol per {match_in_corso_coppia['c1']}**")
+          gol_p1 = selettore_gol_bottoni(
+              f"riep_g1_{match_id}", int(match_in_corso_coppia.get("gol1", 0))
           )
-          gol_p2 = st.number_input(
-              f"Gol {match_in_corso_coppia['c2']}",
-              0,
-              10,
-              int(match_in_corso_coppia.get("gol2", 0)),
-              key=f"riepilogo_g2_{match_id}",
+
+          st.markdown(f"**⚽ Gol per {match_in_corso_coppia['c2']}**")
+          gol_p2 = selettore_gol_bottoni(
+              f"riep_g2_{match_id}", int(match_in_corso_coppia.get("gol2", 0))
           )
+
           if st.button(
               "✅ Salva e Registra Risultato",
               key=f"riepilogo_save_{match_id}",
@@ -917,20 +928,16 @@ if db["stato"] == "gironi":
             with st.expander(
                 f"📝 Inserisci Risultato Tavolo {m.get('tavolo', '')}"
             ):
-              gol_p1 = st.number_input(
-                  f"Gol {m['c1']}",
-                  0,
-                  10,
-                  int(m.get("gol1", 0)),
-                  key=f"user_g1_{match_id}",
+              st.markdown(f"**⚽ Gol {m['c1']}**")
+              gol_p1 = selettore_gol_bottoni(
+                  f"live_g1_{match_id}", int(m.get("gol1", 0))
               )
-              gol_p2 = st.number_input(
-                  f"Gol {m['c2']}",
-                  0,
-                  10,
-                  int(m.get("gol2", 0)),
-                  key=f"user_g2_{match_id}",
+
+              st.markdown(f"**⚽ Gol {m['c2']}**")
+              gol_p2 = selettore_gol_bottoni(
+                  f"live_g2_{match_id}", int(m.get("gol2", 0))
               )
+
               if st.button(
                   "✅ Conferma e Registra Risultato",
                   key=f"user_save_{match_id}",
@@ -1076,21 +1083,16 @@ if db["stato"] == "gironi":
             )
             if is_admin:
               with st.expander(f"⚙️ Gestisci: {m['c1']} vs {m['c2']}"):
-                rg1 = st.number_input(
-                    f"Gol {m['c1']}",
-                    0,
-                    10,
-                    int(m.get("gol1", 0)),
-                    key=f"admin_g1_{match_id}",
+                st.markdown(f"**⚽ Gol {m['c1']}**")
+                rg1 = selettore_gol_bottoni(
+                    f"admin_g1_{match_id}", int(m.get("gol1", 0))
                 )
-                rg2 = st.number_input(
-                    f"Gol {m['c2']}",
-                    0,
-                    10,
-                    int(m.get("gol2", 0)),
-                    key=f"admin_g2_{match_id}",
+                st.markdown(f"**⚽ Gol {m['c2']}**")
+                rg2 = selettore_gol_bottoni(
+                    f"admin_g2_{match_id}", int(m.get("gol2", 0))
                 )
-                if st.button("💾 Salva", key=f"save_{match_id}"):
+
+                if st.button("💾 Salva Risultato", key=f"save_{match_id}", use_container_width=True):
                   m["gol1"] = int(rg1)
                   m["gol2"] = int(rg2)
                   m["giocata"] = True
@@ -1246,13 +1248,13 @@ elif db["stato"] == "fasi_finali":
           with st.expander(f"⚙️ Assegna Vincitore: {s1_nome} vs {s2_nome}"):
             col_v1, col_v2 = st.columns(2)
             with col_v1:
-              if st.button(f"🏆 {s1_nome}", key=f"win_s1_{match_id}"):
+              if st.button(f"🏆 {s1_nome}", key=f"win_s1_{match_id}", use_container_width=True):
                 m["giocata"] = True
                 m["vincente"] = s1_nome
                 salva_dati(db)
                 st.rerun()
             with col_v2:
-              if st.button(f"🏆 {s2_nome}", key=f"win_s2_{match_id}"):
+              if st.button(f"🏆 {s2_nome}", key=f"win_s2_{match_id}", use_container_width=True):
                 m["giocata"] = True
                 m["vincente"] = s2_nome
                 salva_dati(db)
@@ -1391,12 +1393,12 @@ elif db["stato"] == "fasi_finali":
         )
         st.markdown(f"**3° Posto Assegnato a: {terzo_posto}**")
       elif is_admin:
-        if st.button(f"🥉 Vince 3° Posto: {tq_match['s1']}", key="tq_s1"):
+        if st.button(f"🥉 Vince 3° Posto: {tq_match['s1']}", key="tq_s1", use_container_width=True):
           tq_match["giocata"] = True
           tq_match["vincente"] = tq_match["s1"]
           salva_dati(db)
           st.rerun()
-        if st.button(f"🥉 Vince 3° Posto: {tq_match['s2']}", key="tq_t2"):
+        if st.button(f"🥉 Vince 3° Posto: {tq_match['s2']}", key="tq_t2", use_container_width=True):
           tq_match["giocata"] = True
           tq_match["vincente"] = tq_match["s2"]
           salva_dati(db)
