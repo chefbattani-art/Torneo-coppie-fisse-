@@ -902,7 +902,7 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
             squadre.append("RIPOSO")
 
           n = len(squadre)
-          turni_girone = []
+          turni_turno = []  # <--- CORRETTO QUI: Inizializzazione della lista per evitare NameError
 
           for t in range(n - 1):
             partite_turno = []
@@ -1173,7 +1173,6 @@ if db["stato"] == "gironi":
       if i + j < len(nomi_gironi_chiavi):
         g_nome = nomi_gironi_chiavi[i + j]
         with col_gironi[j]:
-          # Header del singolo girone con neon azzurro brillante
           st.markdown(
               f"""
               <div style="background: #0d1629; border-top: 3px solid #00f0ff; border-left: 1px solid #00f0ff; border-right: 1px solid #00f0ff; padding: 12px 14px; border-radius: 10px 10px 0 0; font-weight: bold; font-size: 16px; color: #ffffff; text-shadow: 0 0 10px rgba(0,240,255,0.7); box-shadow: 0 -4px 15px rgba(0,240,255,0.25);">
