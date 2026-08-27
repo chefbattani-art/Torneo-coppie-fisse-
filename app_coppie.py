@@ -15,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- STILE GRAFICO GLOBALE & ANIMAZIONI CYBERPUNK (CON PULSANTI MAGGIORATI) ---
+# --- STILE GRAFICO GLOBALE & ANIMAZIONI CYBERPUNK ---
 st.markdown(
     """
     <style>
@@ -166,13 +166,12 @@ st.markdown(
             text-transform: uppercase;
         }
 
-        /* Pulsanti grandi e ben visibili */
         div.stButton > button {
             border-radius: 12px;
             font-weight: 800;
             font-family: 'Rajdhani', sans-serif;
-            font-size: 22px;
-            height: 60px !important;
+            font-size: 18px;
+            height: 50px !important;
             letter-spacing: 1px;
             border: 1.5px solid rgba(0, 242, 254, 0.5);
             background: linear-gradient(180deg, #132238, #0a111c);
@@ -391,30 +390,6 @@ def crea_abbinamenti_fascia_a_6_squadre(classificate_lista):
     return abbinamenti
 
 
-def selettore_gol_bottoni(prefix, default_val=0):
-  if prefix not in st.session_state:
-    st.session_state[prefix] = int(default_val)
-
-  val_corrente = st.session_state[prefix]
-  st.markdown(
-      f"<div style='font-size: 15px; color: #8b949e; margin-bottom: 8px;'>Gol selezionati: <b class='neon-blue' style='font-size: 20px;'>{val_corrente}</b></div>",
-      unsafe_allow_html=True,
-  )
-
-  # Forziamo i 8 bottoni in orizzontale con colonne Streamlit
-  cols = st.columns(8)
-  for g in range(8):
-    with cols[g]:
-      btn_label = f"✨ {g}" if val_corrente == g else str(g)
-      if st.button(
-          btn_label, key=f"btn_gol_{prefix}_{g}", use_container_width=True
-      ):
-        st.session_state[prefix] = g
-        st.rerun()
-
-  return st.session_state[prefix]
-
-
 # --- BARRA LATERALE CYBER ---
 st.sidebar.header("⚙️ Pannello Controllo")
 
@@ -505,7 +480,7 @@ with st.expander("ℹ️ Come funziona il torneo"):
 st.markdown(
     """
     <div style="padding: 16px 20px; background: linear-gradient(135deg, rgba(48, 16, 26, 0.95) 0%, rgba(24, 6, 12, 0.98) 100%); border: 2px solid #ff3366; border-radius: 16px; font-size: 14px; color: #ff3366; margin-bottom: 20px; font-weight: bold; line-height: 1.5; box-shadow: 0 0 30px rgba(255,51,102,0.35);">
-        🚨 Chi vince è pregato di inserire il risultato esatto tramite i pulsanti orizzontali ingranditi e chi è in coda alle partite di tenersi pronto a salire al primo calcetto libero.
+        🚨 Chi vince è pregato di inserire il risultato esatto tramite i selettori verticali e chi è in coda alle partite di tenersi pronto a salire al primo calcetto libero.
     </div>
     """,
     unsafe_allow_html=True,
@@ -685,20 +660,28 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
         )
 
         with st.expander(
-            "⚙️ Inserisci Risultato con i Bottoni Orizzontali", expanded=True
+            f"⚙️ Inserisci Gol Biliardino {tavolo_num}", expanded=True
         ):
-          st.markdown(f"**⚽ Gol per {match_in_corso_coppia['c1']}**")
-          gol_p1 = selettore_gol_bottoni(
-              f"riep_g1_{match_id}", int(match_in_corso_coppia.get("gol1", 0))
+          st.markdown(f"**🤝 {match_in_corso_coppia['c1']}**")
+          gol_p1 = st.radio(
+              "Gol Coppia 1",
+              options=list(range(8)),
+              index=int(match_in_corso_coppia.get("gol1", 0)),
+              horizontal=False,
+              key=f"riep_g1_{match_id}",
           )
 
-          st.markdown(f"**⚽ Gol per {match_in_corso_coppia['c2']}**")
-          gol_p2 = selettore_gol_bottoni(
-              f"riep_g2_{match_id}", int(match_in_corso_coppia.get("gol2", 0))
+          st.markdown(f"**🤝 {match_in_corso_coppia['c2']}**")
+          gol_p2 = st.radio(
+              "Gol Coppia 2",
+              options=list(range(8)),
+              index=int(match_in_corso_coppia.get("gol2", 0)),
+              horizontal=False,
+              key=f"riep_g2_{match_id}",
           )
 
           if st.button(
-              "✅ Salva e Registra Risultato",
+              "💾 Salva Risultato Finale",
               key=f"riepilogo_save_{match_id}",
               use_container_width=True,
           ):
@@ -971,9 +954,9 @@ if db["stato"] == "gironi":
     else:
       for m in partite_in_corso:
         tavolo_str = (
-            f"<b>🏟️ Biliardino {m.get('tavolo')} - {m['girone']}</b>"
+            f"<b>🏟️ BILIARDINO {m.get('tavolo')}</b>"
             if m.get("tavolo")
-            else f"<b>🏟️ In campo - {m['girone']}</b>"
+            else "<b>🏟️ IN CAMPO</b>"
         )
         match_id = m["id"]
         fa_al_caso_nostro = (
@@ -986,10 +969,15 @@ if db["stato"] == "gironi":
           st.markdown(
               f"""
                         <div class="match-live-card-animated" style="margin-bottom: 14px;">
-                            <div class="neon-gold" style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">{tavolo_str}</div>
-                            <div style="font-size: 18px; font-weight: bold; color: #ffffff; line-height: 1.4;">🤝 {m['c1']}</div>
-                            <div style="margin: 4px 0; font-size: 13px; font-weight: bold; color: #8b949e;">VS</div>
-                            <div style="font-size: 18px; font-weight: bold; color: #ffffff; line-height: 1.4;">🤝 {m['c2']}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <span class="neon-gold" style="font-size: 14px; font-weight: bold;">{tavolo_str}</span>
+                                <span style="font-size: 12px; color: #8b949e; font-weight: bold;">{m['gir0ne'] if 'gir0ne' in m else m['girone']}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-size: 16px; font-weight: bold; color: #ffffff; text-align: left; flex: 1;">🤝 {m['c1']}</div>
+                                <div style="color: #ff3366; font-weight: 900; font-size: 16px; padding: 0 10px;">VS</div>
+                                <div style="font-size: 16px; font-weight: bold; color: #ffffff; text-align: right; flex: 1;">🤝 {m['c2']}</div>
+                            </div>
                         </div>
                         """,
               unsafe_allow_html=True,
@@ -997,20 +985,28 @@ if db["stato"] == "gironi":
 
           if fa_al_caso_nostro:
             with st.expander(
-                f"📝 Inserisci Risultato Tavolo {m.get('tavolo', '')}"
+                f"⚙️ Inserisci Gol Biliardino {m.get('tavolo', '')} (Admin)"
             ):
-              st.markdown(f"**⚽ Gol {m['c1']}**")
-              gol_p1 = selettore_gol_bottoni(
-                  f"live_g1_{match_id}", int(m.get("gol1", 0))
+              st.markdown(f"**🤝 {m['c1']}**")
+              gol_p1 = st.radio(
+                  "Gol Coppia 1",
+                  options=list(range(8)),
+                  index=int(m.get("gol1", 0)),
+                  horizontal=False,
+                  key=f"live_g1_{match_id}",
               )
 
-              st.markdown(f"**⚽ Gol {m['c2']}**")
-              gol_p2 = selettore_gol_bottoni(
-                  f"live_g2_{match_id}", int(m.get("gol2", 0))
+              st.markdown(f"**🤝 {m['c2']}**")
+              gol_p2 = st.radio(
+                  "Gol Coppia 2",
+                  options=list(range(8)),
+                  index=int(m.get("gol2", 0)),
+                  horizontal=False,
+                  key=f"live_g2_{match_id}",
               )
 
               if st.button(
-                  "✅ Conferma e Registra Risultato",
+                  "💾 Salva Risultato Finale",
                   key=f"user_save_{match_id}",
                   use_container_width=True,
               ):
@@ -1154,13 +1150,19 @@ if db["stato"] == "gironi":
             )
             if is_admin:
               with st.expander(f"⚙️ Gestisci: {m['c1']} vs {m['c2']}"):
-                st.markdown(f"**⚽ Gol {m['c1']}**")
-                rg1 = selettore_gol_bottoni(
-                    f"admin_g1_{match_id}", int(m.get("gol1", 0))
+                rg1 = st.radio(
+                    f"Gol {m['c1']}",
+                    options=list(range(8)),
+                    index=int(m.get("gol1", 0)),
+                    horizontal=False,
+                    key=f"admin_g1_{match_id}",
                 )
-                st.markdown(f"**⚽ Gol {m['c2']}**")
-                rg2 = selettore_gol_bottoni(
-                    f"admin_g2_{match_id}", int(m.get("gol2", 0))
+                rg2 = st.radio(
+                    f"Gol {m['c2']}",
+                    options=list(range(8)),
+                    index=int(m.get("gol2", 0)),
+                    horizontal=False,
+                    key=f"admin_g2_{match_id}",
                 )
 
                 if st.button(
