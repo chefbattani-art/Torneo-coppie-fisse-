@@ -337,6 +337,7 @@ def ottieni_nome_turno_dinamico(num_partite_turno):
 
 
 def crea_abbinamenti_fascia_a_6_squadre(classificate_lista):
+  # Gestione sicura per qualsiasi numero di squadre qualificate (evita IndexError)
   if len(classificate_lista) >= 6:
     s3, s4, s5, s6 = (
         classificate_lista[2],
@@ -344,16 +345,14 @@ def crea_abbinamenti_fascia_a_6_squadre(classificate_lista):
         classificate_lista[4],
         classificate_lista[5],
     )
-    partite_turno_1 = [
-        (s3, s6),
-        (s4, s5),
-    ]
-    return partite_turno_1
+    return [(s3, s6), (s4, s5)]
+  elif len(classificate_lista) >= 4:
+    s3, s4 = classificate_lista[2], classificate_lista[3]
+    return [(s3, s4)]
   else:
     abbinamenti = []
-    for i in range(min(2, len(classificate_lista) - 2)):
-      if i + 2 < len(classificate_lista):
-        abbinamenti.append((classificate_lista[i + 2], classificate_lista[i + 3]))
+    for i in range(0, len(classificate_lista) - 1, 2):
+      abbinamenti.append((classificate_lista[i], classificate_lista[i+1]))
     return abbinamenti
 
 
