@@ -355,15 +355,16 @@ def crea_abbinamenti_fascia_a_perfetti(classificate_per_girone):
       return (lst[pos_idx], g_nome, pos_idx + 1)
     return ("RIPOSO", g_nome, pos_idx + 1)
 
+  # Abbinamenti corretti per separare 1° vs 2° e 3° vs 4° dello stesso girone nei lati opposti del tabellone
   abbinamenti = [
-      (get_sq(g0, 0), get_sq(g3, 3)),
-      (get_sq(g1, 1), get_sq(g2, 2)),
+      (get_sq(g0, 0), get_sq(g1, 3)),
+      (get_sq(g2, 1), get_sq(g3, 2)),
       (get_sq(g1, 0), get_sq(g2, 3)),
-      (get_sq(g0, 1), get_sq(g3, 2)),
-      (get_sq(g2, 0), get_sq(g0, 3)),
-      (get_sq(g3, 1), get_sq(g1, 2)),
-      (get_sq(g2, 1), get_sq(g0, 2)),
-      (get_sq(g3, 0), get_sq(g1, 3)),
+      (get_sq(g3, 1), get_sq(g0, 2)),
+      (get_sq(g2, 0), get_sq(g3, 3)),
+      (get_sq(g0, 1), get_sq(g1, 2)),
+      (get_sq(g3, 0), get_sq(g0, 3)),
+      (get_sq(g1, 1), get_sq(g2, 2)),
   ]
   return abbinamenti
 
