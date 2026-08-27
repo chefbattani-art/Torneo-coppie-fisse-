@@ -480,7 +480,7 @@ with st.expander("ℹ️ Come funziona il torneo"):
 st.markdown(
     """
     <div style="padding: 16px 20px; background: linear-gradient(135deg, rgba(48, 16, 26, 0.95) 0%, rgba(24, 6, 12, 0.98) 100%); border: 2px solid #ff3366; border-radius: 16px; font-size: 14px; color: #ff3366; margin-bottom: 20px; font-weight: bold; line-height: 1.5; box-shadow: 0 0 30px rgba(255,51,102,0.35);">
-        🚨 Chi vince è pregato di inserire il risultato esatto tramite i selettori verticali e chi è in coda alle partite di tenersi pronto a salire al primo calcetto libero.
+        🚨 Chi vince è pregato di inserire il risultato esatto tramite i selettori orizzontali e chi è in coda alle partite di tenersi pronto a salire al primo calcetto libero.
     </div>
     """,
     unsafe_allow_html=True,
@@ -663,21 +663,21 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
             f"⚙️ Inserisci Gol Biliardino {tavolo_num}", expanded=True
         ):
           st.markdown(f"**🤝 {match_in_corso_coppia['c1']}**")
-          gol_p1 = st.radio(
+          gol_p1 = st.segmented_control(
               "Gol Coppia 1",
               options=list(range(8)),
-              index=int(match_in_corso_coppia.get("gol1", 0)),
-              horizontal=False,
+              default=int(match_in_corso_coppia.get("gol1", 0)),
               key=f"riep_g1_{match_id}",
+              label_visibility="collapsed",
           )
 
           st.markdown(f"**🤝 {match_in_corso_coppia['c2']}**")
-          gol_p2 = st.radio(
+          gol_p2 = st.segmented_control(
               "Gol Coppia 2",
               options=list(range(8)),
-              index=int(match_in_corso_coppia.get("gol2", 0)),
-              horizontal=False,
+              default=int(match_in_corso_coppia.get("gol2", 0)),
               key=f"riep_g2_{match_id}",
+              label_visibility="collapsed",
           )
 
           if st.button(
@@ -685,8 +685,12 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
               key=f"riepilogo_save_{match_id}",
               use_container_width=True,
           ):
-            match_in_corso_coppia["gol1"] = int(gol_p1)
-            match_in_corso_coppia["gol2"] = int(gol_p2)
+            match_in_corso_coppia["gol1"] = (
+                int(gol_p1) if gol_p1 is not None else 0
+            )
+            match_in_corso_coppia["gol2"] = (
+                int(gol_p2) if gol_p2 is not None else 0
+            )
             match_in_corso_coppia["giocata"] = True
             match_in_corso_coppia["in_corso"] = False
             match_in_corso_coppia["tavolo"] = None
@@ -971,7 +975,7 @@ if db["stato"] == "gironi":
                         <div class="match-live-card-animated" style="margin-bottom: 14px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <span class="neon-gold" style="font-size: 14px; font-weight: bold;">{tavolo_str}</span>
-                                <span style="font-size: 12px; color: #8b949e; font-weight: bold;">{m['gir0ne'] if 'gir0ne' in m else m['girone']}</span>
+                                <span style="font-size: 12px; color: #8b949e; font-weight: bold;">{m['girone']}</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div style="font-size: 16px; font-weight: bold; color: #ffffff; text-align: left; flex: 1;">🤝 {m['c1']}</div>
@@ -988,21 +992,21 @@ if db["stato"] == "gironi":
                 f"⚙️ Inserisci Gol Biliardino {m.get('tavolo', '')} (Admin)"
             ):
               st.markdown(f"**🤝 {m['c1']}**")
-              gol_p1 = st.radio(
+              gol_p1 = st.segmented_control(
                   "Gol Coppia 1",
                   options=list(range(8)),
-                  index=int(m.get("gol1", 0)),
-                  horizontal=False,
+                  default=int(m.get("gol1", 0)),
                   key=f"live_g1_{match_id}",
+                  label_visibility="collapsed",
               )
 
               st.markdown(f"**🤝 {m['c2']}**")
-              gol_p2 = st.radio(
+              gol_p2 = st.segmented_control(
                   "Gol Coppia 2",
                   options=list(range(8)),
-                  index=int(m.get("gol2", 0)),
-                  horizontal=False,
+                  default=int(m.get("gol2", 0)),
                   key=f"live_g2_{match_id}",
+                  label_visibility="collapsed",
               )
 
               if st.button(
@@ -1010,8 +1014,8 @@ if db["stato"] == "gironi":
                   key=f"user_save_{match_id}",
                   use_container_width=True,
               ):
-                m["gol1"] = int(gol_p1)
-                m["gol2"] = int(gol_p2)
+                m["gol1"] = int(gol_p1) if gol_p1 is not None else 0
+                m["gol2"] = int(gol_p2) if gol_p2 is not None else 0
                 m["giocata"] = True
                 m["in_corso"] = False
                 m["tavolo"] = None
@@ -1150,19 +1154,19 @@ if db["stato"] == "gironi":
             )
             if is_admin:
               with st.expander(f"⚙️ Gestisci: {m['c1']} vs {m['c2']}"):
-                rg1 = st.radio(
+                rg1 = st.segmented_control(
                     f"Gol {m['c1']}",
                     options=list(range(8)),
-                    index=int(m.get("gol1", 0)),
-                    horizontal=False,
+                    default=int(m.get("gol1", 0)),
                     key=f"admin_g1_{match_id}",
+                    label_visibility="collapsed",
                 )
-                rg2 = st.radio(
+                rg2 = st.segmented_control(
                     f"Gol {m['c2']}",
                     options=list(range(8)),
-                    index=int(m.get("gol2", 0)),
-                    horizontal=False,
+                    default=int(m.get("gol2", 0)),
                     key=f"admin_g2_{match_id}",
+                    label_visibility="collapsed",
                 )
 
                 if st.button(
@@ -1170,8 +1174,8 @@ if db["stato"] == "gironi":
                     key=f"save_{match_id}",
                     use_container_width=True,
                 ):
-                  m["gol1"] = int(rg1)
-                  m["gol2"] = int(rg2)
+                  m["gol1"] = int(rg1) if rg1 is not None else 0
+                  m["gol2"] = int(rg2) if rg2 is not None else 0
                   m["giocata"] = True
                   m["in_corso"] = False
                   m["tavolo"] = None
