@@ -401,7 +401,7 @@ def selettore_gol_bottoni(prefix, default_val=0):
       unsafe_allow_html=True,
   )
 
-  # Griglia in orizzontale da 0 a 7
+  # Forziamo i 8 bottoni in orizzontale con colonne Streamlit
   cols = st.columns(8)
   for g in range(8):
     with cols[g]:
@@ -1163,7 +1163,11 @@ if db["stato"] == "gironi":
                     f"admin_g2_{match_id}", int(m.get("gol2", 0))
                 )
 
-                if st.button("💾 Salva Risultato", key=f"save_{match_id}", use_container_width=True):
+                if st.button(
+                    "💾 Salva Risultato",
+                    key=f"save_{match_id}",
+                    use_container_width=True,
+                ):
                   m["gol1"] = int(rg1)
                   m["gol2"] = int(rg2)
                   m["giocata"] = True
@@ -1319,13 +1323,21 @@ elif db["stato"] == "fasi_finali":
           with st.expander(f"⚙️ Assegna Vincitore: {s1_nome} vs {s2_nome}"):
             col_v1, col_v2 = st.columns(2)
             with col_v1:
-              if st.button(f"🏆 {s1_nome}", key=f"win_s1_{match_id}", use_container_width=True):
+              if st.button(
+                  f"🏆 {s1_nome}",
+                  key=f"win_s1_{match_id}",
+                  use_container_width=True,
+              ):
                 m["giocata"] = True
                 m["vincente"] = s1_nome
                 salva_dati(db)
                 st.rerun()
             with col_v2:
-              if st.button(f"🏆 {s2_nome}", key=f"win_s2_{match_id}", use_container_width=True):
+              if st.button(
+                  f"🏆 {s2_nome}",
+                  key=f"win_s2_{match_id}",
+                  use_container_width=True,
+              ):
                 m["giocata"] = True
                 m["vincente"] = s2_nome
                 salva_dati(db)
@@ -1464,12 +1476,20 @@ elif db["stato"] == "fasi_finali":
         )
         st.markdown(f"**3° Posto Assegnato a: {terzo_posto}**")
       elif is_admin:
-        if st.button(f"🥉 Vince 3° Posto: {tq_match['s1']}", key="tq_s1", use_container_width=True):
+        if st.button(
+            f"🥉 Vince 3° Posto: {tq_match['s1']}",
+            key="tq_s1",
+            use_container_width=True,
+        ):
           tq_match["giocata"] = True
           tq_match["vincente"] = tq_match["s1"]
           salva_dati(db)
           st.rerun()
-        if st.button(f"🥉 Vince 3° Posto: {tq_match['s2']}", key="tq_t2", use_container_width=True):
+        if st.button(
+            f"🥉 Vince 3° Posto: {tq_match['s2']}",
+            key="tq_t2",
+            use_container_width=True,
+        ):
           tq_match["giocata"] = True
           tq_match["vincente"] = tq_match["s2"]
           salva_dati(db)
