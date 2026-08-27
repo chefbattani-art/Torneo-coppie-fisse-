@@ -72,33 +72,6 @@ st.markdown(
         h1 {
             text-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
         }
-        
-        /* Tabelle personalizzate stile gaming */
-        .cyber-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: rgba(15, 23, 42, 0.9);
-            border-radius: 10px;
-            overflow: hidden;
-            border: 1px solid #1e3a8a;
-            margin-bottom: 15px;
-        }
-        .cyber-table th {
-            background: #172554;
-            color: #93c5fd;
-            padding: 10px;
-            font-size: 13px;
-            text-transform: uppercase;
-        }
-        .cyber-table td {
-            padding: 12px 10px;
-            border-bottom: 1px solid rgba(30, 58, 138, 0.4);
-            font-size: 14px;
-        }
-        
-        /* Righe evidenziate per le fasce */
-        .fascia-a { border-left: 4px solid #22c55e; background: rgba(34, 197, 94, 0.05); }
-        .fascia-b { border-left: 4px solid #a855f7; background: rgba(168, 85, 247, 0.05); }
 
         /* Pulsanti personalizzati con bagliore neon al passaggio */
         div.stButton > button {
@@ -256,6 +229,35 @@ def calcola_partite_giocate_coppia(g_nome, coppia):
           if m.get("giocata", False):
             giocate += 1
   return giocate, totali
+
+
+def genera_df_classifica(g_nome):
+  dati_girone = db["punti_gironi"][g_nome]
+  sorted_c = sorted(
+      dati_girone.items(),
+      key=lambda x: (
+          x[1]["punti"],
+          x[1]["scontri_diretti_pt"],
+          x[1]["dr"],
+          x[1]["gf"],
+      ),
+      reverse=True,
+  )
+
+  righe = []
+  for idx, (coppia, info) in enumerate(sorted_c):
+    gioc, tot = calcola_partite_giocate_coppia(g_nome, coppia)
+    fascia = "Fascia A" if idx < 4 else "Fascia B"
+    righe.append({
+        "Pos": f"{idx+1}°",
+        "Fascia": fascia,
+        "Coppia": f"🏓 {coppia}",
+        "Pt": info["punti"],
+        "Dr": info["dr"],
+        "Gf": info["gf"],
+        "Giocate": f"{gioc}/{tot}",
+    })
+  return pd.DataFrame(righe)
 
 
 def genera_pdf_coppie():
@@ -736,56 +738,9 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
 
       if girone_mio:
         st.markdown("---")
-        st.markdown(
-            f"#### 📊 Classifica Completa - {girone_mio} (Verde: Fascia A |"
-            " Viola: Fascia B)"
-        )
-        dati_girone = db["punti_gironi"][girone_mio]
-        sorted_c = sorted(
-            dati_girone.items(),
-            key=lambda x: (
-                x[1]["punti"],
-                x[1]["scontri_diretti_pt"],
-                x[1]["dr"],
-                x[1]["gf"],
-            ),
-            reverse=True,
-        )
-
-        rows_html = ""
-        for idx, (coppia, info) in enumerate(sorted_c):
-          gioc, tot = calcola_partite_giocate_coppia(girone_mio, coppia)
-          pos_str = f"{idx+1}°"
-          cls_fascia = "fascia-a" if idx < 4 else "fascia-b"
-          rows_html += f"""
-                <tr class="{cls_fascia}">
-                    <td><b>{pos_str}</b></td>
-                    <td>🏓 {coppia}</td>
-                    <td><b>{info['punti']}</b></td>
-                    <td>{info['dr']}</td>
-                    <td>{info['gf']}</td>
-                    <td>{gioc}/{tot}</td>
-                </tr>
-            """
-
-        table_html = f"""
-            <table class="cyber-table">
-                <thead>
-                    <tr>
-                        <th>Pos</th>
-                        <th>Coppia</th>
-                        <th>Pt</th>
-                        <th>Dr</th>
-                        <th>Gf</th>
-                        <th>Giocate</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows_html}
-                </tbody>
-            </table>
-        """
-        st.markdown(table_html, unsafe_allow_html=True)
+        st.markdown(f"#### 📊 Classifica Completa - {girone_mio}")
+        df_MioGirone = genera_df_classifica(girone_mio)
+        st.dataframe(df_MioGirone, hide_index=True, use_container_width=True)
 
 st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
@@ -1107,9 +1062,7 @@ if db["stato"] == "gironi":
 
   st.markdown("---")
 
-  st.subheader(
-      "📊 Classifiche dei Gironi (Verde: Fascia A | Viola: Fascia B)"
-  )
+  st.subheader("📊 Classifiche dei Gironi")
   nomi_gironi_chiavi = list(db["gironi"].keys())
   for i in range(0, len(nomi_gironi_chiavi), 2):
     col_gironi = st.columns(2)
@@ -1118,53 +1071,8 @@ if db["stato"] == "gironi":
         g_nome = nomi_gironi_chiavi[i + j]
         with col_gironi[j]:
           st.markdown(f"**📁 {g_nome}**")
-
-          dati_girone = db["punti_gironi"][g_nome]
-          sorted_c = sorted(
-              dati_girone.items(),
-              key=lambda x: (
-                  x[1]["punti"],
-                  x[1]["scontri_diretti_pt"],
-                  x[1]["dr"],
-                  x[1]["gf"],
-              ),
-              reverse=True,
-          )
-
-          rows_html = ""
-          for idx, (coppia, info) in enumerate(sorted_c):
-            gioc, tot = calcola_partite_giocate_coppia(g_nome, coppia)
-            pos_str = f"{idx+1}°"
-            cls_fascia = "fascia-a" if idx < 4 else "fascia-b"
-            rows_html += f"""
-                    <tr class="{cls_fascia}">
-                        <td><b>{pos_str}</b></td>
-                        <td>🏓 {coppia}</td>
-                        <td><b>{info['punti']}</b></td>
-                        <td>{info['dr']}</td>
-                        <td>{info['gf']}</td>
-                        <td>{gioc}/{tot}</td>
-                    </tr>
-                """
-
-          table_html = f"""
-              <table class="cyber-table">
-                  <thead>
-                      <tr>
-                          <th>Pos</th>
-                          <th>Coppia</th>
-                          <th>Pt</th>
-                          <th>Dr</th>
-                          <th>Gf</th>
-                          <th>Giocate</th>
-                      </tr>
-                  </thead>
-                  <tbody>
-                      {rows_html}
-                  </tbody>
-              </table>
-          """
-          st.markdown(table_html, unsafe_allow_html=True)
+          df_girone = genera_df_classifica(g_nome)
+          st.dataframe(df_girone, hide_index=True, use_container_width=True)
 
   st.markdown("---")
 
