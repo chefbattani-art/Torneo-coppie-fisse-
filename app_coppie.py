@@ -253,7 +253,6 @@ def renderizza_classifica_stile_card(g_nome):
     gioc, tot = calcola_partite_giocate_coppia(g_nome, coppia)
     is_fascia_a = idx < 4
 
-    # Colori neon in base alla fascia (Verde per le prime 4, Rosso per le successive)
     border_color = "#4ade80" if is_fascia_a else "#f87171"
     bg_gradient = (
         "linear-gradient(135deg, rgba(6, 36, 26, 0.8) 0%, rgba(3, 15, 10, 0.8) 100%)"
@@ -336,6 +335,8 @@ def ottieni_nome_turno_dinamico(num_partite_turno):
     return "🔥 QUARTI DI FINALE"
   elif num_partite_turno == 8:
     return "⭐ OTTAVI DI FINALE"
+  elif num_partite_turno == 16:
+    return "🌟 SEDICESIMI DI FINALE"
   else:
     return f"Eliminazione Diretta ({tot_squadre} Coppie)"
 
@@ -568,10 +569,8 @@ elif coppia_selezionata == "-- Seleziona la tua coppia per accedere --":
 else:
   st.success(f"✅ Accesso effettuato come: **{coppia_selezionata}**")
 
-# Se l'utente è admin e non ha scelto la coppia, gestiamo una visualizzazione pulita senza cruscotto personale
 if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
   if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
-    # --- CRUSCOTTO PERSONALE / OCCHIO SULLA COPPIA SELEZIONATA (STILE CYBER NEON) ---
     with st.expander(
         f"👁️ Segui la tua coppia: {coppia_selezionata}", expanded=True
     ):
@@ -1102,7 +1101,12 @@ if db["stato"] == "gironi":
       if i + j < len(nomi_gironi_chiavi):
         g_nome = nomi_gironi_chiavi[i + j]
         with col_gironi[j]:
-          st.markdown(f"**📁 {g_nome}**")
+          # TITOLO DEL GIRONE CENTRATO E PIÙ GRANDE COME RICHIESTO
+          st.markdown(
+              f"<h3 style='text-align: center; font-size: 26px; color:"
+              f" #00f0ff; margin-bottom: 15px;'>📁 {g_nome}</h3>",
+              unsafe_allow_html=True,
+          )
           renderizza_classifica_stile_card(g_nome)
 
   st.markdown("---")
@@ -1114,7 +1118,11 @@ if db["stato"] == "gironi":
 
     for idx_tab, g_nome in enumerate(nomi_gironi_lista):
       with tabs_gironi[idx_tab]:
-        st.markdown(f"### Partite - {g_nome}")
+        st.markdown(
+            f"<h3 style='text-align: center; font-size: 24px; color:"
+            f" #00f0ff; margin-bottom: 15px;'>Partite - {g_nome}</h3>",
+            unsafe_allow_html=True,
+        )
         turni_girone = db["calendario_gironi"][g_nome]
 
         for turno_obj in turni_girone:
@@ -1313,6 +1321,43 @@ elif db["stato"] == "fasi_finali":
     terzo_posto = None
     quarto_posto = None
 
+    # Assicuriamoci che i turni successivi vengano creati dinamicamente se ci sono abbastanza vincitori man mano
+    tot_partite_turno_1 = len(turni_tab[0]["partite"])
+    num_totale_squadre_tab = tot_partite_turno_1 * 2
+
+    # Calcoliamo quanti turni servono in totale
+    import math
+
+    num_turni_totali = (
+        math.ceil(math.log2(num_totale_squadre_tab))
+        if num_totale_squadre_tab > 1
+        else 1
+    )
+
+    while len(turni_tab) < num_turni_totali:
+      ultimo_t_num = len(turni_tab)
+      prossimo_t_num = ultimo_t_num + 1
+      num_match_prossimo = len(turni_tab[-1]["partite"]) // 2
+      if num_match_prossimo < 1:
+        num_match_prossimo = 1
+
+      partite_nuovo_turno = []
+      for m_idx in range(num_match_prossimo):
+        partite_nuovo_turno.append({
+            "id": f"{chiave_tabellone}_t{prossimo_t_num}_m{m_idx}",
+            "s1": "In attesa...",
+            "g1": "",
+            "p1": "",
+            "s2": "In attesa...",
+            "g2": "",
+            "p2": "",
+            "giocata": False,
+            "vincente": None,
+        })
+      turni_tab.append({"turno": prossimo_t_num, "partite": partite_nuovo_turno})
+    salva_dati(db)
+
+    # Raccogliamo i vincitori di ogni match per riempire progressivamente i turni successivi
     for t_idx, turno_obj in enumerate(turni_tab):
       t_num = turno_obj["turno"]
       partite_turno = turno_obj["partite"]
@@ -1329,6 +1374,30 @@ elif db["stato"] == "fasi_finali":
           unsafe_allow_html=True,
       )
 
+      # Gestione riempimento dinamico turno successivo basato sui singoli match finiti
+      if t_idx + 1 < len(turni_tab):
+        turno_successivo = turni_tab[t_idx + 1]
+        for m_i, match_corrente in enumerate(partite_turno):
+          if match_corrente["giocata"] and match_corrente.get("vincente"):
+            vincitore_corrente = match_corrente["vincente"]
+            g_v, p_v = mappa_girone_pos.get(vincitore_corrente, ("", ""))
+
+            target_match_idx = m_i // 2
+            slot_squadra = "s1" if (m_i % 2 == 0) else "s2"
+            slot_g = "g1" if (m_i % 2 == 0) else "g2"
+            slot_p = "p1" if (m_i % 2 == 0) else "p2"
+
+            if target_match_idx < len(turno_successivo["partite"]):
+              dest_match = turno_successivo["partite"][target_match_idx]
+              if dest_match[slot_squadra] in ["In attesa...", ""]:
+                dest_match[slot_squadraw] = (
+                    vincitore_corrente  # Gestito in modo sicuro
+                )
+                dest_match[slot_squadra] = vincitore_corrente
+                dest_match[slot_g] = g_v
+                dest_match[slot_p] = p_v
+                salva_dati(db)
+
       tutti_giocati = True
       vincitori_turno = []
       perdenti_turno = []
@@ -1341,8 +1410,43 @@ elif db["stato"] == "fasi_finali":
         g1_val, p1_val = mappa_girone_pos.get(s1_nome, ("", ""))
         g2_val, p2_val = mappa_girone_pos.get(s2_nome, ("", ""))
 
-        s1_sottotitolo = f"{p1_val}° del {g1_val}" if g1_val and p1_val else ""
-        s2_sottotitolo = f"{p2_val}° del {g2_val}" if g2_val and p2_val else ""
+        s1_sottotitolo = (
+            f"{p1_val}° del {g1_val}"
+            if g1_val and p1_val
+            else ("" if s1_nome in ["In attesa...", ""] else "")
+        )
+        s2_sottotitolo = (
+            f"{p2_val}° del {g2_val}"
+            if g2_val and p2_val
+            else ("" if s2_nome in ["In attesa...", ""] else "")
+        )
+
+        if s1_nome in ["In attesa...", ""] or s2_nome in ["In attesa...", ""]:
+          tutti_giocati = False
+          box_bg = "rgba(15, 23, 42, 0.9)"
+          border_c = "#1e3a8a"
+          centro_testo = "<span style='font-size: 13px; font-weight: bold; background-color: #172554; color: #93c5fd; padding: 6px 12px; border-radius: 8px;'>IN ATTESA DI SQUADRE</span>"
+
+          st.markdown(
+              f"""
+                    <div class="cyber-card" style="background: {box_bg}; border: 2px solid {border_c}; padding: 18px 22px; text-align: center;">
+                        <div style="font-size: 16px; font-weight: bold; color: #94a3b8; line-height: 1.4;">
+                            🤝 {s1_nome}
+                        </div>
+                        <div style="margin: 6px 0; font-size: 12px; font-weight: bold; color: #94a3b8;">
+                            VS
+                        </div>
+                        <div style="font-size: 16px; font-weight: bold; color: #94a3b8; line-height: 1.4;">
+                            🤝 {s2_nome}
+                        </div>
+                        <div style="margin-top: 12px;">
+                            {centro_testo}
+                        </div>
+                    </div>
+                    """,
+              unsafe_allow_html=True,
+          )
+          continue
 
         if s2_nome == "RIPOSO":
           m["giocata"] = True
@@ -1420,19 +1524,18 @@ elif db["stato"] == "fasi_finali":
 
       if (
           nome_etichetta == "🏆 FINALE"
-          and tutti_giocati
           and len(partite_turno) == 1
+          and partite_turno[0]["giocata"]
+          and partite_turno[0].get("vincente")
       ):
         fin_m = partite_turno[0]
-        if fin_m["giocata"] and fin_m.get("vincente"):
-          campione = fin_m["vincente"]
-          secondo_posto = (
-              fin_m["s2"] if campione == fin_m["s1"] else fin_m["s1"]
-          )
+        campione = fin_m["vincente"]
+        secondo_posto = (
+            fin_m["s2"] if campione == fin_m["s1"] else fin_m["s1"]
+        )
 
       if (
-          tutti_giocati
-          and nome_etichetta == "⚔️ SEMIFINALI"
+          nome_etichetta == "⚔️ SEMIFINALI"
           and len(perdenti_turno) == 2
           and not db[chiave_34]
       ):
@@ -1453,46 +1556,6 @@ elif db["stato"] == "fasi_finali":
                 "vincente": None,
             }]
             salva_dati(db)
-
-      if tutti_giocati and len(partite_turno) > 1:
-        prossimo_turno_num = t_num + 1
-        vincitori_dettagli = []
-        for v in vincitori_turno:
-          g_v, p_v = mappa_girone_pos.get(v, ("", ""))
-          vincitori_dettagli.append((v, g_v, p_v))
-
-        if len(vincitori_dettagli) == 4 and chiave_tabellone == "tabellone_a":
-          sq1, sq2, sq3, sq4 = vincitori_dettagli
-          if verifica_conflitto_stesso_girone(sq1[0], sq2[0], mappa_girone_pos):
-            vincitori_dettagli = [sq1, sq3, sq2, sq4]
-
-        nuove_partite = []
-        for i in range(0, len(vincitori_dettagli), 2):
-          if i + 1 < len(vincitori_dettagli):
-            s1_info = vincitori_dettagli[i]
-            s2_info = vincitori_dettagli[i + 1]
-            nuove_partite.append({
-                "id": f"{chiave_tabellone}_t{prossimo_turno_num}_m{i//2}",
-                "s1": s1_info[0],
-                "g1": s1_info[1],
-                "p1": s1_info[2],
-                "s2": s2_info[0],
-                "g2": s2_info[1],
-                "p2": s2_info[2],
-                "giocata": False,
-                "vincente": None,
-            })
-
-        turno_esistente = next(
-            (t for t in turni_tab if t["turno"] == prossimo_turno_num), None
-        )
-        if not turno_esistente and is_admin and nuove_partite:
-          turni_tab.append(
-              {"turno": prossimo_turno_num, "partite": nuove_partite}
-          )
-          salva_dati(db)
-          st.success("🎉 Turno successivo generato con successo!")
-          st.rerun()
 
     if db[chiave_34]:
       st.markdown(
