@@ -15,11 +15,58 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- STILE GRAFICO GLOBALE: CYBERPUNK & NEON ARCADE ESPORTS (CON FIX SELECTBOX & SAFARI) ---
+# --- STILE GRAFICO GLOBALE & ANIMAZIONI CYBERPUNK (CON FIX SELECTBOX & SAFARI) ---
 st.markdown(
     """
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;800;900&family=Inter:wght@400;600;800&display=swap');
+
+        /* --- BLOCCO ANIMAZIONI CSS --- */
+        @keyframes pulseGlow {
+            0% {
+                box-shadow: 0 0 15px rgba(255, 170, 0, 0.2), inset 0 0 10px rgba(255, 170, 0, 0.05);
+                border-color: rgba(255, 170, 0, 0.6);
+            }
+            50% {
+                box-shadow: 0 0 35px rgba(255, 170, 0, 0.7), inset 0 0 20px rgba(255, 170, 0, 0.2);
+                border-color: #ffaa00;
+            }
+            100% {
+                box-shadow: 0 0 15px rgba(255, 170, 0, 0.2), inset 0 0 10px rgba(255, 170, 0, 0.05);
+                border-color: rgba(255, 170, 0, 0.6);
+            }
+        }
+
+        @keyframes slideInQueue {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .match-live-card-animated {
+            animation: pulseGlow 2s infinite ease-in-out;
+            background: linear-gradient(135deg, rgba(30, 20, 10, 0.95) 0%, rgba(12, 8, 4, 0.98) 100%);
+            border: 2px solid #ffaa00;
+            border-radius: 16px;
+            padding: 22px;
+            text-align: center;
+        }
+
+        .queue-item-animated {
+            animation: slideInQueue 0.4s ease-out forwards;
+            background: linear-gradient(135deg, rgba(8, 36, 20, 0.9) 0%, rgba(2, 16, 8, 0.95) 100%);
+            border: 2px solid #00ff66;
+            padding: 14px;
+            border-radius: 14px;
+            margin-bottom: 12px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0,255,102,0.25);
+        }
 
         /* --- BLOCCO ANTI-SFONDO BIANCO (SAFARI & DARK MODE) --- */
         :root {
@@ -45,7 +92,6 @@ st.markdown(
             box-shadow: 8px 0 30px rgba(0, 242, 254, 0.08);
         }
 
-        /* --- FORZA SFONDO E TESTO SCURO PER I SELECTBOX (MENU A TENDINA) --- */
         div[data-baseweb="select"] > div {
             background-color: #161f30 !important;
             color: white !important;
@@ -70,7 +116,6 @@ st.markdown(
             color: #00f2fe !important;
         }
 
-        /* Correzione per componenti nativi che Safari inverte in bianco */
         .streamlit-expanderHeader, 
         [data-testid="stExpander"], 
         [data-testid="stContainer"],
@@ -112,15 +157,6 @@ st.markdown(
             margin-bottom: 20px;
             box-shadow: 0 0 25px rgba(0, 242, 254, 0.25), inset 0 0 15px rgba(0, 242, 254, 0.08);
             position: relative;
-        }
-
-        .match-live-card {
-            background: linear-gradient(135deg, rgba(30, 20, 10, 0.95) 0%, rgba(12, 8, 4, 0.98) 100%);
-            border: 2px solid #ffaa00;
-            border-radius: 16px;
-            padding: 22px;
-            text-align: center;
-            box-shadow: 0 0 30px rgba(255, 170, 0, 0.35), inset 0 0 15px rgba(255, 170, 0, 0.1);
         }
 
         .neon-gold { color: #ffaa00 !important; text-shadow: 0 0 12px rgba(255,170,0,0.8), 0 0 25px rgba(255,170,0,0.4); }
@@ -361,7 +397,6 @@ def crea_abbinamenti_fascia_a_6_squadre(classificate_lista):
     return abbinamenti
 
 
-# --- SELETTORE GOL CON BOTTONI ORIZZONTALI (TUTTI SU UN'UNICA RIGA DA 0 A 7) ---
 def selettore_gol_bottoni(prefix, default_val=0):
   if prefix not in st.session_state:
     st.session_state[prefix] = int(default_val)
@@ -646,7 +681,7 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
 
         st.markdown(
             f"""
-            <div style="background: linear-gradient(135deg, rgba(30, 20, 10, 0.95) 0%, rgba(12, 8, 4, 0.98) 100%); border: 2px solid #ffaa00; border-radius: 14px; padding: 16px; margin-bottom: 20px; text-align: center; box-shadow: 0 0 25px rgba(255,170,0,0.3);">
+            <div class="match-live-card-animated" style="margin-bottom: 20px;">
                 <div class="neon-gold" style="font-size: 15px; font-weight: bold; margin-bottom: 6px;">🔴 PARTITA IN CORSO AL BILIARDINO {tavolo_num}!</div>
                 <div style="font-size: 16px; color: #ffffff;">Stai giocando contro: <b>{avversario}</b></div>
             </div>
@@ -685,7 +720,7 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
       elif pos_in_coda is not None:
         st.markdown(
             f"""
-            <div style="background: linear-gradient(135deg, rgba(8, 36, 20, 0.9) 0%, rgba(2, 16, 8, 0.95) 100%); border: 1.5px solid #00ff66; border-radius: 14px; padding: 14px; margin-bottom: 20px; text-align: center; box-shadow: 0 0 20px rgba(0,255,102,0.2);">
+            <div class="queue-item-animated" style="margin-bottom: 20px;">
                 <div class="neon-green" style="font-size: 14px; font-weight: bold;">⏳ PARTITE IN CODA</div>
                 <div style="font-size: 14px; color: #ffffff; margin-top: 4px;">La tua coppia è in posizione <b>#{pos_in_coda}</b> nella coda d'attesa per il prossimo biliardino libero. Teniti pronto!</div>
             </div>
@@ -928,7 +963,7 @@ if db["stato"] == "gironi":
   col_ic, col_coda = st.columns(2)
 
   with col_ic:
-    st.markdown("#### 🔥 Partite in Corso ai Tavoli")
+    st.markdown("#### 🔥 Partite in Corso ai Tavoli (Live)")
     if not partite_in_corso:
       st.markdown(
           """
@@ -955,7 +990,7 @@ if db["stato"] == "gironi":
         with st.container():
           st.markdown(
               f"""
-                        <div class="match-live-card" style="margin-bottom: 14px;">
+                        <div class="match-live-card-animated" style="margin-bottom: 14px;">
                             <div class="neon-gold" style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">{tavolo_str}</div>
                             <div style="font-size: 18px; font-weight: bold; color: #ffffff; line-height: 1.4;">🤝 {m['c1']}</div>
                             <div style="margin: 4px 0; font-size: 13px; font-weight: bold; color: #8b949e;">VS</div>
@@ -1023,8 +1058,8 @@ if db["stato"] == "gironi":
       for idx, m in enumerate(partite_in_coda_correnti):
         st.markdown(
             f"""
-                    <div style="background: linear-gradient(135deg, rgba(8, 36, 20, 0.9) 0%, rgba(2, 16, 8, 0.95) 100%); border: 2px solid #00ff66; padding: 14px; border-radius: 14px; margin-bottom: 12px; text-align: center; box-shadow: 0 0 25px rgba(0,255,102,0.3);">
-                        <b class="neon-green" style="font-size: 13px;">⏳ {idx+1}. {m['girone']}</b><br>
+                    <div class="queue-item-animated">
+                        <b class="neon-green" style="font-size: 13px;">⏳ POSIZIONE #{idx+1} IN CODA • {m['girone']}</b><br>
                         <div style="font-weight: bold; font-size: 15px; margin-top: 6px; color: #ffffff;">{m['c1']} vs {m['c2']}</div>
                     </div>
                     """,
