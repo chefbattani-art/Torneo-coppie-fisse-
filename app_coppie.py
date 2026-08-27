@@ -68,6 +68,34 @@ st.markdown(
             box-shadow: 0 0 20px rgba(0,255,102,0.25);
         }
 
+        /* --- STILE NEON AZZURRO PER SEGMENTED CONTROL --- */
+        div[data-baseweb="segmented-control"] {
+            background-color: #0b1326 !important;
+            border: 1.5px solid rgba(0, 242, 254, 0.5) !important;
+            border-radius: 12px !important;
+            padding: 3px !important;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.15) !important;
+        }
+        div[data-baseweb="segmented-control"] button {
+            color: #8b949e !important;
+            font-family: 'Rajdhani', sans-serif !important;
+            font-weight: 700 !important;
+            border-radius: 9px !important;
+            background-color: transparent !important;
+            border: none !important;
+            transition: all 0.2s ease-in-out !important;
+        }
+        div[data-baseweb="segmented-control"] button:hover {
+            color: #00f2fe !important;
+            background-color: rgba(0, 242, 254, 0.1) !important;
+        }
+        div[data-baseweb="segmented-control"] button[aria-selected="true"] {
+            background: linear-gradient(180deg, #132238, #0a111c) !important;
+            color: #00f2fe !important;
+            border: 1px solid #00f2fe !important;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.7), inset 0 0 8px rgba(0, 242, 254, 0.3) !important;
+        }
+
         /* --- BLOCCO ANTI-SFONDO BIANCO (SAFARI & DARK MODE) --- */
         :root {
             color-scheme: dark !important;
