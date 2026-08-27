@@ -355,7 +355,6 @@ def crea_abbinamenti_fascia_a_perfetti(classificate_per_girone):
       return (lst[pos_idx], g_nome, pos_idx + 1)
     return ("RIPOSO", g_nome, pos_idx + 1)
 
-  # Abbinamenti corretti per separare 1° vs 2° e 3° vs 4° dello stesso girone nei lati opposti del tabellone
   abbinamenti = [
       (get_sq(g0, 0), get_sq(g1, 3)),
       (get_sq(g2, 1), get_sq(g3, 2)),
@@ -440,15 +439,33 @@ if db["stato"] != "setup":
   )
   st.sidebar.markdown("---")
 
-modalita_admin = st.sidebar.checkbox("Modalità Amministratore (PIN)")
+# Gestione persistenza admin tramite query params dell'URL per evitare il reinserimento del PIN al refresh
+admin_param = st.query_params.get("admin", "false")
+is_admin_autenticato = admin_param == "true"
+
+modalita_admin = st.sidebar.checkbox(
+    "Modalità Amministratore (PIN)", value=is_admin_autenticato
+)
 is_admin = False
+
 if modalita_admin:
-  pin_inserito = st.sidebar.text_input("Inserisci PIN Admin", type="password")
-  if pin_inserito == db["admin_pin"]:
+  if is_admin_autenticato:
     is_admin = True
-    st.sidebar.success("Accesso Admin Autorizzato ✅")
+    st.sidebar.success("Accesso Admin Attivo ✅")
+    if st.sidebar.button("🔒 Logout Admin", use_container_width=True):
+      st.query_params["admin"] = "false"
+      st.rerun()
   else:
-    st.sidebar.error("PIN errato.")
+    pin_inserito = st.sidebar.text_input("Inserisci PIN Admin", type="password")
+    if pin_inserito == db["admin_pin"]:
+      st.query_params["admin"] = "true"
+      st.rerun()
+    elif pin_inserito:
+      st.sidebar.error("PIN errato.")
+else:
+  if is_admin_autenticato:
+    st.query_params["admin"] = "false"
+    st.rerun()
 
 st.sidebar.markdown("---")
 
@@ -1102,7 +1119,6 @@ if db["stato"] == "gironi":
       if i + j < len(nomi_gironi_chiavi):
         g_nome = nomi_gironi_chiavi[i + j]
         with col_gironi[j]:
-          # TITOLO DEL GIRONE CENTRATO E PIÙ GRANDE COME RICHIESTO
           st.markdown(
               f"<h3 style='text-align: center; font-size: 26px; color:"
               f" #00f0ff; margin-bottom: 15px;'>📁 {g_nome}</h3>",
