@@ -63,15 +63,6 @@ st.markdown(
             box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
         }
 
-        /* Stile personalizzato per le tabelle di Streamlit: Sfondo Azzurro e Cornice Gialla */
-        [data-testid="stDataFrame"] {
-            border: 2px solid #ffd700 !important;
-            border-radius: 12px;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.25);
-            background-color: #0284c7 !important;
-            padding: 4px;
-        }
-
         /* Intestazioni stile e-sport cyberpunk */
         h1, h2, h3, h4 {
             color: #ffffff !important;
@@ -245,13 +236,7 @@ def calcola_partite_giocate_coppia(g_nome, coppia):
   return giocate, totali
 
 
-def colora_fascia_e_coppia(valore):
-  # Le prime 4 in verde, dalla 5 in poi in rosso
-  colore = "#4ade80" if "Fascia A" in str(valore) else "#f87171"
-  return f"color: {colore}; font-weight: bold; font-size: 15px;"
-
-
-def genera_df_classifica(g_nome):
+def renderizza_classifica_stile_card(g_nome):
   dati_girone = db["punti_gironi"][g_nome]
   sorted_c = sorted(
       dati_girone.items(),
@@ -264,32 +249,48 @@ def genera_df_classifica(g_nome):
       reverse=True,
   )
 
-  righe = []
   for idx, (coppia, info) in enumerate(sorted_c):
     gioc, tot = calcola_partite_giocate_coppia(g_nome, coppia)
-    fascia = "Fascia A" if idx < 4 else "Fascia B"
-    # Sostituito le vecchie palette da ping pong con un biliardino ben visibile e ingrandito
-    righe.append({
-        "Pos": f"{idx+1}°",
-        "Fascia": fascia,
-        "Coppia": f"⚽🏆 {coppia}",
-        "Pt": info["punti"],
-        "Dr": info["dr"],
-        "Gf": info["gf"],
-        "Giocate": f"{gioc}/{tot}",
-    })
-  df = pd.DataFrame(righe)
-  return df
+    is_fascia_a = idx < 4
 
+    # Colori neon in base alla fascia (Verde per le prime 4, Rosso per le successive)
+    border_color = "#4ade80" if is_fascia_a else "#f87171"
+    bg_gradient = (
+        "linear-gradient(135deg, rgba(6, 36, 26, 0.8) 0%, rgba(3, 15, 10, 0.8) 100%)"
+        if is_fascia_a
+        else "linear-gradient(135deg, rgba(36, 6, 15, 0.8) 0%, rgba(15, 3, 7, 0.8) 100%)"
+    )
+    shadow_color = (
+        "rgba(74, 222, 128, 0.2)" if is_fascia_a else "rgba(248, 113, 113, 0.2)"
+    )
+    dot_color = "#4ade80" if is_fascia_a else "#f87171"
 
-def colora_righe_classifica(row):
-  # Evidenzia l'intera riga o le colonne chiave in base alla fascia (A = verde, B = rosso)
-  colore = (
-      "background-color: rgba(74, 222, 128, 0.15); color: #4ade80;"
-      if row["Fascia"] == "Fascia A"
-      else "background-color: rgba(248, 113, 113, 0.15); color: #f87171;"
-  )
-  return [colore] * len(row)
+    st.markdown(
+        f"""
+        <div style="background: {bg_gradient}; border: 1.5px solid {border_color}; border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; box-shadow: 0 0 15px {shadow_color}; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 10px; height: 10px; background-color: {dot_color}; border-radius: 50%; box-shadow: 0 0 8px {dot_color};"></div>
+                <span style="font-size: 16px; font-weight: 800; color: {dot_color}; min-width: 30px;">{idx+1}°</span>
+                <span style="font-size: 15px; font-weight: bold; color: #ffffff;">⚽🏆 {coppia}</span>
+            </div>
+            <div style="display: flex; gap: 14px; text-align: right; font-size: 13px;">
+                <div>
+                    <span style="font-size: 9px; color: #94a3b8; display: block;">PT</span>
+                    <span style="font-weight: 800; color: #ffd700; font-size: 15px;">{info['punti']}</span>
+                </div>
+                <div>
+                    <span style="font-size: 9px; color: #94a3b8; display: block;">G</span>
+                    <span style="color: #f0f6fc; font-weight: 600;">{gioc}/{tot}</span>
+                </div>
+                <div>
+                    <span style="font-size: 9px; color: #94a3b8; display: block;">DR</span>
+                    <span style="color: {"#4ade80" if info['dr'] >= 0 else "#f87171"}; font-weight: 600;">{info['dr']:+d}</span>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def genera_pdf_coppie():
@@ -770,13 +771,8 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
 
       if girone_mio:
         st.markdown("---")
-        st.markdown(f"#### 📊 Classifica Completa - {girone_mio}")
-        df_MioGirone = genera_df_classifica(girone_mio)
-        st.dataframe(
-            df_MioGirone.style.apply(colora_righe_classifica, axis=1),
-            hide_index=True,
-            use_container_width=True,
-        )
+        st.markdown(f"#### 📊 Classifica - {girone_mio}")
+        renderizza_classifica_stile_card(girone_mio)
 
 st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
@@ -1107,12 +1103,7 @@ if db["stato"] == "gironi":
         g_nome = nomi_gironi_chiavi[i + j]
         with col_gironi[j]:
           st.markdown(f"**📁 {g_nome}**")
-          df_girone = genera_df_classifica(g_nome)
-          st.dataframe(
-              df_girone.style.apply(colora_righe_classifica, axis=1),
-              hide_index=True,
-              use_container_width=True,
-          )
+          renderizza_classifica_stile_card(g_nome)
 
   st.markdown("---")
 
