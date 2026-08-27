@@ -1321,11 +1321,9 @@ elif db["stato"] == "fasi_finali":
     terzo_posto = None
     quarto_posto = None
 
-    # Assicuriamoci che i turni successivi vengano creati dinamicamente se ci sono abbastanza vincitori man mano
     tot_partite_turno_1 = len(turni_tab[0]["partite"])
     num_totale_squadre_tab = tot_partite_turno_1 * 2
 
-    # Calcoliamo quanti turni servono in totale
     import math
 
     num_turni_totali = (
@@ -1357,7 +1355,6 @@ elif db["stato"] == "fasi_finali":
       turni_tab.append({"turno": prossimo_t_num, "partite": partite_nuovo_turno})
     salva_dati(db)
 
-    # Raccogliamo i vincitori di ogni match per riempire progressivamente i turni successivi
     for t_idx, turno_obj in enumerate(turni_tab):
       t_num = turno_obj["turno"]
       partite_turno = turno_obj["partite"]
@@ -1374,7 +1371,6 @@ elif db["stato"] == "fasi_finali":
           unsafe_allow_html=True,
       )
 
-      # Gestione riempimento dinamico turno successivo basato sui singoli match finiti
       if t_idx + 1 < len(turni_tab):
         turno_successivo = turni_tab[t_idx + 1]
         for m_i, match_corrente in enumerate(partite_turno):
@@ -1390,7 +1386,6 @@ elif db["stato"] == "fasi_finali":
             if target_match_idx < len(turno_successivo["partite"]):
               dest_match = turno_successivo["partite"][target_match_idx]
               if dest_match[slot_squadra] in ["In attesa...", ""]:
-                # CORRETTO QUI: da dest_match[slot_squadraw] a dest_match[slot_squadra]
                 dest_match[slot_squadra] = vincitore_corrente
                 dest_match[slot_g] = g_v
                 dest_match[slot_p] = p_v
