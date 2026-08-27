@@ -355,20 +355,15 @@ def crea_abbinamenti_fascia_a_perfetti(classificate_per_girone):
       return (lst[pos_idx], g_nome, pos_idx + 1)
     return ("RIPOSO", g_nome, pos_idx + 1)
 
-  # Accoppiamenti basati esattamente sullo schema dell'immagine (16 squadre / 4 gironi A, B, C, D)
   abbinamenti = [
-      # Lato Sinistro - Gruppo Superiore
-      (get_sq(g0, 0), get_sq(g1, 3)),  # 1A vs 4B
-      (get_sq(g2, 2), get_sq(g3, 1)),  # 3C vs 2D
-      # Lato Sinistro - Gruppo Inferiore
-      (get_sq(g2, 1), get_sq(g3, 2)),  # 2C vs 3D
-      (get_sq(g1, 0), get_sq(g0, 3)),  # 1B vs 4A
-      # Lato Destro - Gruppo Superiore
-      (get_sq(g0, 1), get_sq(g1, 2)),  # 2A vs 3B
-      (get_sq(g2, 3), get_sq(g3, 0)),  # 4C vs 1D
-      # Lato Destro - Gruppo Inferiore
-      (get_sq(g2, 0), get_sq(g3, 3)),  # 1C vs 4D
-      (get_sq(g1, 1), get_sq(g0, 2)),  # 2B vs 3A
+      (get_sq(g0, 0), get_sq(g1, 3)),
+      (get_sq(g2, 2), get_sq(g3, 1)),
+      (get_sq(g2, 1), get_sq(g3, 2)),
+      (get_sq(g1, 0), get_sq(g0, 3)),
+      (get_sq(g0, 1), get_sq(g1, 2)),
+      (get_sq(g2, 3), get_sq(g3, 0)),
+      (get_sq(g2, 0), get_sq(g3, 3)),
+      (get_sq(g1, 1), get_sq(g0, 2)),
   ]
   return abbinamenti
 
@@ -421,12 +416,44 @@ def crea_abbinamenti_fascia_b(classificate_per_girone):
   return abbinamenti
 
 
-def verifica_conflitto_stesso_girone(s1_nome, s2_nome, mappa_girone_pos):
-  g1, p1 = mappa_girone_pos.get(s1_nome, ("", 0))
-  g2, p2 = mappa_girone_pos.get(s2_nome, ("", 0))
-  if g1 and g2 and g1 == g2:
-    if {p1, p2} == {1, 2}:
-      return True
+# --- FUNZIONE PER POSTICIPARE LA PARTITA NELLA CODA DEI TURNI ---
+def posticipa_partita_coda(match_id_da_spostare):
+  """Sposta una partita più avanti di 2 posizioni all'interno del proprio girone/turno."""
+  for g_nome, turni in db["calendario_gironi"].items():
+    # Raccogliamo tutte le partite del girone in un'unica lista sequenziale
+    tutte_partite_girone = []
+    for turno_obj in turni:
+      tutte_partite_girone.extend(turno_obj["partite"])
+
+    # Troviamo l'indice della partita corrente
+    idx_trovato = -1
+    for i, m in enumerate(tutte_partite_girone):
+      if m["id"] == match_id_da_spostare:
+        idx_trovato = i
+        break
+
+    if idx_trovato != -1:
+      # Se ci sono abbastanza partite successive per scalarla di 2
+      if idx_trovato + 2 < len(tutte_partite_girone):
+        partita = tutte_partite_girone.pop(idx_trovato)
+        tutte_partite_girone.insert(idx_trovato + 2, partita)
+
+        # Riassegnamo le partite modificate ai turni originali mantenendo la struttura
+        it = iter(tutte_partite_girone)
+        for turno_obj in turni:
+          turno_obj["partite"] = [
+              next(it) for _ in range(len(turno_obj["partite"]))
+          ]
+
+        # Se la partita era "in corso", la liberiamo dal tavolo per farla rientrare in coda
+        for t_obj in turni:
+          for m in t_obj["partite"]:
+            if m["id"] == match_id_da_spostare:
+              m["in_corso"] = False
+              m["tavolo"] = None
+
+        salva_dati(db)
+        return True
   return False
 
 
@@ -444,7 +471,6 @@ if db["stato"] != "setup":
   )
   st.sidebar.markdown("---")
 
-# Gestione persistenza admin tramite query params dell'URL per evitare il reinserimento del PIN al refresh
 admin_param = st.query_params.get("admin", "false")
 is_admin_autenticato = admin_param == "true"
 
@@ -547,7 +573,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- SELETTORE COPPIA (CON BYPASS PER AMMINISTRATORE) ---
+# --- SELETTORE COPPIA ---
 tutte_le_coppie = []
 for g_lst in db["gironi"].values():
   tutte_le_coppie.extend(g_lst)
@@ -576,7 +602,6 @@ if coppia_selezionata != coppia_url:
   st.query_params["coppia"] = coppia_selezionata
   st.rerun()
 
-# LOGICA DI BLOCCO / BYPASS ADMIN
 if is_admin:
   st.success(
       "🛡️ **Modalità Amministratore attiva:** Accesso completo sbloccato senza"
@@ -707,6 +732,24 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
                 unsafe_allow_html=True,
             )
 
+            # Pulsante per posticipare se non possono andare al biliardino
+            if st.button(
+                "🔄 Posticipa di 2 partite",
+                key=f"posticipa_pers_corso_{match_id_mio}",
+                use_container_width=True,
+            ):
+              if posticipa_partita_coda(match_id_mio):
+                st.success(
+                    "Partita posticipata di 2 turni con successo! La coda è"
+                    " stata aggiornata."
+                )
+                st.rerun()
+              else:
+                st.warning(
+                    "Non ci sono abbastanza partite successive per effettuare"
+                    " lo spostamento."
+                )
+
             with st.expander(
                 f"📝 Inserisci Risultato Finale (Tav. {m.get('tavolo', '')})"
             ):
@@ -742,6 +785,7 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
             testo_evidenziato = evidenzia_nome_coppia(
                 testo_scontro, coppia_selezionata
             )
+            match_id_coda = m["id"]
             st.markdown(
                 f"""
                       <div style="background: linear-gradient(135deg, #06241a 0%, #030f0a 100%); border: 1.5px solid #10b981; padding: 12px; border-radius: 10px; margin-bottom: 8px; text-align: center; color: #34d399; box-shadow: 0 0 10px rgba(16,185,129,0.2);">
@@ -751,6 +795,23 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
                       """,
                 unsafe_allow_html=True,
             )
+
+            if st.button(
+                "🔄 Posticipa di 2 partite",
+                key=f"posticipa_pers_coda_{match_id_coda}",
+                use_container_width=True,
+            ):
+              if posticipa_partita_coda(match_id_coda):
+                st.success(
+                    "Partita posticipata di 2 turni con successo! La coda è"
+                    " stata aggiornata."
+                )
+                st.rerun()
+              else:
+                st.warning(
+                    "Non ci sono abbastanza partite successive per effettuare"
+                    " lo spostamento."
+                )
 
         st.markdown("---")
         st.markdown("**📅 Tutte le partite ancora da disputare:**")
@@ -1027,6 +1088,18 @@ if db["stato"] == "gironi":
               unsafe_allow_html=True,
           )
 
+          # Pulsante posticipa anche dalla dashboard principale admin/giocatore
+          if st.button(
+              "🔄 Posticipa di 2 partite",
+              key=f"posticipa_main_corso_{match_id}",
+              use_container_width=True,
+          ):
+            if posticipa_partita_coda(match_id):
+              st.success("Partita posticipata di 2 turni con successo!")
+              st.rerun()
+            else:
+              st.warning("Impossibile posticipare: poche partite rimanenti.")
+
           if fa_al_caso_nostro:
             with st.expander(
                 f"📝 Inserisci Risultato Tavolo {m.get('tavolo', '')}"
@@ -1102,6 +1175,7 @@ if db["stato"] == "gironi":
       st.info("La coda è vuota o tutte le partite sono in corso/giocate.")
     else:
       for idx, m in enumerate(partite_in_coda_correnti):
+        match_id_coda_globale = m["id"]
         st.markdown(
             f"""
                     <div style="background: linear-gradient(135deg, #06241a 0%, #030f0a 100%); border: 1.5px solid #10b981; padding: 14px; border-radius: 10px; margin-bottom: 10px; color: #34d399; text-align: center; box-shadow: 0 0 15px rgba(16,185,129,0.2);">
@@ -1113,6 +1187,17 @@ if db["stato"] == "gironi":
                     """,
             unsafe_allow_html=True,
         )
+
+        if st.button(
+            "🔄 Posticipa di 2 partite",
+            key=f"posticipa_main_coda_{match_id_coda_globale}",
+            use_container_width=True,
+        ):
+          if posticipa_partita_coda(match_id_coda_globale):
+            st.success("Partita posticipata di 2 turni con successo!")
+            st.rerun()
+          else:
+            st.warning("Impossibile posticipare: poche partite rimanenti.")
 
   st.markdown("---")
 
@@ -1413,7 +1498,6 @@ elif db["stato"] == "fasi_finali":
                 dest_match[slot_p] = p_v
                 salva_dati(db)
 
-      tutti_giocati = True
       vincitori_turno = []
       perdenti_turno = []
 
@@ -1437,7 +1521,6 @@ elif db["stato"] == "fasi_finali":
         )
 
         if s1_nome in ["In attesa...", ""] or s2_nome in ["In attesa...", ""]:
-          tutti_giocati = False
           box_bg = "rgba(15, 23, 42, 0.9)"
           border_c = "#1e3a8a"
           centro_testo = "<span style='font-size: 13px; font-weight: bold; background-color: #172554; color: #93c5fd; padding: 6px 12px; border-radius: 8px;'>IN ATTESA DI SQUADRE</span>"
@@ -1484,7 +1567,6 @@ elif db["stato"] == "fasi_finali":
           perdente_match = s2_nome if m["vincente"] == s1_nome else s1_nome
           perdenti_turno.append(perdente_match)
         else:
-          tutti_giocati = False
           box_bg = "rgba(15, 23, 42, 0.9)"
           border_c = "#1e3a8a"
           centro_testo = "<span style='font-size: 13px; font-weight: bold; background-color: #172554; color: #93c5fd; padding: 6px 12px; border-radius: 8px;'>VS</span>"
