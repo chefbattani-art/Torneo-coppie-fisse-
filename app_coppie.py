@@ -1222,7 +1222,7 @@ if db["stato"] == "gironi":
         db["tabellone_a"] = [{"turno": 1, "partite": turno_a_iniziale}]
         break
 
-      # Generazione Fascia B (Tabellone B) con le squadre escluse
+      # --- CORRETTO: Generazione Fascia B (Tabellone B) con le squadre escluse ---
       if squadre_fascia_b:
         partite_b_iniziali = crea_turno_eliminazione_diretta(squadre_fascia_b, "fa_b")
         db["tabellone_b"] = [{"turno": 1, "partite": partite_b_iniziali}]
