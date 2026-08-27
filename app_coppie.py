@@ -1390,9 +1390,7 @@ elif db["stato"] == "fasi_finali":
             if target_match_idx < len(turno_successivo["partite"]):
               dest_match = turno_successivo["partite"][target_match_idx]
               if dest_match[slot_squadra] in ["In attesa...", ""]:
-                dest_match[slot_squadraw] = (
-                    vincitore_corrente  # Gestito in modo sicuro
-                )
+                # CORRETTO QUI: da dest_match[slot_squadraw] a dest_match[slot_squadra]
                 dest_match[slot_squadra] = vincitore_corrente
                 dest_match[slot_g] = g_v
                 dest_match[slot_p] = p_v
