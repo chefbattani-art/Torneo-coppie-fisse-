@@ -35,9 +35,9 @@ st.markdown(
             background: linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
             border: 2.5px solid #00f0ff;
             border-radius: 20px;
-            padding: 25px 20px;
+            padding: 22px 18px;
             text-align: center;
-            margin-bottom: 22px;
+            margin-bottom: 15px;
             box-shadow: 0 0 35px rgba(0, 240, 255, 0.35), inset 0 0 20px rgba(168, 85, 247, 0.2);
             position: relative;
             overflow: hidden;
@@ -45,24 +45,54 @@ st.markdown(
 
         /* Testo in stile Gamer con gradiente lucente ed effetti neon */
         .gamer-title {
-            font-size: 34px;
+            font-size: 32px;
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            margin: 8px 0;
+            margin: 6px 0;
             background: linear-gradient(180deg, #ffffff 20%, #38bdf8 60%, #00f0ff 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-shadow: 0 0 30px rgba(0, 240, 255, 0.6);
         }
 
-        .hud-stat-card {
+        /* HUD Orizzontale Compatto */
+        .hud-horizontal-bar {
+            display: flex;
+            justify-content: space-between;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.85) 100%);
+            border: 1px solid #00f0ff;
             border-radius: 14px;
-            padding: 16px;
+            padding: 10px 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+            gap: 6px;
+        }
+        
+        .hud-item {
+            flex: 1;
             text-align: center;
-            color: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            margin-bottom: 10px;
+            padding: 4px 2px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .hud-item:last-child {
+            border-right: none;
+        }
+        
+        .hud-label {
+            font-size: 9px;
+            color: #94a3b8;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .hud-value {
+            font-size: 15px;
+            font-weight: 900;
+            color: #ffffff;
+            margin-top: 2px;
         }
         
         .cyber-card {
@@ -535,9 +565,9 @@ sottotitolo_corrente = db.get(
 st.markdown(
     f"""
     <div class="esport-header">
-        <span style="color: #00f0ff; font-size: 11px; letter-spacing: 4px; font-weight: bold;">⚡ TOURNAMENT CIRCUIT ⚡</span>
+        <span style="color: #00f0ff; font-size: 10px; letter-spacing: 3px; font-weight: bold;">⚡ TOURNAMENT CIRCUIT ⚡</span>
         <div class="gamer-title">{titolo_corrente}</div>
-        <p style="font-size: 15px; color: #e2e8f0; margin: 0; font-weight: 700; text-shadow: 0 0 10px rgba(255,255,255,0.3);">
+        <p style="font-size: 13px; color: #e2e8f0; margin: 0; font-weight: 700; text-shadow: 0 0 10px rgba(255,255,255,0.3);">
             {sottotitolo_corrente}
         </p>
     </div>
@@ -545,7 +575,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- BARRA STATISTICHE SUPERIORE (HUD STYLE) ---
+# --- BARRA STATISTICHE ORIZZONTALE COMPATTA ---
 tot_coppie_iscritte = len(db.get("coppie", []))
 tot_biliardini = db.get("num_tavoli", 6)
 tot_gironi_count = len(db.get("gironi", {}))
@@ -559,59 +589,33 @@ for g_n, turni in db.get("calendario_gironi", {}).items():
       if m.get("giocata", False):
         partite_giocate_count += 1
 
-col_h1, col_h2, col_h3, col_h4, col_h5 = st.columns(5)
-with col_h1:
-  st.markdown(
-      f"""
-        <div class="hud-stat-card" style="background: linear-gradient(135deg, #3b0764 0%, #1e1b4b 100%); border: 1px solid #a855f7;">
-            <div style="font-size: 10px; color: #d8b4fe; font-weight: bold;">ISCRITTE</div>
-            <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin-top: 4px;">{tot_coppie_iscritte}</div>
+st.markdown(
+    f"""
+    <div class="hud-horizontal-bar">
+        <div class="hud-item">
+            <div class="hud-label">Iscritte</div>
+            <div class="hud-value" style="color: #c084fc;">{tot_coppie_iscritte}</div>
         </div>
-        """,
-      unsafe_allow_html=True,
-  )
-with col_h2:
-  st.markdown(
-      f"""
-        <div class="hud-stat-card" style="background: linear-gradient(135deg, #0369a1 0%, #0f172a 100%); border: 1px solid #38bdf8;">
-            <div style="font-size: 10px; color: #bae6fd; font-weight: bold;">TAVOLI</div>
-            <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin-top: 4px;">{tot_biliardini}</div>
+        <div class="hud-item">
+            <div class="hud-label">Tavoli</div>
+            <div class="hud-value" style="color: #38bdf8;">{tot_biliardini}</div>
         </div>
-        """,
-      unsafe_allow_html=True,
-  )
-with col_h3:
-  st.markdown(
-      f"""
-        <div class="hud-stat-card" style="background: linear-gradient(135deg, #15803d 0%, #064e3b 100%); border: 1px solid #4ade80;">
-            <div style="font-size: 10px; color: #bbf7d0; font-weight: bold;">GIRONI</div>
-            <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin-top: 4px;">{tot_gironi_count}</div>
+        <div class="hud-item">
+            <div class="hud-label">Gironi</div>
+            <div class="hud-value" style="color: #4ade80;">{tot_gironi_count}</div>
         </div>
-        """,
-      unsafe_allow_html=True,
-  )
-with col_h4:
-  st.markdown(
-      f"""
-        <div class="hud-stat-card" style="background: linear-gradient(135deg, #c2410c 0%, #7c2d12 100%); border: 1px solid #fb923c;">
-            <div style="font-size: 10px; color: #fed7aa; font-weight: bold;">GIOCATE</div>
-            <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin-top: 4px;">{partite_giocate_count}/{partite_totali_count}</div>
+        <div class="hud-item">
+            <div class="hud-label">Giocate</div>
+            <div class="hud-value" style="color: #fb923c;">{partite_giocate_count}/{partite_totali_count}</div>
         </div>
-        """,
-      unsafe_allow_html=True,
-  )
-with col_h5:
-  st.markdown(
-      f"""
-        <div class="hud-stat-card" style="background: linear-gradient(135deg, #9f1239 0%, #4c0519 100%); border: 1px solid #fb7185;">
-            <div style="font-size: 10px; color: #fecdd3; font-weight: bold;">FASE</div>
-            <div style="font-size: 13px; font-weight: 800; color: #ffffff; margin-top: 8px; text-transform: uppercase;">{db.get('stato', 'Gironi')}</div>
+        <div class="hud-item">
+            <div class="hud-label">Fase</div>
+            <div class="hud-value" style="color: #fb7185; font-size: 12px; margin-top: 4px; text-transform: uppercase;">{db.get('stato', 'Gironi')}</div>
         </div>
-        """,
-      unsafe_allow_html=True,
-  )
-
-st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # --- SELETTORE COPPIA & AVVISO ---
 tutte_le_coppie = []
@@ -728,7 +732,6 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
         " laterale con il PIN."
     )
   else:
-    # Campi personalizzazione Titolo e Sottotitolo della serata
     db["titolo_torneo"] = st.text_input(
         "🏷️ Nome del Torneo (es. TORNEO SPECIALE VENERDÌ / EPIC BATTLE)",
         value=db.get("titolo_torneo", "VENERUSO CALCIOBALILLA"),
