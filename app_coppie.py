@@ -15,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- STILE GRAFICO GLOBALE & ANIMAZIONI CYBERPUNK (CON FIX SELECTBOX & SAFARI) ---
+# --- STILE GRAFICO GLOBALE & ANIMAZIONI CYBERPUNK (CON PULSANTI MAGGIORATI) ---
 st.markdown(
     """
     <style>
@@ -116,13 +116,6 @@ st.markdown(
             color: #00f2fe !important;
         }
 
-        .streamlit-expanderHeader, 
-        [data-testid="stExpander"], 
-        [data-testid="stContainer"],
-        [data-testid="stVerticalBlock"] div {
-            color-scheme: dark !important;
-        }
-
         .neon-title-box {
             border: 2px solid #00f2fe;
             box-shadow: 0 0 25px rgba(0, 242, 254, 0.4), inset 0 0 15px rgba(0, 242, 254, 0.1);
@@ -173,12 +166,13 @@ st.markdown(
             text-transform: uppercase;
         }
 
+        /* Pulsanti grandi e ben visibili */
         div.stButton > button {
             border-radius: 12px;
             font-weight: 800;
             font-family: 'Rajdhani', sans-serif;
-            font-size: 20px;
-            height: 55px !important;
+            font-size: 22px;
+            height: 60px !important;
             letter-spacing: 1px;
             border: 1.5px solid rgba(0, 242, 254, 0.5);
             background: linear-gradient(180deg, #132238, #0a111c);
@@ -403,10 +397,11 @@ def selettore_gol_bottoni(prefix, default_val=0):
 
   val_corrente = st.session_state[prefix]
   st.markdown(
-      f"<div style='font-size: 14px; color: #8b949e; margin-bottom: 6px;'>Gol selezionati: <b class='neon-blue' style='font-size: 18px;'>{val_corrente}</b></div>",
+      f"<div style='font-size: 15px; color: #8b949e; margin-bottom: 8px;'>Gol selezionati: <b class='neon-blue' style='font-size: 20px;'>{val_corrente}</b></div>",
       unsafe_allow_html=True,
   )
 
+  # Griglia in orizzontale da 0 a 7
   cols = st.columns(8)
   for g in range(8):
     with cols[g]:
@@ -510,7 +505,7 @@ with st.expander("ℹ️ Come funziona il torneo"):
 st.markdown(
     """
     <div style="padding: 16px 20px; background: linear-gradient(135deg, rgba(48, 16, 26, 0.95) 0%, rgba(24, 6, 12, 0.98) 100%); border: 2px solid #ff3366; border-radius: 16px; font-size: 14px; color: #ff3366; margin-bottom: 20px; font-weight: bold; line-height: 1.5; box-shadow: 0 0 30px rgba(255,51,102,0.35);">
-        🚨 Chi vince è pregato di inserire il risultato esatto tramite i comodi pulsanti e chi è in coda alle partite di tenersi pronto a salire al primo calcetto libero.
+        🚨 Chi vince è pregato di inserire il risultato esatto tramite i pulsanti orizzontali ingranditi e chi è in coda alle partite di tenersi pronto a salire al primo calcetto libero.
     </div>
     """,
     unsafe_allow_html=True,
@@ -690,7 +685,7 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
         )
 
         with st.expander(
-            "⚙️ Inserisci Risultato con i Bottoni", expanded=True
+            "⚙️ Inserisci Risultato con i Bottoni Orizzontali", expanded=True
         ):
           st.markdown(f"**⚽ Gol per {match_in_corso_coppia['c1']}**")
           gol_p1 = selettore_gol_bottoni(
