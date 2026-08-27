@@ -338,30 +338,25 @@ def ottieni_nome_turno_dinamico(num_partite_turno):
 
 def crea_abbinamenti_fascia_a_6_squadre(classificate_lista):
   if len(classificate_lista) >= 6:
-    s1, s2, s3, s4, s5, s6 = (
-        classificate_lista[0],
-        classificate_lista[1],
+    s3, s4, s5, s6 = (
         classificate_lista[2],
         classificate_lista[3],
         classificate_lista[4],
         classificate_lista[5],
     )
     partite_turno_1 = [
-        ((s3, "Girone", 3), (s6, "Girone", 6)),
-        ((s4, "Girone", 4), (s5, "Girone", 5)),
+        (s3, s6),
+        (s4, s5),
     ]
     return partite_turno_1
   else:
     abbinamenti = []
-    for i in range(min(2, len(classificate_lista))):
-      if i + 3 < len(classificate_lista):
-        abbinamenti.append(
-            ((classificate_lista[i + 2], "", 3), (classificate_lista[i + 3], "", 4))
-        )
+    for i in range(min(2, len(classificate_lista) - 2)):
+      if i + 2 < len(classificate_lista):
+        abbinamenti.append((classificate_lista[i + 2], classificate_lista[i + 3]))
     return abbinamenti
 
 
-# --- FUNZIONE GENERICA PER CREARE UN TABELLONE A ELIMINAZIONE DIRETTA ---
 def crea_turno_eliminazione_diretta(lista_squadre, prefix_id):
   partite = []
   squadre_temp = lista_squadre.copy()
@@ -387,7 +382,6 @@ def crea_turno_eliminazione_diretta(lista_squadre, prefix_id):
   return partite
 
 
-# --- SELETTORE GOL CON BOTTONI ORIZZONTALI (TUTTI SU UN'UNICA RIGA DA 0 A 7) ---
 def selettore_gol_bottoni(prefix, default_val=0):
   if prefix not in st.session_state:
     st.session_state[prefix] = int(default_val)
@@ -507,7 +501,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- SELETTORE COPPIA ---
 tutte_le_coppie = []
 for g_lst in db["gironi"].values():
   tutte_le_coppie.extend(g_lst)
@@ -565,7 +558,6 @@ else:
       unsafe_allow_html=True,
   )
 
-# --- DETTAGLIO SQUADRA UTENTE E STATO PARTITE ---
 if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
   if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
     with st.expander(
@@ -1195,25 +1187,22 @@ if db["stato"] == "gironi":
         )
         squadre_girone = [c[0] for c in sorted_c]
         
-        # Prime classificate (Zona Verde) per il tabellone principale
         classificate_a[g_nome] = squadre_girone[:num_passano]
         
-        # Squadre escluse dalla zona verde vanno nella Fascia B
         if len(squadre_girone) > num_passano:
           squadre_fascia_b.extend(squadre_girone[num_passano:])
 
-      # Generazione Tabellone Principale (Tabellone A)
       for g_nome, lista_squadre in classificate_a.items():
         abbinamenti_raw = crea_abbinamenti_fascia_a_6_squadre(lista_squadre)
         turno_a_iniziale = [
             {
                 "id": f"fa_{g_nome}_t1_m{i}",
-                "s1": s1[0],
-                "g1": s1[1],
-                "p1": s1[2],
-                "s2": s2[0],
-                "g2": s2[1],
-                "p2": s2[2],
+                "s1": s1,
+                "g1": "",
+                "p1": 0,
+                "s2": s2,
+                "g2": "",
+                "p2": 0,
                 "giocata": False,
                 "vincente": None,
             }
@@ -1222,7 +1211,6 @@ if db["stato"] == "gironi":
         db["tabellone_a"] = [{"turno": 1, "partite": turno_a_iniziale}]
         break
 
-      # --- CORRETTO: Generazione Fascia B (Tabellone B) con le squadre escluse ---
       if squadre_fascia_b:
         partite_b_iniziali = crea_turno_eliminazione_diretta(squadre_fascia_b, "fa_b")
         db["tabellone_b"] = [{"turno": 1, "partite": partite_b_iniziali}]
@@ -1375,7 +1363,6 @@ elif db["stato"] == "fasi_finali":
             }]
             salva_dati(db)
 
-      # Avanzamento automatico turni successivi se Tabellone Principale
       if tutti_giocati and t_num == 1 and chiave_tabellone == "tabellone_a":
         prossimo_turno_num = t_num + 1
         squadre_girone_ordinate = []
@@ -1463,7 +1450,6 @@ elif db["stato"] == "fasi_finali":
             salva_dati(db)
             st.rerun()
             
-      # Gestione turni successivi per la Fascia B (generazione automatica turno successivo se rimangono vincitori)
       elif tutti_giocati and len(vincitori_turno) > 1 and len(partite_turno) > 1:
         prossimo_turno_num = t_num + 1
         turno_esistente = next((t for t in turni_tab if t["turno"] == prossimo_turno_num), None)
