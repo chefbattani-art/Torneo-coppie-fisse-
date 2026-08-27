@@ -768,8 +768,7 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
                 </tr>
             """
 
-        st.markdown(
-            f"""
+        table_html = f"""
             <table class="cyber-table">
                 <thead>
                     <tr>
@@ -785,9 +784,8 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
                     {rows_html}
                 </tbody>
             </table>
-        """,
-            unsafe_allow_html=True,
-        )
+        """
+        st.markdown(table_html, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
@@ -1149,8 +1147,7 @@ if db["stato"] == "gironi":
                     </tr>
                 """
 
-          st.markdown(
-              f"""
+          table_html = f"""
               <table class="cyber-table">
                   <thead>
                       <tr>
@@ -1166,9 +1163,8 @@ if db["stato"] == "gironi":
                       {rows_html}
                   </tbody>
               </table>
-          """,
-              unsafe_allow_html=True,
-          )
+          """
+          st.markdown(table_html, unsafe_allow_html=True)
 
   st.markdown("---")
 
