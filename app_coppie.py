@@ -355,15 +355,20 @@ def crea_abbinamenti_fascia_a_perfetti(classificate_per_girone):
       return (lst[pos_idx], g_nome, pos_idx + 1)
     return ("RIPOSO", g_nome, pos_idx + 1)
 
+  # Accoppiamenti basati esattamente sullo schema dell'immagine (16 squadre / 4 gironi A, B, C, D)
   abbinamenti = [
-      (get_sq(g0, 0), get_sq(g1, 3)),
-      (get_sq(g2, 1), get_sq(g3, 2)),
-      (get_sq(g1, 0), get_sq(g2, 3)),
-      (get_sq(g3, 1), get_sq(g0, 2)),
-      (get_sq(g2, 0), get_sq(g3, 3)),
-      (get_sq(g0, 1), get_sq(g1, 2)),
-      (get_sq(g3, 0), get_sq(g0, 3)),
-      (get_sq(g1, 1), get_sq(g2, 2)),
+      # Lato Sinistro - Gruppo Superiore
+      (get_sq(g0, 0), get_sq(g1, 3)),  # 1A vs 4B
+      (get_sq(g2, 2), get_sq(g3, 1)),  # 3C vs 2D
+      # Lato Sinistro - Gruppo Inferiore
+      (get_sq(g2, 1), get_sq(g3, 2)),  # 2C vs 3D
+      (get_sq(g1, 0), get_sq(g0, 3)),  # 1B vs 4A
+      # Lato Destro - Gruppo Superiore
+      (get_sq(g0, 1), get_sq(g1, 2)),  # 2A vs 3B
+      (get_sq(g2, 3), get_sq(g3, 0)),  # 4C vs 1D
+      # Lato Destro - Gruppo Inferiore
+      (get_sq(g2, 0), get_sq(g3, 3)),  # 1C vs 4D
+      (get_sq(g1, 1), get_sq(g0, 2)),  # 2B vs 3A
   ]
   return abbinamenti
 
