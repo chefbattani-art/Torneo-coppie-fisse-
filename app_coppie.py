@@ -2,21 +2,20 @@ import json
 import os
 import random
 import re
-import urllib.parse
-from fpdf import FPDF
 import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
+from fpdf import FPDF
 
-st_autorefresh(interval=3000, debounce=False, key="auto_refresh_coppie")
+st_autorefresh(interval=3000, debounce=False, key="auto_refresh_tornei")
 st.set_page_config(
-    page_title="Veneruso Calciobalilla - Torneo Live",
+    page_title="Veneruso Calciobalilla - Gestione Tornei",
     page_icon="🏆",
     layout="centered",
     initial_sidebar_state="expanded",
 )
 
-# --- STILE GRAFICO GLOBALE (CON SCROLL SIDEBAR ABILITATO) ---
+# --- STILE GRAFICO GLOBALE ---
 st.markdown(
     """
     <style>
@@ -136,16 +135,19 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-DB_FILE = "coppie_data.json"
+DB_FILE = "tornei_multipli_data.json"
 
 
-def carica_dati():
-  dati_default = {
+def struttura_torneo_default(
+    nome_torneo="Torneo Giovedì", giorno_settimana="Giovedì"
+):
+  return {
+      "titolo_torneo": nome_torneo,
+      "giorno_settimana": giorno_settimana,
+      "sottotitolo_torneo": f"🏆 {nome_torneo.upper()} • CALCIOBALILLA 🏆",
       "stato": "setup",
-      "titolo_torneo": "VENERUSO CALCIOBALILLA",
-      "sottotitolo_torneo": "🏆 TORNEO LIVE • 3 TOCCHI UISP 🏆",
       "coppie": [],
-      "telefoni": {},
+      "notifiche_app": [],
       "num_tavoli": 6,
       "num_gironi": 4,
       "admin_pin": "0000",
@@ -158,13 +160,33 @@ def carica_dati():
       "terzo_quarto_a": [],
       "terzo_quarto_b": [],
   }
+
+
+def carica_dati():
+  dati_default = {
+      "torneo_attivo": "Torneo Giovedì",
+      "elenco_tornei": {
+          "Torneo Giovedì": struttura_torneo_default(
+              "Torneo Giovedì", "Giovedì"
+          ),
+      },
+  }
   if os.path.exists(DB_FILE):
     try:
       with open(DB_FILE, "r") as f:
         dati_salvati = json.load(f)
-        for k, v in dati_default.items():
-          if k not in dati_salvati:
-            dati_salvati[k] = v
+        if "elenco_tornei" not in dati_salvati:
+          vecchio_torneo = dati_salvati
+          nome_v = vecchio_torneo.get("titolo_torneo", "Torneo Principale")
+          return {
+              "torneo_attivo": nome_v,
+              "elenco_tornei": {nome_v: vecchio_torneo},
+          }
+        for t_nome, t_dati in dati_salvati["elenco_tornei"].items():
+          def_keys = struttura_torneo_default(t_nome)
+          for k, v in def_keys.items():
+            if k not in t_dati:
+              t_dati[k] = v
         return dati_salvati
     except:
       pass
@@ -179,7 +201,13 @@ def salva_dati(data):
 if "db" not in st.session_state:
   st.session_state.db = carica_dati()
 
-db = st.session_state.db
+db_globale = st.session_state.db
+
+lista_nomi_tornei = list(db_globale["elenco_tornei"].keys())
+if db_globale["torneo_attivo"] not in lista_nomi_tornei:
+  db_globale["torneo_attivo"] = lista_nomi_tornei[0]
+
+db = db_globale["elenco_tornei"][db_globale["torneo_attivo"]]
 
 
 def pulisci_nome(testo):
@@ -336,7 +364,18 @@ def genera_pdf_coppie():
   pdf = FPDF()
   pdf.add_page()
   pdf.set_font("Arial", "B", 16)
-  pdf.cell(0, 10, "Torneo a Coppie Fisse - Schema Gironi", 0, 1, "C")
+  pdf.cell(
+      0, 10, f"Torneo: {db.get('titolo_torneo', 'Calciobalilla')}", 0, 1, "C"
+  )
+  pdf.set_font("Arial", "", 11)
+  pdf.cell(
+      0,
+      6,
+      f"Giorno: {db.get('giorno_settimana', 'N/D')} - Schema Gironi",
+      0,
+      1,
+      "C",
+  )
   pdf.ln(5)
 
   for g_nome, turni in db["calendario_gironi"].items():
@@ -468,24 +507,27 @@ def posticipa_partita_coda(match_id_da_spostare):
             if m["id"] == match_id_da_spostare:
               m["in_corso"] = False
               m["tavolo"] = None
-        salva_dati(db)
+        salva_dati(db_globale)
         return True
   return False
 
 
 # --- BARRA LATERALE ---
-st.sidebar.header("⚙️ Pannello di Controllo")
+st.sidebar.header("⚙️ Selettore Tornei & Controllo")
 
-if db["stato"] != "setup":
-  pdf_data = genera_pdf_coppie()
-  st.sidebar.download_button(
-      label="📥 Scarica Schema in PDF",
-      data=pdf_data,
-      file_name="schema_gironi_torneo.pdf",
-      mime="application/pdf",
-      use_container_width=True,
-  )
-  st.sidebar.markdown("---")
+tornei_disponibili = list(db_globale["elenco_tornei"].keys())
+torneo_scelto_sidebar = st.sidebar.selectbox(
+    "📅 Scegli il Torneo / Giorno",
+    options=tornei_disponibili,
+    index=tornei_disponibili.index(db_globale["torneo_attivo"]),
+)
+
+if torneo_scelto_sidebar != db_globale["torneo_attivo"]:
+  db_globale["torneo_attivo"] = torneo_scelto_sidebar
+  salva_dati(db_globale)
+  st.rerun()
+
+st.sidebar.markdown("---")
 
 admin_param = st.query_params.get("admin", "false")
 is_admin_autenticato = admin_param == "true"
@@ -517,6 +559,53 @@ else:
 st.sidebar.markdown("---")
 
 if is_admin:
+  st.sidebar.subheader("➕ Crea Nuovo Torneo (Admin)")
+  with st.sidebar.form("form_crea_nuovo_torneo", clear_on_submit=True):
+    nuovo_nome = st.text_input("Nome Torneo (es. Torneo Mercoledì)")
+    nuovo_giorno = st.selectbox(
+        "Giorno della settimana",
+        [
+            "Lunedì",
+            "Martedì",
+            "Mercoledì",
+            "Giovedì",
+            "Venerdì",
+            "Sabato",
+            "Domenica",
+        ],
+    )
+    submit_nuovo_t = st.form_submit_button(
+        "Crea e Attiva Torneo", use_container_width=True
+    )
+    if submit_nuovo_t:
+      nuovo_nome_pulito = nuovo_nome.strip()
+      if not nuovo_nome_pulito:
+        st.sidebar.error("Inserisci un nome valido.")
+      elif nuovo_nome_pulito in db_globale["elenco_tornei"]:
+        st.sidebar.warning("Esiste già un torneo con questo nome.")
+      else:
+        db_globale["elenco_tornei"][nuovo_nome_pulito] = (
+            struttura_torneo_default(nuovo_nome_pulito, nuovo_giorno)
+        )
+        db_globale["torneo_attivo"] = nuovo_nome_pulito
+        salva_dati(db_globale)
+        st.sidebar.success(f"Torneo '{nuovo_nome_pulito}' creato!")
+        st.rerun()
+
+  st.sidebar.markdown("---")
+
+if db["stato"] != "setup":
+  pdf_data = genera_pdf_coppie()
+  st.sidebar.download_button(
+      label="📥 Scarica Schema in PDF",
+      data=pdf_data,
+      file_name=f"schema_gironi_{db.get('giorno_settimana', 'torneo')}.pdf",
+      mime="application/pdf",
+      use_container_width=True,
+  )
+  st.sidebar.markdown("---")
+
+if is_admin:
   if db["stato"] == "setup":
     st.sidebar.subheader("➕ Inserisci Coppia (Admin)")
     with st.sidebar.form("form_admin_aggiungi_coppia", clear_on_submit=True):
@@ -529,11 +618,10 @@ if is_admin:
         if not pulito_admin:
           st.sidebar.error("Inserisci un nome valido.")
         elif pulito_admin in db["coppie"]:
-          st.sidebar.warning("Questa coppia è già presente!")
+          st.sidebar.warning(" Questa coppia è già presente!")
         else:
           db["coppie"].append(pulito_admin)
-          db["telefoni"][pulito_admin] = ""
-          salva_dati(db)
+          salva_dati(db_globale)
           st.sidebar.success(f"Aggiunta: {pulito_admin}")
           st.rerun()
 
@@ -609,7 +697,7 @@ if is_admin:
 
         db["calendario_gironi"] = calendario_totale
         db["stato"] = "gironi"
-        salva_dati(db)
+        salva_dati(db_globale)
         st.success("Gironi generati!")
         st.rerun()
     else:
@@ -618,33 +706,28 @@ if is_admin:
           " coppie per sbloccare l'avvio del torneo."
       )
 
-  if st.sidebar.button(
-      "⚙️ Mostra / Nascondi Setup Iniziale", use_container_width=True
-  ):
-    st.session_state["mostra_setup"] = not st.session_state.get(
-        "mostra_setup", False
-    )
-
 if is_admin and db["stato"] == "fasi_finali":
   if st.sidebar.button(
       "🔙 Torna temporaneamente ai Gironi", use_container_width=True
   ):
     db["stato"] = "gironi"
-    salva_dati(db)
+    salva_dati(db_globale)
     st.rerun()
   st.sidebar.markdown("---")
 
-st.sidebar.subheader("⚠️ Zona Pericolo")
+st.sidebar.subheader("⚠️ Zona Pericolo (Questo Torneo)")
 if is_admin:
   conferma_reset = st.sidebar.checkbox(
-      "Spunta per confermare il reset totale", key="checkbox_reset_gara"
+      "Spunta per confermare il reset", key="checkbox_reset_gara"
   )
-  if st.sidebar.button("🔄 Ricomincia la gara da zero", use_container_width=True):
+  if st.sidebar.button("🔄 Resetta questo torneo", use_container_width=True):
     if conferma_reset:
-      if os.path.exists(DB_FILE):
-        os.remove(DB_FILE)
-      for key in list(st.session_state.keys()):
-        del st.session_state[key]
+      giorno_corrente = db.get("giorno_settimana", "Giovedì")
+      titolo_corrente = db_globale["torneo_attivo"]
+      db_globale["elenco_tornei"][titolo_corrente] = struttura_torneo_default(
+          titolo_corrente, giorno_corrente
+      )
+      salva_dati(db_globale)
       st.success("Torneo azzerato con successo! Ricarico...")
       st.rerun()
     else:
@@ -652,21 +735,22 @@ if is_admin:
           "⚠️ Spunta la casella di conferma sopra per procedere."
       )
 else:
-  st.sidebar.info("🔐 Accedi come admin per resettare la gara.")
+  st.sidebar.info("🔐 Accedi come admin per resettare.")
 
 st.sidebar.markdown("---")
 
 
-# --- HEADER PRINCIPALE IN STILE ESPORT/GAMER LUCENTE ---
-titolo_corrente = db.get("titolo_torneo", "VENERUSO CALCIOBALILLA")
+# --- HEADER PRINCIPALE ---
+titolo_corrente = db.get("titolo_torneo", "TORNEO CALCIOBALILLA")
+giorno_corrente = db.get("giorno_settimana", "Giovedì")
 sottotitolo_corrente = db.get(
-    "sottotitolo_torneo", "🏆 TORNEO LIVE • 3 TOCCHI UISP 🏆"
+    "sottotitolo_torneo", f"🏆 {giorno_corrente.upper()} • LIVE 🏆"
 )
 
 st.markdown(
     f"""
     <div class="esport-header">
-        <span style="color: #00f0ff; font-size: 10px; letter-spacing: 3px; font-weight: bold;">⚡ TOURNAMENT CIRCUIT ⚡</span>
+        <span style="color: #00f0ff; font-size: 10px; letter-spacing: 3px; font-weight: bold;">⚡ {giorno_corrente.upper()} TOURNAMENT ⚡</span>
         <div class="gamer-title">{titolo_corrente}</div>
         <p style="font-size: 13px; color: #e2e8f0; margin: 0; font-weight: 700; text-shadow: 0 0 10px rgba(255,255,255,0.3);">
             {sottotitolo_corrente}
@@ -679,10 +763,11 @@ st.markdown(
 
 # --- SEZIONE ISCRIZIONE / CANCELLAZIONE AUTONOMA (SE IN FASE SETUP) ---
 if db["stato"] == "setup":
-  st.markdown("### 📝 Iscrizione Online al Torneo")
+  st.markdown(f"### 📝 Iscrizione Online a: {titolo_corrente}")
   st.info(
-      "Compila il modulo sottostante per iscriverti direttamente o rimuovere la"
-      " tua iscrizione in caso di imprevisti."
+      f"Stai effettuando l'iscrizione per la serata di **{giorno_corrente}**."
+      " Compila il modulo sotto per iscriverti o rimuovere la tua"
+      " iscrizione."
   )
 
   tab_iscrivi, tab_cancella = st.tabs(["➕ Registrati", "❌ Cancella Iscrizione"])
@@ -692,11 +777,9 @@ if db["stato"] == "setup":
       nome_giocatore = st.text_input(
           "Nome della Coppia (es. Rossi / Bianchi)"
       )
-      tel_giocatore = st.text_input(
-          "Numero di Telefono (per avvisi WhatsApp quando tocca a te)"
-      )
       submit_iscrizione = st.form_submit_button(
-          "✅ Conferma e Iscriviti al Torneo", use_container_width=True
+          f"✅ Conferma e Iscriviti a {giorno_corrente}",
+          use_container_width=True,
       )
 
       if submit_iscrizione:
@@ -704,12 +787,16 @@ if db["stato"] == "setup":
         if not pulito:
           st.error("Inserisci un nome valido per la coppia.")
         elif pulito in db["coppie"]:
-          st.warning("Questa coppia risulta già iscritta!")
+          st.warning(
+              "Questa coppia risulta già iscritta a questo specifico torneo!"
+          )
         else:
           db["coppie"].append(pulito)
-          db["telefoni"][pulito] = tel_giocatore.strip()
-          salva_dati(db)
-          st.success(f"Iscrizione completata con successo per **{pulito}**!")
+          salva_dati(db_globale)
+          st.success(
+              f"Iscrizione completata con successo per **{pulito}** a"
+              f" **{titolo_corrente}**!"
+          )
           st.rerun()
 
   with tab_cancella:
@@ -725,12 +812,10 @@ if db["stato"] == "setup":
       if submit_cancellazione:
         if coppia_da_rimuovere and coppia_da_rimuovere in db["coppie"]:
           db["coppie"].remove(coppia_da_rimuovere)
-          if coppia_da_rimuovere in db["telefoni"]:
-            del db["telefoni"][coppia_da_rimuovere]
-          salva_dati(db)
+          salva_dati(db_globale)
           st.success(
-              f"La coppia **{coppia_da_rimuovere}** è stata rimossa con"
-              " successo."
+              f"La coppia **{coppia_da_rimuovere}** è stata rimossa da"
+              f" {titolo_corrente}."
           )
           st.rerun()
         else:
@@ -738,30 +823,46 @@ if db["stato"] == "setup":
 
   st.markdown("---")
   st.subheader(
-      f"📋 Elenco Coppie Iscritte ({len(db.get('coppie', []))}/"
+      f"📋 Coppie Iscritte a {titolo_corrente} ({len(db.get('coppie', []))}/"
       f"{int(db.get('num_gironi', 4)) * 2} min)"
   )
   if db.get("coppie"):
     for c in db["coppie"]:
-      telefono_mostrato = (
-          db["telefoni"].get(c, "N/D")
-          if db["telefoni"].get(c)
-          else "Senza tel"
-      )
-      st.markdown(f"- **{c}** *(Tel: {telefono_mostrato})*")
+      st.markdown(f"- **{c}**")
   else:
-    st.info("Nessuna coppia iscritta al momento.")
+    st.info("Nessuna coppia iscritta per questo torneo al momento.")
 
   if is_admin:
     st.markdown("---")
-    st.subheader("⚙️ Pannello Admin - Configurazione Torneo")
+    st.subheader("⚙️ Configurazione Parametri Torneo")
     db["titolo_torneo"] = st.text_input(
         "🏷️ Nome del Torneo",
-        value=db.get("titolo_torneo", "VENERUSO CALCIOBALILLA"),
+        value=db.get("titolo_torneo", "Torneo"),
+    )
+    db["giorno_settimana"] = st.selectbox(
+        "📅 Giorno della settimana",
+        [
+            "Lunedì",
+            "Martedì",
+            "Mercoledì",
+            "Giovedì",
+            "Venerdì",
+            "Sabato",
+            "Domenica",
+        ],
+        index=[
+            "Lunedì",
+            "Martedì",
+            "Mercoledì",
+            "Giovedì",
+            "Venerdì",
+            "Sabato",
+            "Domenica",
+        ].index(db.get("giorno_settimana", "Giovedì")),
     )
     db["sottotitolo_torneo"] = st.text_input(
-        "📝 Sottotitolo / Descrizione Serata",
-        value=db.get("sottotitolo_torneo", "🏆 TORNEO LIVE • 3 TOCCHI UISP 🏆"),
+        "📝 Descrizione Serata",
+        value=db.get("sottotitolo_torneo", "🏆 TORNEO LIVE 🏆"),
     )
     col_t, col_g = st.columns(2)
     with col_t:
@@ -779,7 +880,7 @@ if db["stato"] == "setup":
           value=int(db["num_gironi"]),
       )
     db["admin_pin"] = st.text_input("Cambia PIN Admin", value=db["admin_pin"])
-    salva_dati(db)
+    salva_dati(db_globale)
 
 
 # --- BARRA STATISTICHE ORIZZONTALE COMPATTA ---
@@ -818,14 +919,14 @@ if db["stato"] != "setup":
           </div>
           <div class="hud-item">
               <div class="hud-label">Fase</div>
-              <div class="hud-value" style="color: #fb7185; font-size: 12px; margin-top: 4px; text-transform: uppercase;">{db.get('stato', 'Gironi')}</div>
+              <div class="hud-value" style="color: #fb7185; font-size: 11px; margin-top: 4px; text-transform: uppercase;">{db.get('stato', 'Gironi')}</div>
           </div>
       </div>
       """,
       unsafe_allow_html=True,
   )
 
-  # --- SELETTORE COPPIA & AVVISO ---
+  # --- SELETTORE COPPIA & ACCESSO LIVE ---
   tutte_le_coppie = []
   for g_lst in db["gironi"].values():
     tutte_le_coppie.extend(g_lst)
@@ -842,7 +943,7 @@ if db["stato"] != "setup":
     coppia_url = "-- Seleziona la tua coppia per accedere --"
 
   coppia_selezionata = st.selectbox(
-      "📱 Seleziona la tua coppia per gestire i risultati in tempo reale:",
+      f"📱 Seleziona la tua coppia per {titolo_corrente}:",
       options=opzioni_selettore,
       index=opzioni_selettore.index(coppia_url),
       key="widget_selezione_coppia",
@@ -852,16 +953,42 @@ if db["stato"] != "setup":
     st.query_params["coppia"] = coppia_selezionata
     st.rerun()
 
+  # --- SISTEMA NOTIFICHE PUSH IN-APP ---
+  if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
+    notifiche_utente = [
+        n
+        for n in db.get("notifiche_app", [])
+        if n["destinatario"] == coppia_selezionata and not n.get("letta", False)
+    ]
+    if notifiche_utente:
+      st.markdown(
+          """
+            <div style="padding: 14px; background: linear-gradient(135deg, #065f46 0%, #064e3b 100%); border: 2px solid #34d399; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 0 20px rgba(52,211,153,0.3);">
+                <h4 style="margin: 0 0 8px 0; color: #34d399;">🔔 NOTIFICHE PUSH RICEVUTE</h4>
+            """,
+          unsafe_allow_html=True,
+      )
+      for n_idx, notif in enumerate(db.get("notifiche_app", [])):
+        if (
+            notif["destinatario"] == coppia_selezionata
+            and not notif.get("letta", False)
+        ):
+          st.info(f"⚡ **{notif['messaggio']}**")
+          if st.button("✔ Ho letto / Chiudi", key=f"leggi_{n_idx}"):
+            notif["letta"] = True
+            salva_dati(db_globale)
+            st.rerun()
+      st.markdown("</div>", unsafe_allow_html=True)
+
   if is_admin:
     st.success(
-        "🛡️ **Modalità Amministratore attiva:** Accesso completo sbloccato senza"
-        " obbligo di selezione coppia."
+        "🛡️ **Modalità Admin attiva:** Accesso completo sbloccato per"
+        f" {titolo_corrente}."
     )
   elif coppia_selezionata == "-- Seleziona la tua coppia per accedere --":
     st.warning(
-        "⚠️ **Attenzione:** Seleziona la tua coppia dal menu a tendina sopra per"
-        " sbloccare la tua dashboard dedicata, visualizzare le tue partite e"
-        " inserire i risultati."
+        "⚠️ Seleziona la tua coppia dal menu a tendina sopra per gestire i"
+        " tuoi risultati."
     )
   else:
     st.success(f"✅ Accesso effettuato come: **{coppia_selezionata}**")
@@ -943,7 +1070,7 @@ if db["stato"] == "gironi":
         "⬅️ Torna alla schermata delle Fasi Finali", use_container_width=True
     ):
       db["stato"] = "fasi_finali"
-      salva_dati(db)
+      salva_dati(db_globale)
       st.rerun()
     st.markdown("---")
 
@@ -1001,7 +1128,7 @@ if db["stato"] == "gironi":
         partite_in_corso.append(prossima_partita)
         cambiato = True
     if cambiato:
-      salva_dati(db)
+      salva_dati(db_globale)
 
   partite_in_corso = sorted(
       partite_in_corso,
@@ -1047,16 +1174,22 @@ if db["stato"] == "gironi":
 
         if is_admin:
           for sq_nome in [m["c1"], m["c2"]]:
-            num_tel = db["telefoni"].get(sq_nome, "")
-            if num_tel:
-              testo_wa = f"Ciao {sq_nome}! Toccate a voi: scendete subito al Tavolo {tavolo_num}! Gestite il risultato qui."
-              link_wa = (
-                  f"https://wa.me/{num_tel}?text={urllib.parse.quote(testo_wa)}"
-              )
-              st.markdown(
-                  f'<a href="{link_wa}" target="_blank"><button style="width:100%; background:#25d366; color:white; border:none; border-radius:10px; padding:6px; font-weight:bold; margin-bottom:4px; cursor:pointer;">💬 Invia WhatsApp a {sq_nome}</button></a>',
-                  unsafe_allow_html=True,
-              )
+            if st.button(
+                f"🔔 Notifica App a {sq_nome}",
+                key=f"push_{sq_nome}_{match_id}",
+            ):
+              if "notifiche_app" not in db:
+                db["notifiche_app"] = []
+              db["notifiche_app"].append({
+                  "destinatario": sq_nome,
+                  "messaggio": (
+                      f"Tocca a voi! Scendete al Tavolo {tavolo_num}!"
+                  ),
+                  "letta": False,
+              })
+              salva_dati(db_globale)
+              st.success(f"Notifica push inviata a {sq_nome}!")
+              st.rerun()
 
         if st.button(
             "🔄 Posticipa di 2",
@@ -1096,7 +1229,7 @@ if db["stato"] == "gironi":
               m["in_corso"] = False
               m["tavolo"] = None
               ricalcola_classifiche_gironi()
-              salva_dati(db)
+              salva_dati(db_globale)
               st.success("Registrato!")
               st.rerun()
 
@@ -1124,16 +1257,19 @@ if db["stato"] == "gironi":
 
         if is_admin:
           for sq_nome in [m["c1"], m["c2"]]:
-            num_tel = db["telefoni"].get(sq_nome, "")
-            if num_tel:
-              testo_wa = f"Ciao {sq_nome}! Siete in coda (posizione #{idx+1}). Preparatevi a salire al tavolo appena si libera!"
-              link_wa = (
-                  f"https://wa.me/{num_tel}?text={urllib.parse.quote(testo_wa)}"
-              )
-              st.markdown(
-                  f'<a href="{link_wa}" target="_blank"><button style="width:100%; background:#25d366; color:white; border:none; border-radius:8px; padding:4px; font-size:11px; font-weight:bold; margin-bottom:4px; cursor:pointer;">💬 Avvisa {sq_nome}</button></a>',
-                  unsafe_allow_html=True,
-              )
+            if st.button(
+                f"🔔 Avviso Coda a {sq_nome}", key=f"push_coda_{sq_nome}_{m['id']}"
+            ):
+              if "notifiche_app" not in db:
+                db["notifiche_app"] = []
+              db["notifiche_app"].append({
+                  "destinatario": sq_nome,
+                  "messaggio": f"Siete in coda (#{idx+1}). Preparatevi!",
+                  "letta": False,
+              })
+              salva_dati(db_globale)
+              st.success(f"Notifica inviata a {sq_nome}!")
+              st.rerun()
 
   st.markdown("---")
   st.subheader("📊 Classifiche dei Gironi")
@@ -1215,13 +1351,13 @@ if db["stato"] == "gironi":
 
       db["stato"] = "fasi_finali"
       db["fasi_finali_configurate"] = True
-      salva_dati(db)
+      salva_dati(db_globale)
       st.success("Fasi finali generate correttamente!")
       st.rerun()
 
 # 3. FASI FINALI
 elif db["stato"] == "fasi_finali":
-  st.subheader("🏆 Fasi Finali: Tabelloni a Eliminazione Diretta")
+  st.subheader(f"🏆 Fasi Finali: {titolo_corrente}")
   tab_a_view, tab_b_view = st.tabs(
       ["⭐ Fascia A (Torneo Principale)", "🔻 Fascia B (Torneo Secondario)"]
   )
@@ -1279,7 +1415,7 @@ elif db["stato"] == "fasi_finali":
             "vincente": None,
         })
       turni_tab.append({"turno": prossimo_t_num, "partite": partite_nuovo_turno})
-    salva_dati(db)
+    salva_dati(db_globale)
 
     for t_idx, turno_obj in enumerate(turni_tab):
       t_num = turno_obj["turno"]
@@ -1314,7 +1450,7 @@ elif db["stato"] == "fasi_finali":
                 dest_match[slot_squadra] = vincitore_corrente
                 dest_match[slot_g] = g_v
                 dest_match[slot_p] = p_v
-                salva_dati(db)
+                salva_dati(db_globale)
 
       for idx, m in enumerate(partite_turno):
         match_id = m["id"]
@@ -1355,7 +1491,7 @@ elif db["stato"] == "fasi_finali":
               ):
                 m["giocata"] = True
                 m["vincente"] = s1_nome
-                salva_dati(db)
+                salva_dati(db_globale)
                 st.rerun()
             with col_v2:
               if st.button(
@@ -1365,7 +1501,7 @@ elif db["stato"] == "fasi_finali":
               ):
                 m["giocata"] = True
                 m["vincente"] = s2_nome
-                salva_dati(db)
+                salva_dati(db_globale)
                 st.rerun()
 
   with tab_a_view:
