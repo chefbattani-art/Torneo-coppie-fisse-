@@ -1,8 +1,8 @@
+from datetime import datetime
 import json
 import os
 import random
 import re
-from datetime import datetime
 from fpdf import FPDF
 import pandas as pd
 import streamlit as st
@@ -412,7 +412,7 @@ if not db["tornei"]:
   )
   st.stop()
 
-lista_tornei_ids = list(db["torneo"].keys()) if "torneo" in db else list(db["tornei"].keys())
+lista_tornei_ids = list(db["tornei"].keys())
 torneo_url = st.query_params.get("torneo", lista_tornei_ids[0])
 if torneo_url not in lista_tornei_ids:
   torneo_url = lista_tornei_ids[0]
@@ -428,7 +428,7 @@ if not tutte_le_coppie and torneo.get("coppie"):
 
 coppia_url = st.query_params.get("coppia", "")
 
-# Se NON siamo admin e la coppia è già nei parametri URL, la impostiamo in automatico senza mostrare i menu a tendina
+# Se NON siamo admin e la coppia è già nei parametri URL, la impostiamo in automatico
 if not is_admin and coppia_url in tutte_le_coppie:
   coppia_selezionata = coppia_url
   st.markdown(
@@ -443,7 +443,6 @@ if not is_admin and coppia_url in tutte_le_coppie:
       unsafe_allow_html=True,
   )
 else:
-  # Mostriamo i selettori se siamo Admin o se manca la coppia nell'URL
   st.markdown(
       """
         <div style="text-align: left; margin-bottom: 10px;">
@@ -497,14 +496,19 @@ else:
 
 if is_admin:
   st.success("🛡️ **Modalità Admin attiva:** Accesso completo sbloccato.")
-elif coppia_selezionata == "-- Seleziona la tua coppia per accedere --" and not coppia_url:
+elif (
+    coppia_selezionata == "-- Seleziona la tua coppia per accedere --"
+    and not coppia_url
+):
   st.warning(
       "⚠️ **Attenzione:** Seleziona la tua coppia dal menu a tendina o usa il"
       " link personale per accedere alla tua dashboard."
   )
   st.stop()
 elif not is_admin:
-  coppia_selezionata = coppia_url if coppia_url in tutte_le_coppie else coppia_selezionata
+  coppia_selezionata = (
+      coppia_url if coppia_url in tutte_le_coppie else coppia_selezionata
+  )
 
 st.markdown("---")
 
@@ -540,7 +544,10 @@ if torneo["stato"] == "setup" or is_admin:
         coppie_pulite = pulisci_testo_whatsapp_e_Estrai_coppie(whatsapp_text)
         num_g = int(torneo["num_gironi"])
         if len(coppie_pulite) < (num_g * 2):
-          st.error(f"Trovate {len(coppie_pulite)} coppie. Ne servono almeno {num_g * 2}.")
+          st.error(
+              f"Trovate {len(coppie_pulite)} coppie. Ne servono almeno"
+              f" {num_g * 2}."
+          )
         else:
           torneo["coppie"] = coppie_pulite
           random.shuffle(coppie_pulite)
@@ -666,7 +673,10 @@ if torneo["stato"] == "gironi":
   )
 
   # --- DASHBOARD PERSONALE CON STATO PARTITA (IN CORSO / CODA) ---
-  if coppia_selezionata and coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
+  if (
+      coppia_selezionata
+      and coppia_selezionata != "-- Seleziona la tua coppia per accedere --"
+  ):
     girone_mio = None
     pos_mia = None
     info_mie = None
@@ -703,9 +713,15 @@ if torneo["stato"] == "gironi":
         mia_posizione_in_coda = idx_coda + 1
         break
 
-    stato_partita_html = "<span style='color: #94a3b8;'>Nessuna partita imminente</span>"
+    stato_partita_html = (
+        "<span style='color: #94a3b8;'>Nessuna partita imminente</span>"
+    )
     if mia_partita_in_corso:
-      avversario = mia_partita_in_corso['c2'] if mia_partita_in_corso['c1'] == coppia_selezionata else mia_partita_in_corso['c1']
+      avversario = (
+          mia_partita_in_corso["c2"]
+          if mia_partita_in_corso["c1"] == coppia_selezionata
+          else mia_partita_in_corso["c1"]
+      )
       stato_partita_html = f"<span style='color: #f59e0b; font-weight: bold;'>🔥 IN CAMPO (Tavolo {mia_partita_in_corso.get('tavolo')}) contro {avversario}</span>"
     elif mia_posizione_in_coda:
       stato_partita_html = f"<span style='color: #34d399; font-weight: bold;'>⏳ In coda (Posizione {mia_posizione_in_coda})</span>"
@@ -753,8 +769,10 @@ if torneo["stato"] == "gironi":
             else f"<b>🏟️ In campo - {m['girone']}</b>"
         )
         match_id = m["id"]
-        
-        sono_interessato = (coppia_selezionata == m["c1"] or coppia_selezionata == m["c2"])
+
+        sono_interessato = (
+            coppia_selezionata == m["c1"] or coppia_selezionata == m["c2"]
+        )
 
         st.markdown(
             f"""
@@ -829,7 +847,7 @@ if torneo["stato"] == "gironi":
         )
 
   st.markdown("---")
-  
+
   # --- ELENCO COMPLETO DI TUTTE LE PARTITE DI TUTTI I GIRONI ---
   st.subheader("📅 Elenco Completo di Tutte le Partite")
   for g_nome, turni_lista in torneo["calendario_gironi"].items():
@@ -838,7 +856,8 @@ if torneo["stato"] == "gironi":
         st.markdown(f"**Turno {turno_obj['turno']}**")
         for m in turno_obj["partite"]:
           ris_str = (
-              f"<span style='color: #4ade80; font-weight: bold;'>{m['gol1']} - {m['gol2']}</span>"
+              f"<span style='color: #4ade80; font-weight:"
+              f" bold;'>{m['gol1']} - {m['gol2']}</span>"
               if m.get("giocata", False)
               else "<span style='color: #f59e0b;'>Da giocare</span>"
           )
@@ -862,7 +881,8 @@ if torneo["stato"] == "gironi":
         g_nome = nomi_gironi_chiavi[i + j]
         with col_gironi[j]:
           st.markdown(
-              f"<h3 style='text-align: center; font-size: 22px; color: #00f0ff;'>📁 {g_nome}</h3>",
+              f"<h3 style='text-align: center; font-size: 22px; color:"
+              f" #00f0ff;'>📁 {g_nome}</h3>",
               unsafe_allow_html=True,
           )
           renderizza_classifica_stile_card(torneo, g_nome)
