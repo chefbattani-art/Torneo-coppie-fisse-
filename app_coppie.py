@@ -29,14 +29,6 @@ st.markdown(
             background: linear-gradient(180deg, #130f26, #070510);
             border-right: 1px solid #2e1a47;
         }
-        .cyber-card {
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.7) 100%);
-            border: 1px solid #00f0ff;
-            border-radius: 14px;
-            padding: 16px;
-            margin-bottom: 14px;
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
-        }
         .match-live-card {
             background: linear-gradient(135deg, #2b1f07 0%, #120d02 100%);
             border: 2px solid #f59e0b;
@@ -670,7 +662,7 @@ if torneo["stato"] == "gironi":
       key=lambda x: x.get("tavolo") if x.get("tavolo") is not None else 999,
   )
 
-  # --- DASHBOARD PERSONALE CON LAYOUT A BLOCCHI SFALSATI ---
+  # --- DASHBOARD PERSONALE CON COMPONENTI NATIVI (ZERO ERRORI DI RENDERING) ---
   if (
       coppia_selezionata
       and coppia_selezionata != "-- Seleziona la tua coppia per accedere --"
@@ -711,32 +703,39 @@ if torneo["stato"] == "gironi":
         mia_posizione_in_coda = idx_coda + 1
         break
 
-    # HTML Card Principale formattata correttamente
+    # Sezione Card Riepilogo Squadra pulita con layout nativo
     st.markdown(
         f"""
-        <div class="cyber-card" style="border-color: #00f0ff; padding: 18px;">
+        <div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.7) 100%); border: 1px solid #00f0ff; border-radius: 14px; padding: 18px; margin-bottom: 14px; box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);">
             <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #f472b6; font-weight: bold; margin-bottom: 4px;">RIEPILOGO SQUADRA</div>
             <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 14px; text-shadow: 0 0 10px rgba(255,255,255,0.3);">🤝 {coppia_selezionata}</div>
-            
-            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid #1e3a8a; border-radius: 12px; padding: 14px; flex: 1; text-align: center;">
-                    <div style="font-size: 10px; color: #94a3b8; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px;">GIRONE</div>
-                    <div style="font-size: 18px; font-weight: 800; color: #00f0ff; text-shadow: 0 0 10px rgba(0,240,255,0.4);">{girone_mio if girone_mio else 'N.D.'}</div>
-                </div>
-                <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid #1e3a8a; border-radius: 12px; padding: 14px; flex: 1; text-align: center;">
-                    <div style="font-size: 10px; color: #94a3b8; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px;">POSIZIONE</div>
-                    <div style="font-size: 18px; font-weight: 800; color: #4ade80; text-shadow: 0 0 10px rgba(74,222,128,0.4);">{str(pos_mia) + '° posto' if pos_mia else 'N.D.'}</div>
-                </div>
-            </div>
-
-            <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid #f59e0b; border-radius: 12px; padding: 14px; text-align: center;">
-                <div style="font-size: 10px; color: #94a3b8; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px;">PUNTI / DR</div>
-                <div style="font-size: 20px; font-weight: 800; color: #fbbf24;">{info_mie['punti'] if info_mie else 0} pt <span style="font-size: 12px; font-weight: normal; color: #94a3b8;">(DR: {info_mie['dr'] if info_mie else 0})</span></div>
-            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    c_col1, c_col2 = st.columns(2)
+    with c_col1:
+      st.metric(
+          label="📁 GIRONE", value=str(girone_mio) if girone_mio else "N.D."
+      )
+    with c_col2:
+      st.metric(
+          label="🏆 POSIZIONE",
+          value=(str(pos_mia) + "° posto" if pos_mia else "N.D."),
+      )
+
+    st.metric(
+        label="⭐ PUNTI / DR",
+        value=f"{info_mie['punti'] if info_mie else 0} pt",
+        delta=(
+            f"DR: {info_mie['dr']:+d}"
+            if info_mie
+            else "DR: 0"
+        ),
+    )
+
+    st.markdown("<br>", unsafe_allow_html=True)
 
     # Box Stato / Coda sotto la card principale
     if mia_partita_in_corso:
@@ -749,7 +748,7 @@ if torneo["stato"] == "gironi":
           f"""
             <div style="background: linear-gradient(135deg, #2b1f07 0%, #120d02 100%); border: 1.5px solid #f59e0b; padding: 14px; border-radius: 12px; margin-bottom: 14px; text-align: center;">
                 <div style="font-size: 12px; color: #f59e0b; font-weight: bold; margin-bottom: 4px;">🔥 PARTITA IN CORSO</div>
-                <div style="font-size: 14px; color: #ffffff;">La tua coppia è in campo al <b>Tavolo {mia_partita_in_corso.get('tavolo')}</b> contro <b>{avversario}</b>!</div>
+                <div style="font-size: 14px; color: #ffffff;"> La tua coppia è in campo al <b>Tavolo {mia_partita_in_corso.get('tavolo')}</b> contro <b>{avversario}</b>!</div>
             </div>
             """,
           unsafe_allow_html=True,
@@ -759,7 +758,7 @@ if torneo["stato"] == "gironi":
           f"""
             <div style="background: linear-gradient(135deg, #06241a 0%, #030f0a 100%); border: 1.5px solid #10b981; padding: 14px; border-radius: 12px; margin-bottom: 14px; text-align: center;">
                 <div style="font-size: 12px; color: #34d399; font-weight: bold; margin-bottom: 4px;">⏳ PARTITE IN CODA</div>
-                <div style="font-size: 14px; color: #ffffff;">La tua coppia è in posizione <b>#{mia_posizione_in_coda}</b> nella coda d'attesa per il prossimo biliardino libero. Teniti pronto!</div>
+                <div style="font-size: 14px; color: #ffffff;"> La tua coppia è in posizione <b>#{mia_posizione_in_coda}</b> nella coda d'attesa per il prossimo biliardino libero. Teniti pronto!</div>
             </div>
             """,
           unsafe_allow_html=True,
