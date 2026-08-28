@@ -767,10 +767,10 @@ if is_admin:
                     "gol1": 0,
                     "gol2": 0,
                 })
-            turni_turno.append({"turno": t + 1, "partite": partite_turno})
+            turni_girone.append({"turno": t + 1, "partite": partite_turno})
             squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
 
-          calendario_totale[g_nome] = turni_turno
+          calendario_totale[g_nome] = turni_girone
 
         db["calendario_gironi"] = calendario_totale
         db["stato"] = "gironi"
@@ -988,78 +988,6 @@ if db["stato"] == "setup":
           value=int(db["num_gironi"]),
       )
     db["admin_pin"] = st.text_input("Cambia PIN Admin", value=db["admin_pin"])
-    
-    # --- AGGIUNTA DEL PULSANTE AVVIA TORNEO QUI SOTTO ---
-    st.markdown("---")
-    if st.button("🚀 Avvia Torneo", type="primary", use_container_width=True):
-      coppie_presenti = db.get("coppie", [])
-      num_g = int(db.get("num_gironi", 4))
-      min_coppie_richieste = num_g * 2
-      
-      if len(coppie_presenti) < min_coppie_richieste:
-        st.error(f"Servono almeno {min_coppie_richieste} coppie per avviare il torneo! (Attualmente ce ne sono {len(coppie_presenti)})")
-      else:
-        random.shuffle(coppie_presenti)
-        nomi_gironi = [chr(65 + i) for i in range(num_g)]
-        gironi_dict = {f"Girone {g}": [] for g in nomi_gironi}
-
-        for idx, c in enumerate(coppie_presenti):
-          g_scelto = f"Girone {nomi_gironi[idx % num_g]}"
-          gironi_dict[g_scelto].append(c)
-
-        db["gironi"] = gironi_dict
-        db["punti_gironi"] = {
-            g: {
-                c: {
-                    "punti": 0,
-                    "gf": 0,
-                    "gs": 0,
-                    "dr": 0,
-                    "scontri_diretti_pt": 0,
-                }
-                for c in lst
-            }
-            for g, lst in gironi_dict.items()
-        }
-
-        calendario_totale = {}
-        for g_nome, lista_c in gironi_dict.items():
-          squadre = lista_c.copy()
-          if len(squadre) % 2 != 0:
-            squadre.append("RIPOSO")
-
-          n = len(squadre)
-          turni_girone = []
-
-          for t in range(n - 1):
-            partite_turno = []
-            for i in range(n // 2):
-              s1 = squadre[i]
-              s2 = squadre[n - 1 - i]
-              if s1 != "RIPOSO" and s2 != "RIPOSO":
-                match_id = f"{g_nome}_t{t+1}_m{i}"
-                partite_turno.append({
-                    "id": match_id,
-                    "girone": g_nome,
-                    "c1": s1,
-                    "c2": s2,
-                    "giocata": False,
-                    "in_corso": False,
-                    "tavolo": None,
-                    "gol1": 0,
-                    "gol2": 0,
-                })
-            turni_turno.append({"turno": t + 1, "partite": partite_turno})
-            squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
-
-          calendario_totale[g_nome] = turni_turno
-
-        db["calendario_gironi"] = calendario_totale
-        db["stato"] = "gironi"
-        salva_dati(db_globale)
-        st.success("Torneo avviato con successo! Ricarico...")
-        st.rerun()
-
     salva_dati(db_globale)
 
 
