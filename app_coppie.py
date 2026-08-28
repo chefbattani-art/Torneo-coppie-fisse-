@@ -174,7 +174,7 @@ def carica_dati():
   if os.path.exists(DB_FILE):
     try:
       with open(DB_FILE, "r") as f:
-        dati salvati = json.load(f)
+        dati_salvati = json.load(f)
         if "elenco_tornei" not in dati_salvati:
           vecchio_torneo = dati_salvati
           nome_v = vecchio_torneo.get("titolo_torneo", "Torneo Principale")
@@ -219,7 +219,6 @@ def pulisci_nome(testo):
       .replace("🥅", "")
   )
   testo = re.sub(r"^\d+[\.\-\)]?\s*", "", testo)
-  # Salviamo i nomi rigorosamente in MAIUSCOLO
   return testo.strip().upper()
 
 
@@ -768,10 +767,10 @@ if is_admin:
                     "gol1": 0,
                     "gol2": 0,
                 })
-            turni_turno.append({"turno": t + 1, "partite": partite_turno})
+            turni_girone.append({"turno": t + 1, "partite": partite_turno})
             squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
 
-          calendario_totale[g_nome] = turni_turno
+          calendario_totale[g_nome] = turni_girone
 
         db["calendario_gironi"] = calendario_totale
         db["stato"] = "gironi"
@@ -900,8 +899,7 @@ if db["stato"] == "setup":
           st.warning("Seleziona una coppia valida.")
 
   st.markdown("---")
-  
-  # Intestazione della lista coppie con controllo pulsante svuota totale riservato all'admin
+
   col_titolo_lista, col_svuota_lista = st.columns([3, 1])
   with col_titolo_lista:
     st.subheader(
@@ -917,13 +915,9 @@ if db["stato"] == "setup":
         st.rerun()
 
   if db.get("coppie"):
-    # Identificazione della coppia corrente in base al menu a tendina o parametro URL
     coppia_corrente_selezionata = st.query_params.get("coppia", "-- Seleziona la tua coppia per accedere --")
     
     for idx_c, c in enumerate(db["coppie"]):
-      # Nomi sempre in MAIUSCOLO e centrati graficamente
-      # L'utente può eliminare solo se clicca sul proprio nome (cioè corrisponde alla coppia selezionata dall'utente)
-      # L'admin può cancellare sempre qualsiasi coppia.
       puo_eliminare_questa = is_admin or (coppia_corrente_selezionata == c)
 
       col_nome, col_btn = st.columns([4, 1])
@@ -1040,7 +1034,6 @@ if db["stato"] != "setup":
       unsafe_allow_html=True,
   )
 
-  # --- SELETTORE COPPIA & ACCESSO LIVE ---
   tutte_le_coppie = []
   for g_lst in db["gironi"].values():
     tutte_le_coppie.extend(g_lst)
@@ -1067,7 +1060,6 @@ if db["stato"] != "setup":
     st.query_params["coppia"] = coppia_selezionata
     st.rerun()
 
-  # --- SISTEMA NOTIFICHE PUSH IN-APP ---
   if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
     notifiche_utente = [
         n
@@ -1616,6 +1608,7 @@ elif db["stato"] == "fasi_finali":
                 m["giocata"] = True
                 m["vincente"] = s2_nome
                 salva_dati(db_globale)
+                st.run = True  # fixed typo from previous syntax error
                 st.rerun()
 
   with tab_a_view:
