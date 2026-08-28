@@ -662,7 +662,7 @@ if torneo["stato"] == "gironi":
       key=lambda x: x.get("tavolo") if x.get("tavolo") is not None else 999,
   )
 
-  # --- DASHBOARD PERSONALE CON COMPONENTI NATIVI (ZERO ERRORI DI RENDERING) ---
+  # --- DASHBOARD PERSONALE CON COMPONENTI NATIVI ---
   if (
       coppia_selezionata
       and coppia_selezionata != "-- Seleziona la tua coppia per accedere --"
@@ -703,7 +703,7 @@ if torneo["stato"] == "gironi":
         mia_posizione_in_coda = idx_coda + 1
         break
 
-    # Sezione Card Riepilogo Squadra pulita con layout nativo
+    # Sezione Card Riepilogo Squadra
     st.markdown(
         f"""
         <div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.7) 100%); border: 1px solid #00f0ff; border-radius: 14px; padding: 18px; margin-bottom: 14px; box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);">
@@ -728,31 +728,62 @@ if torneo["stato"] == "gironi":
     st.metric(
         label="⭐ PUNTI / DR",
         value=f"{info_mie['punti'] if info_mie else 0} pt",
-        delta=(
-            f"DR: {info_mie['dr']:+d}"
-            if info_mie
-            else "DR: 0"
-        ),
+        delta=(f"DR: {info_mie['dr']:+d}" if info_mie else "DR: 0"),
     )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Box Stato / Coda sotto la card principale
+    # Box Stato / Coda e inserimento risultato integrato
     if mia_partita_in_corso:
       avversario = (
           mia_partita_in_corso["c2"]
           if mia_partita_in_corso["c1"] == coppia_selezionata
           else mia_partita_in_corso["c1"]
       )
+      match_id_mio = mia_partita_in_corso["id"]
+
       st.markdown(
           f"""
-            <div style="background: linear-gradient(135deg, #2b1f07 0%, #120d02 100%); border: 1.5px solid #f59e0b; padding: 14px; border-radius: 12px; margin-bottom: 14px; text-align: center;">
+            <div style="background: linear-gradient(135deg, #2b1f07 0%, #120d02 100%); border: 1.5px solid #f59e0b; padding: 14px; border-radius: 12px; margin-bottom: 10px; text-align: center;">
                 <div style="font-size: 12px; color: #f59e0b; font-weight: bold; margin-bottom: 4px;">🔥 PARTITA IN CORSO</div>
-                <div style="font-size: 14px; color: #ffffff;"> La tua coppia è in campo al <b>Tavolo {mia_partita_in_corso.get('tavolo')}</b> contro <b>{avversario}</b>!</div>
+                <div style="font-size: 14px; color: #ffffff;">Sei in campo al <b>Tavolo {mia_partita_in_corso.get('tavolo')}</b> contro <b>{avversario}</b>!</div>
             </div>
             """,
           unsafe_allow_html=True,
       )
+
+      with st.expander("📝 Inserisci il Risultato Finale", expanded=True):
+        gol_p1 = st.number_input(
+            f"Gol {mia_partita_in_corso['c1']}",
+            min_value=0,
+            max_value=10,
+            value=int(mia_partita_in_corso.get("gol1", 0)),
+            key=f"m_g1_{match_id_mio}",
+        )
+        gol_p2 = st.number_input(
+            f"Gol {mia_partita_in_corso['c2']}",
+            min_value=0,
+            max_value=10,
+            value=int(mia_partita_in_corso.get("gol2", 0)),
+            key=f"m_g2_{match_id_mio}",
+        )
+        if st.button(
+            "✅ Salva Risultato e Avanza Torneo",
+            key=f"m_save_{match_id_mio}",
+            use_container_width=True,
+        ):
+          mia_partita_in_corso["gol1"] = int(gol_p1)
+          mia_partita_in_corso["gol2"] = int(gol_p2)
+          mia_partita_in_corso["giocata"] = True
+          mia_partita_in_corso["in_corso"] = False
+          mia_partita_in_corso["tavolo"] = None
+          ricalcola_classifiche_gironi(torneo)
+          salva_dati(db)
+          st.success(
+              "Risultato salvato con successo! Il torneo è stato aggiornato."
+          )
+          st.rerun()
+
     elif mia_posizione_in_coda:
       st.markdown(
           f"""
