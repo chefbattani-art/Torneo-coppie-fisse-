@@ -44,16 +44,20 @@ st.markdown(
         h1 {
             text-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
         }
-        div.stButton > button {
-            border-radius: 8px;
+        /* Forza i bottoni a restare compatti e allineati in orizzontale */
+        div.stHorizontalBlock div.stButton > button {
+            border-radius: 6px;
             font-weight: 700;
             border: 1px solid #00f0ff;
             background: linear-gradient(180deg, #1e3a8a, #0f172a);
             color: #f3e8ff;
+            width: 100% !important;
+            min-width: 0px !important;
+            padding: 4px 2px !important;
+            font-size: 13px !important;
             transition: all 0.3s ease;
-            padding: 4px 0px;
         }
-        div.stButton > button:hover {
+        div.stHorizontalBlock div.stButton > button:hover {
             border-color: #38bdf8;
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
             color: #ffffff;
