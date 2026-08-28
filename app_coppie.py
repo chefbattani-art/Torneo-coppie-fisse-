@@ -712,34 +712,21 @@ if torneo["stato"] == "gironi":
     pos_str = f"{pos_mia}° POSTO" if pos_mia else "N.D."
     girone_str = girone_mio if girone_mio else "N.D."
 
-    st.markdown(
-        f"""
-        <div style="background: linear-gradient(135deg, rgba(20, 10, 40, 0.95) 0%, rgba(10, 5, 20, 0.95) 100%); 
-                    border: 2px solid #ff007f; border-radius: 10px; padding: 10px; margin-bottom: 8px; 
-                    box-shadow: 0 0 15px rgba(255, 0, 127, 0.4); position: relative;">
-            <div style="position: absolute; top: -8px; right: 12px; background: #ff007f; color: #fff; font-size: 7px; padding: 1px 6px; border-radius: 4px; font-weight: bold; letter-spacing: 1px;">PLAYER HUD</div>
-            
-            <div style="font-size: 8px; text-transform: uppercase; letter-spacing: 2px; color: #00ffff; font-weight: bold;">SQUADRA ATTIVA</div>
-            <div style="font-size: 16px; font-weight: 900; color: #ffffff; text-shadow: 0 0 8px rgba(255,255,255,0.6); margin-bottom: 6px;">🎮 {coppia_selezionata}</div>
-            
-            <div style="display: flex; justify-content: space-between; background: rgba(0,0,0,0.4); padding: 6px; border-radius: 6px; border: 1px solid #00ffff33; text-align: center;">
-                <div>
-                    <span style="font-size: 7px; color: #a5b4fc; display: block;">GIRONE</span>
-                    <span style="font-size: 12px; font-weight: 800; color: #00ffff;">{girone_str}</span>
-                </div>
-                <div>
-                    <span style="font-size: 7px; color: #a5b4fc; display: block;">RANKING</span>
-                    <span style="font-size: 12px; font-weight: 800; color: #ffd700;">{pos_str}</span>
-                </div>
-                <div>
-                    <span style="font-size: 7px; color: #a5b4fc; display: block;">STATS (PT/DR)</span>
-                    <span style="font-size: 12px; font-weight: 800; color: #4ade80;">{punti_val} pt ({dr_str})</span>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    with st.container(border=True):
+      st.markdown(
+          "<span style='color: #ff007f; font-size: 9px; font-weight: bold;"
+          " letter-spacing: 1px;'>PLAYER HUD</span>",
+          unsafe_allow_html=True,
+      )
+      st.markdown(f"### 🎮 {coppia_selezionata}", unsafe_allow_html=True)
+
+      c1, c2, c3 = st.columns(3)
+      with c1:
+        st.metric("GIRONE", girone_str)
+      with c2:
+        st.metric("RANKING", pos_str)
+      with c3:
+        st.metric("STATS (PT/DR)", f"{punti_val} ({dr_str})")
 
     if mia_partita_in_corso:
       avversario = (
@@ -761,7 +748,8 @@ if torneo["stato"] == "gironi":
 
       with st.expander("📝 Inserisci / Modifica Risultato Match", expanded=True):
         st.markdown(
-            f"<span style='font-size:10px;'><b>Gol {mia_partita_in_corso['c1']}</b></span>",
+            f"<span style='font-size:10px;'><b>Gol"
+            f" {mia_partita_in_corso['c1']}</b></span>",
             unsafe_allow_html=True,
         )
         cols_g1 = st.columns(8)
@@ -781,7 +769,8 @@ if torneo["stato"] == "gironi":
               st.rerun()
 
         st.markdown(
-            f"<span style='font-size:10px;'><b>Gol {mia_partita_in_corso['c2']}</b></span>",
+            f"<span style='font-size:10px;'><b>Gol"
+            f" {mia_partita_in_corso['c2']}</b></span>",
             unsafe_allow_html=True,
         )
         cols_g2 = st.columns(8)
