@@ -479,7 +479,7 @@ else:
   opzioni_selettore = ["-- Seleziona la tua coppia per accedere --"] + sorted(
       tutte_le_coppie
   )
-  coppia_url_ current = st.query_params.get(
+  coppia_url_current = st.query_params.get(
       "coppia", "-- Seleziona la tua coppia per accedere --"
   )
   if coppia_url_current not in opzioni_selettore:
@@ -691,7 +691,6 @@ if torneo["stato"] == "gironi":
               info_mie = stats
         break
 
-    # Controlliamo se la nostra coppia ha una partita in corso o in coda
     mia_partita_in_corso = None
     for p in partite_in_corso:
       if p["c1"] == coppia_selezionata or p["c2"] == coppia_selezionata:
@@ -755,7 +754,6 @@ if torneo["stato"] == "gironi":
         )
         match_id = m["id"]
         
-        # Permesso di posticipare o inserire risultati solo se admin o coppia interessata
         sono_interessato = (coppia_selezionata == m["c1"] or coppia_selezionata == m["c2"])
 
         st.markdown(
@@ -770,7 +768,6 @@ if torneo["stato"] == "gironi":
             unsafe_allow_html=True,
         )
 
-        # Mostra il tasto posticipa solo alla coppia interessata o all'admin
         if is_admin or sono_interessato:
           if st.button(
               "🔄 Posticipa di 2 partite",
