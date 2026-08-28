@@ -174,7 +174,7 @@ def carica_dati():
   if os.path.exists(DB_FILE):
     try:
       with open(DB_FILE, "r") as f:
-        dati_salvati = json.load(f)
+        dati salvati = json.load(f)
         if "elenco_tornei" not in dati_salvati:
           vecchio_torneo = dati_salvati
           nome_v = vecchio_torneo.get("titolo_torneo", "Torneo Principale")
@@ -219,11 +219,11 @@ def pulisci_nome(testo):
       .replace("🥅", "")
   )
   testo = re.sub(r"^\d+[\.\-\)]?\s*", "", testo)
-  return testo.strip()
+  # Salviamo i nomi rigorosamente in MAIUSCOLO
+  return testo.strip().upper()
 
 
 def estrai_e_aggiungi_lista_massiva(testo_grezzo):
-  # Filtra e scarta righe di servizio tipiche dei messaggi WhatsApp (es. prezzi, orari, intestazioni)
   parole_da_scartare = [
       "torneo",
       "iscrizioni",
@@ -259,7 +259,6 @@ def estrai_e_aggiungi_lista_massiva(testo_grezzo):
     pulita = pulisci_nome(pulita)
 
     if pulita:
-      # Controlla se la linea contiene parole di servizio da ignorare
       linea_lower = pulita.lower()
       salta = False
       for parola in parole_da_scartare:
@@ -270,8 +269,6 @@ def estrai_e_aggiungi_lista_massiva(testo_grezzo):
       if salta:
         continue
 
-      # Verifica che la riga contenga almeno uno spazio (cioè Nome e Cognome / Due nomi della coppia)
-      # o che sia una stringa valida formata da almeno due parole
       pezzi = re.split(r"[\/\+\-\&]|\s{2,}", pulita)
       if len(pezzi) >= 2 or " " in pulita:
         p_fin = pulita
@@ -387,7 +384,7 @@ def renderizza_classifica_stile_card(g_nome):
     bg_gradient = (
         "linear-gradient(135deg, rgba(6, 36, 26, 0.8) 0%, rgba(3, 15, 10, 0.8) 100%)"
         if is_fascia_a
-        else "linear-gradient(135deg, rgba(36, 6, 15, 0.8) 0%, rgba(15, 3, 7, 0.8) 100%)"
+        else "linear-gradient(135deg, rgba(36, 6, 15, 0.8) 15%, rgba(15, 3, 7, 0.8) 100%)"
     )
     shadow_color = (
         "rgba(74, 222, 128, 0.2)" if is_fascia_a else "rgba(248, 113, 113, 0.2)"
@@ -400,7 +397,7 @@ def renderizza_classifica_stile_card(g_nome):
             <div style="display: flex; align-items: center; gap: 12px;">
                 <div style="width: 10px; height: 10px; background-color: {dot_color}; border-radius: 50%; box-shadow: 0 0 8px {dot_color};"></div>
                 <span style="font-size: 16px; font-weight: 800; color: {dot_color}; min-width: 30px;">{idx+1}°</span>
-                <span style="font-size: 15px; font-weight: bold; color: #ffffff;">⚽🏆 {coppia}</span>
+                <span style="font-size: 15px; font-weight: bold; color: #ffffff; text-transform: uppercase;">⚽🏆 {coppia}</span>
             </div>
             <div style="display: flex; gap: 14px; text-align: right; font-size: 13px;">
                 <div>
@@ -427,13 +424,13 @@ def genera_pdf_coppie():
   pdf.add_page()
   pdf.set_font("Arial", "B", 16)
   pdf.cell(
-      0, 10, f"Torneo: {db.get('titolo_torneo', 'Calciobalilla')}", 0, 1, "C"
+      0, 10, f"Torneo: {db.get('titolo_torneo', 'Calciobalilla')}".upper(), 0, 1, "C"
   )
   pdf.set_font("Arial", "", 11)
   pdf.cell(
       0,
       6,
-      f"Giorno: {db.get('giorno_settimana', 'N/D')} - Schema Gironi",
+      f"Giorno: {db.get('giorno_settimana', 'N/D')} - Schema Gironi".upper(),
       0,
       1,
       "C",
@@ -442,10 +439,10 @@ def genera_pdf_coppie():
 
   for g_nome, turni in db["calendario_gironi"].items():
     pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, f"--- {g_nome} ---", 0, 1, "L")
+    pdf.cell(0, 10, f"--- {g_nome.upper()} ---", 0, 1, "C")
     for turno_obj in turni:
       pdf.set_font("Arial", "B", 11)
-      pdf.cell(0, 7, f"Turno {turno_obj['turno']}", 0, 1, "L")
+      pdf.cell(0, 7, f"Turno {turno_obj['turno']}", 0, 1, "C")
       pdf.set_font("Arial", "", 10)
       for idx, m in enumerate(turno_obj["partite"]):
         risultato = (
@@ -453,14 +450,14 @@ def genera_pdf_coppie():
             if m.get("giocata", False)
             else "Da giocare"
         )
-        riga = f"  {m['c1']} VS {m['c2']} -> {risultato}"
+        riga = f"{m['c1']} VS {m['c2']} -> {risultato}"
         pdf.cell(
             0,
             6,
             riga.encode("latin-1", "ignore").decode("latin-1"),
             0,
             1,
-            "L",
+            "C",
         )
       pdf.ln(2)
   return bytes(pdf.output())
@@ -640,7 +637,7 @@ if is_admin:
         "Crea e Attiva Torneo", use_container_width=True
     )
     if submit_nuovo_t:
-      nuovo_nome_pulito = nuovo_nome.strip()
+      nuovo_nome_pulito = nuovo_nome.strip().upper()
       if not nuovo_nome_pulito:
         st.sidebar.error("Inserisci un nome valido.")
       elif nuovo_nome_pulito in db_globale["elenco_tornei"]:
@@ -671,7 +668,6 @@ if is_admin:
   if db["stato"] == "setup":
     st.sidebar.subheader("➕ Gestione Coppie (Admin)")
 
-    # 1. Inserimento singolo
     with st.sidebar.form("form_admin_aggiungi_coppia", clear_on_submit=True):
       nome_admin_coppia = st.text_input("Aggiungi 1 Coppia (es. denny luigi)")
       submit_admin_add = st.form_submit_button(
@@ -689,7 +685,6 @@ if is_admin:
           st.sidebar.success(f"Aggiunta: {pulito_admin}")
           st.rerun()
 
-    # 2. Inserimento massivo da lista incollata
     with st.sidebar.form("form_admin_massiva"):
       testo_massivo = st.sidebar.text_area(
           "Incolla qui l'intera lista di coppie (es. WhatsApp)"
@@ -776,7 +771,7 @@ if is_admin:
             turni_turno.append({"turno": t + 1, "partite": partite_turno})
             squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
 
-          calendario_totale[g_nome] = turni_girone
+          calendario_totale[g_nome] = turni_turno
 
         db["calendario_gironi"] = calendario_totale
         db["stato"] = "gironi"
@@ -905,21 +900,49 @@ if db["stato"] == "setup":
           st.warning("Seleziona una coppia valida.")
 
   st.markdown("---")
-  st.subheader(
-      f"📋 Coppie Iscritte a {titolo_corrente} ({len(db.get('coppie', []))}/"
-      f"{int(db.get('num_gironi', 4)) * 2} min)"
-  )
   
+  # Intestazione della lista coppie con controllo pulsante svuota totale riservato all'admin
+  col_titolo_lista, col_svuota_lista = st.columns([3, 1])
+  with col_titolo_lista:
+    st.subheader(
+        f"📋 Coppie Iscritte a {titolo_corrente} ({len(db.get('coppie', []))}/"
+        f"{int(db.get('num_gironi', 4)) * 2} min)"
+    )
+  with col_svuota_lista:
+    if is_admin and db.get("coppie"):
+      if st.button("🗑️ Elimina Tutte", use_container_width=True, key="btn_elimina_tutte_coppie"):
+        db["coppie"] = []
+        salva_dati(db_globale)
+        st.success("Tutte le coppie sono state eliminate con successo!")
+        st.rerun()
+
   if db.get("coppie"):
+    # Identificazione della coppia corrente in base al menu a tendina o parametro URL
+    coppia_corrente_selezionata = st.query_params.get("coppia", "-- Seleziona la tua coppia per accedere --")
+    
     for idx_c, c in enumerate(db["coppie"]):
+      # Nomi sempre in MAIUSCOLO e centrati graficamente
+      # L'utente può eliminare solo se clicca sul proprio nome (cioè corrisponde alla coppia selezionata dall'utente)
+      # L'admin può cancellare sempre qualsiasi coppia.
+      puo_eliminare_questa = is_admin or (coppia_corrente_selezionata == c)
+
       col_nome, col_btn = st.columns([4, 1])
       with col_nome:
-        st.markdown(f"- **{c}**")
+        st.markdown(
+            f"<div style='text-align: center; font-weight: bold; font-size: 16px; text-transform: uppercase; margin-top: 8px;'>{c}</div>",
+            unsafe_allow_html=True,
+        )
       with col_btn:
-        if st.button("❌ Elimina", key=f"del_coppia_{idx_c}", use_container_width=True):
-          db["coppie"].remove(c)
-          salva_dati(db_globale)
-          st.rerun()
+        if puo_eliminare_questa:
+          if st.button("❌ Elimina", key=f"del_coppia_{idx_c}", use_container_width=True):
+            db["coppie"].remove(c)
+            salva_dati(db_globale)
+            st.rerun()
+        else:
+          st.markdown(
+              "<div style='text-align: center; color: #64748b; font-size: 12px; margin-top: 10px;'>🔒 (Tua)</div>",
+              unsafe_allow_html=True,
+          )
   else:
     st.info("Nessuna coppia iscritta per questo torneo al momento.")
 
@@ -929,7 +952,7 @@ if db["stato"] == "setup":
     db["titolo_torneo"] = st.text_input(
         "🏷️ Nome del Torneo",
         value=db.get("titolo_torneo", "Torneo"),
-    )
+    ).upper()
     db["giorno_settimana"] = st.selectbox(
         "📅 Giorno della settimana",
         [
@@ -954,7 +977,7 @@ if db["stato"] == "setup":
     db["sottotitolo_torneo"] = st.text_input(
         "📝 Descrizione Serata",
         value=db.get("sottotitolo_torneo", "🏆 TORNEO LIVE 🏆"),
-    )
+    ).upper()
     col_t, col_g = st.columns(2)
     with col_t:
       db["num_tavoli"] = st.number_input(
@@ -1131,7 +1154,7 @@ if db["stato"] != "setup":
             f"""
             <div class="cyber-card" style="border-color: #00f0ff; text-align: left; padding: 20px;">
                 <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #00f0ff; font-weight: bold; margin-bottom: 2px;">LA TUA COPPIA</div>
-                <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 14px; text-shadow: 0 0 10px rgba(0,240,255,0.4);">🤝 {coppia_selezionata}</div>
+                <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 14px; text-shadow: 0 0 10px rgba(0,240,255,0.4); text-transform: uppercase;">🤝 {coppia_selezionata}</div>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #1e3a8a; border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; text-align: center;">
                         <div style="font-size: 10px; color: #94a3b8; font-weight: bold;">POSIZIONE</div>
@@ -1158,7 +1181,7 @@ if db["stato"] == "gironi":
 
   if db.get("fasi_finali_configurate", False) and is_admin:
     if st.button(
-        "⬅️ Torna alla schermata delle Fasi Finali", use_container_width=True
+        "⬅️ Torna temporaneamente alla schermata delle Fasi Finali", use_container_width=True
     ):
       db["stato"] = "fasi_finali"
       salva_dati(db_globale)
@@ -1251,9 +1274,9 @@ if db["stato"] == "gironi":
                     <span style="font-size: 11px; color: #fbbf24; font-weight: bold;">{m['girone']}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; margin-bottom: 6px;">
-                    <span style="font-weight: bold; color: #ffffff; font-size: 14px;">{m['c1']}</span>
+                    <span style="font-weight: bold; color: #ffffff; font-size: 14px; text-transform: uppercase;">{m['c1']}</span>
                     <span style="font-size: 12px; color: #94a3b8; font-weight: bold;">VS</span>
-                    <span style="font-weight: bold; color: #ffffff; font-size: 14px;">{m['c2']}</span>
+                    <span style="font-weight: bold; color: #ffffff; font-size: 14px; text-transform: uppercase;">{m['c2']}</span>
                 </div>
                 <div style="text-align: center; font-size: 16px; font-weight: 800; color: #4ade80;">
                     {m.get('gol1', 0)} - {m.get('gol2', 0)}
@@ -1338,7 +1361,7 @@ if db["stato"] == "gironi":
                     <span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">#{idx+1}</span>
                     <span style="font-size: 10px; color: #34d399; font-weight: bold;">{m['girone']}</span>
                 </div>
-                <div style="font-size: 13px; font-weight: bold; color: #ffffff; text-align: center;">
+                <div style="font-size: 13px; font-weight: bold; color: #ffffff; text-align: center; text-transform: uppercase;">
                     {m['c1']} <span style="color: #34d399; font-size: 11px;">VS</span> {m['c2']}
                 </div>
             </div>
@@ -1562,9 +1585,9 @@ elif db["stato"] == "fasi_finali":
         st.markdown(
             f"""
                 <div class="cyber-card" style="background: {box_bg}; border: 1.5px solid {border_c}; padding: 14px; text-align: center;">
-                    <div style="font-size: 15px; font-weight: bold; color: #ffffff;">{s1_nome}</div>
+                    <div style="font-size: 15px; font-weight: bold; color: #ffffff; text-transform: uppercase;">{s1_nome}</div>
                     <div style="margin: 4px 0; font-size: 11px; color: #94a3b8; font-weight: bold;">VS</div>
-                    <div style="font-size: 15px; font-weight: bold; color: #ffffff;">{s2_nome}</div>
+                    <div style="font-size: 15px; font-weight: bold; color: #ffffff; text-transform: uppercase;">{s2_nome}</div>
                     <div style="margin-top: 8px; font-size: 13px;">{centro_testo}</div>
                 </div>
                 """,
