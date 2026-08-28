@@ -223,25 +223,63 @@ def pulisci_nome(testo):
 
 
 def estrai_e_aggiungi_lista_massiva(testo_grezzo):
-  # Estrae le coppie da un testo incollato (es. numerato o separato da punti)
+  # Filtra e scarta righe di servizio tipiche dei messaggi WhatsApp (es. prezzi, orari, intestazioni)
+  parole_da_scartare = [
+      "torneo",
+      "iscrizioni",
+      "settimana",
+      "settembre",
+      "ottobre",
+      "novembre",
+      "dicembre",
+      "gennaio",
+      "febbraio",
+      "marzo",
+      "aprile",
+      "maggio",
+      "giugno",
+      "luglio",
+      "agosto",
+      "fisse",
+      "inizio",
+      "tassativo",
+      "donne",
+      "uomini",
+      "coppie",
+      "€",
+      "ore",
+  ]
+
   linee = testo_grezzo.split("\n")
   aggiunte = 0
   duplicati = 0
+
   for linea in linee:
-    # Rimuove numeri iniziali, punti, parentesi e simboli comuni
     pulita = re.sub(r"^\d+[\.\-\)]?\s*", "", linea)
     pulita = pulisci_nome(pulita)
+
     if pulita:
-      # Gestisce eventuali righe con più coppie appiccicate tipo "1. tizio 2. caio"
-      pezzi = re.split(r"\d+[\.\-\)]\s*", pulita)
-      for p in pezzi:
-        p_fin = pulisci_nome(p)
-        if p_fin:
-          if p_fin not in db["coppie"]:
-            db["coppie"].append(p_fin)
-            aggiunte += 1
-          else:
-            duplicati += 1
+      # Controlla se la linea contiene parole di servizio da ignorare
+      linea_lower = pulita.lower()
+      salta = False
+      for parola in parole_da_scartare:
+        if parola in linea_lower:
+          salta = True
+          break
+
+      if salta:
+        continue
+
+      # Verifica che la riga contenga almeno uno spazio (cioè Nome e Cognome / Due nomi della coppia)
+      # o che sia una stringa valida formata da almeno due parole
+      pezzi = re.split(r"[\/\+\-\&]|\s{2,}", pulita)
+      if len(pezzi) >= 2 or " " in pulita:
+        p_fin = pulita
+        if p_fin not in db["coppie"]:
+          db["coppie"].append(p_fin)
+          aggiunte += 1
+        else:
+          duplicati += 1
   return aggiunte, duplicati
 
 
@@ -672,25 +710,6 @@ if is_admin:
 
     st.sidebar.markdown("---")
 
-    # 3. Cancellazione singola coppia senza resettare tutto
-    if db.get("coppie"):
-      st.sidebar.subheader("🗑️ Cancella Coppia Specifica")
-      with st.sidebar.form("form_cancella_singola_coppia"):
-        coppia_da_eliminare = st.selectbox(
-            "Seleziona coppia da eliminare", options=db["coppie"]
-        )
-        submit_del_singola = st.form_submit_button(
-            "❌ Elimina Coppia", use_container_width=True
-        )
-        if submit_del_singola:
-          if coppia_da_eliminare in db["coppie"]:
-            db["coppie"].remove(coppia_da_eliminare)
-            salva_dati(db_globale)
-            st.sidebar.success(f"Rimossa: {coppia_da_eliminare}")
-            st.rerun()
-
-    st.sidebar.markdown("---")
-
     coppie_presenti = db.get("coppie", [])
     num_g = int(db.get("num_gironi", 4))
     min_coppie_richieste = num_g * 2
@@ -890,9 +909,17 @@ if db["stato"] == "setup":
       f"📋 Coppie Iscritte a {titolo_corrente} ({len(db.get('coppie', []))}/"
       f"{int(db.get('num_gironi', 4)) * 2} min)"
   )
+  
   if db.get("coppie"):
-    for c in db["coppie"]:
-      st.markdown(f"- **{c}**")
+    for idx_c, c in enumerate(db["coppie"]):
+      col_nome, col_btn = st.columns([4, 1])
+      with col_nome:
+        st.markdown(f"- **{c}**")
+      with col_btn:
+        if st.button("❌ Elimina", key=f"del_coppia_{idx_c}", use_container_width=True):
+          db["coppie"].remove(c)
+          salva_dati(db_globale)
+          st.rerun()
   else:
     st.info("Nessuna coppia iscritta per questo torneo al momento.")
 
