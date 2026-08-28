@@ -216,9 +216,33 @@ def pulisci_nome(testo):
       .replace("⚽", "")
       .replace("🏆", "")
       .replace("🏓", "")
+      .replace("🥅", "")
   )
   testo = re.sub(r"^\d+[\.\-\)]?\s*", "", testo)
   return testo.strip()
+
+
+def estrai_e_aggiungi_lista_massiva(testo_grezzo):
+  # Estrae le coppie da un testo incollato (es. numerato o separato da punti)
+  linee = testo_grezzo.split("\n")
+  aggiunte = 0
+  duplicati = 0
+  for linea in linee:
+    # Rimuove numeri iniziali, punti, parentesi e simboli comuni
+    pulita = re.sub(r"^\d+[\.\-\)]?\s*", "", linea)
+    pulita = pulisci_nome(pulita)
+    if pulita:
+      # Gestisce eventuali righe con più coppie appiccicate tipo "1. tizio 2. caio"
+      pezzi = re.split(r"\d+[\.\-\)]\s*", pulita)
+      for p in pezzi:
+        p_fin = pulisci_nome(p)
+        if p_fin:
+          if p_fin not in db["coppie"]:
+            db["coppie"].append(p_fin)
+            aggiunte += 1
+          else:
+            duplicati += 1
+  return aggiunte, duplicati
 
 
 def ricalcola_classifiche_gironi():
@@ -561,7 +585,7 @@ st.sidebar.markdown("---")
 if is_admin:
   st.sidebar.subheader("➕ Crea Nuovo Torneo (Admin)")
   with st.sidebar.form("form_crea_nuovo_torneo", clear_on_submit=True):
-    nuovo_nome = st.text_input("Nome Torneo (es. Torneo Mercoledì)")
+    nuovo_nome = st.text_input("Nome Torneo (es. TORNEO CALCINO AGOSTINO)")
     nuovo_giorno = st.selectbox(
         "Giorno della settimana",
         [
@@ -607,23 +631,63 @@ if db["stato"] != "setup":
 
 if is_admin:
   if db["stato"] == "setup":
-    st.sidebar.subheader("➕ Inserisci Coppia (Admin)")
+    st.sidebar.subheader("➕ Gestione Coppie (Admin)")
+
+    # 1. Inserimento singolo
     with st.sidebar.form("form_admin_aggiungi_coppia", clear_on_submit=True):
-      nome_admin_coppia = st.text_input("Nome Coppia (es. Rossi / Bianchi)")
+      nome_admin_coppia = st.text_input("Aggiungi 1 Coppia (es. denny luigi)")
       submit_admin_add = st.form_submit_button(
-          "Aggiungi Coppia", use_container_width=True
+          "Aggiungi Coppia Singola", use_container_width=True
       )
       if submit_admin_add:
         pulito_admin = pulisci_nome(nome_admin_coppia)
         if not pulito_admin:
           st.sidebar.error("Inserisci un nome valido.")
         elif pulito_admin in db["coppie"]:
-          st.sidebar.warning(" Questa coppia è già presente!")
+          st.sidebar.warning("Questa coppia è già presente!")
         else:
           db["coppie"].append(pulito_admin)
           salva_dati(db_globale)
           st.sidebar.success(f"Aggiunta: {pulito_admin}")
           st.rerun()
+
+    # 2. Inserimento massivo da lista incollata
+    with st.sidebar.form("form_admin_massiva"):
+      testo_massivo = st.sidebar.text_area(
+          "Incolla qui l'intera lista di coppie (es. WhatsApp)"
+      )
+      submit_massivo = st.form_submit_button(
+          "📥 Importa Lista Massiva", use_container_width=True
+      )
+      if submit_massivo:
+        if testo_massivo.strip():
+          agg, dup = estrai_e_aggiungi_lista_massiva(testo_massivo)
+          salva_dati(db_globale)
+          st.sidebar.success(
+              f"Importate {agg} nuove coppie ({dup} già presenti)."
+          )
+          st.rerun()
+        else:
+          st.sidebar.warning("Incolla del testo valido.")
+
+    st.sidebar.markdown("---")
+
+    # 3. Cancellazione singola coppia senza resettare tutto
+    if db.get("coppie"):
+      st.sidebar.subheader("🗑️ Cancella Coppia Specifica")
+      with st.sidebar.form("form_cancella_singola_coppia"):
+        coppia_da_eliminare = st.selectbox(
+            "Seleziona coppia da eliminare", options=db["coppie"]
+        )
+        submit_del_singola = st.form_submit_button(
+            "❌ Elimina Coppia", use_container_width=True
+        )
+        if submit_del_singola:
+          if coppia_da_eliminare in db["coppie"]:
+            db["coppie"].remove(coppia_da_eliminare)
+            salva_dati(db_globale)
+            st.sidebar.success(f"Rimossa: {coppia_da_eliminare}")
+            st.rerun()
 
     st.sidebar.markdown("---")
 
@@ -690,7 +754,7 @@ if is_admin:
                     "gol1": 0,
                     "gol2": 0,
                 })
-            turni_girone.append({"turno": t + 1, "partite": partite_turno})
+            turni_turno.append({"turno": t + 1, "partite": partite_turno})
             squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
 
           calendario_totale[g_nome] = turni_girone
