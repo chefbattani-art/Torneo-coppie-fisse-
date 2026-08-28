@@ -278,7 +278,7 @@ def renderizza_classifica_stile_card(torneo, g_nome):
                 </div>
                 <div>
                     <span style="font-size: 9px; color: #94a3b8; display: block;">DR</span>
-                    <span style="color: {"#4ade80" if info['dr'] >= 0 else "#f87171"}; font-weight: 600;">{info['dr']:+d}</span>
+                    <span style="color: {'#4ade80' if info['dr'] >= 0 else '#f87171'}; font-weight: 600;">{info['dr']:+d}</span>
                 </div>
             </div>
         </div>
@@ -427,7 +427,6 @@ if not tutte_le_coppie and torneo.get("coppie"):
 
 coppia_url = st.query_params.get("coppia", "")
 
-# Se NON siamo admin e la coppia è già nei parametri URL, la impostiamo in automatico
 if not is_admin and coppia_url in tutte_le_coppie:
   coppia_selezionata = coppia_url
   st.markdown(
@@ -712,7 +711,7 @@ if torneo["stato"] == "gironi":
         mia_posizione_in_coda = idx_coda + 1
         break
 
-    # HTML Card Principale con stile a blocchi identico allo screenshot
+    # HTML Card Principale formattata correttamente
     st.markdown(
         f"""
         <div class="cyber-card" style="border-color: #00f0ff; padding: 18px;">
