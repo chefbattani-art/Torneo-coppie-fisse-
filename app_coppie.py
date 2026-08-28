@@ -60,6 +60,13 @@ st.markdown(
             letter-spacing: 2px;
         }
         .neon-subtitle { color: #8b949e; font-size: 14px; margin-top: 6px; font-weight: 600; }
+        .neon-box-main {
+            background: linear-gradient(135deg, rgba(16, 22, 36, 0.95) 0%, rgba(8, 12, 20, 0.98) 100%);
+            border: 2px solid #00f2fe;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
         .match-live-card {
             background: linear-gradient(135deg, rgba(30, 20, 10, 0.95) 0%, rgba(12, 8, 4, 0.98) 100%);
             border: 2px solid #ffaa00;
@@ -67,13 +74,9 @@ st.markdown(
             padding: 22px;
             text-align: center;
         }
-        .user-panel-box {
-            background: linear-gradient(135deg, rgba(10, 30, 40, 0.95) 0%, rgba(4, 12, 20, 0.98) 100%);
-            border: 2px solid #00f2fe;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
+        .neon-gold { color: #ffaa00 !important; }
+        .neon-blue { color: #00f2fe !important; }
+        .neon-green { color: #00ff66 !important; }
         h1, h2, h3, h4 { font-family: 'Rajdhani', sans-serif !important; color: #ffffff !important; letter-spacing: 1.5px; text-transform: uppercase; }
 
         div.stButton > button {
@@ -435,7 +438,13 @@ if db["stato"] == "gironi":
 
   # --- SEZIONE DEDICATA ALLA COPPIA SELEZIONATA ---
   if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
-    st.markdown("### 🎯 Stato della tua Coppia")
+    st.markdown(
+        """
+        <div class="neon-box-main">
+            <h3 class="neon-blue" style="margin-top: 0;">🎯 Stato della tua Coppia</h3>
+        """,
+        unsafe_allow_html=True,
+    )
     girone_coppia = None
     info_coppia = None
     for g_nome, dati_g in db["punti_gironi"].items():
@@ -476,8 +485,8 @@ if db["stato"] == "gironi":
     if partita_utente_live:
       st.markdown(
           f"""
-          <div class="user-panel-box" style="border-color: #ffaa00;">
-              <h3 style="color: #ffaa00; margin-top: 0;">🔥 La tua partita è IN CORSO al Tavolo {partita_utente_live.get('tavolo')}!</h3>
+          <div class="match-live-card" style="margin-top: 15px;">
+              <h3 class="neon-gold" style="margin-top: 0;">🔥 La tua partita è IN CORSO al Tavolo {partita_utente_live.get('tavolo')}!</h3>
               <p><b>{partita_utente_live['c1']} vs {partita_utente_live['c2']}</b></p>
           </div>
           """,
@@ -502,8 +511,8 @@ if db["stato"] == "gironi":
     elif coda_utente_idx:
       st.markdown(
           f"""
-          <div class="user-panel-box" style="border-color: #00ff66;">
-              <h4 style="color: #00ff66; margin-top: 0;">⏳ La tua prossima partita è in CODA (Posizione #{coda_utente_idx})</h4>
+          <div style="background: rgba(8,36,20,0.8); border: 2px solid #00ff66; border-radius: 14px; padding: 15px; margin-top: 15px;">
+              <h4 class="neon-green" style="margin-top: 0;">⏳ La tua prossima partita è in CODA (Posizione #{coda_utente_idx})</h4>
               <p>Preparati a salire appena si libera un tavolo!</p>
           </div>
           """,
@@ -512,6 +521,7 @@ if db["stato"] == "gironi":
     else:
       st.info("ℹ️ Al momento non hai partite attive o in coda. Controlla il calendario generale sotto.")
 
+    st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("---")
 
   st.subheader("⚡ Tavoli Live & Coda")
