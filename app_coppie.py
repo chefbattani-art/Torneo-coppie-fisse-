@@ -662,7 +662,7 @@ if torneo["stato"] == "gironi":
       key=lambda x: x.get("tavolo") if x.get("tavolo") is not None else 999,
   )
 
-  # --- DASHBOARD PERSONALE CON COMPONENTI NATIVI ---
+  # --- DASHBOARD PERSONALE CON SELETTORE GOL DA 0 A 7 ---
   if (
       coppia_selezionata
       and coppia_selezionata != "-- Seleziona la tua coppia per accedere --"
@@ -703,7 +703,6 @@ if torneo["stato"] == "gironi":
         mia_posizione_in_coda = idx_coda + 1
         break
 
-    # Sezione Card Riepilogo Squadra
     st.markdown(
         f"""
         <div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.7) 100%); border: 1px solid #00f0ff; border-radius: 14px; padding: 18px; margin-bottom: 14px; box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);">
@@ -733,7 +732,6 @@ if torneo["stato"] == "gironi":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Box Stato / Coda e inserimento risultato integrato
     if mia_partita_in_corso:
       avversario = (
           mia_partita_in_corso["c2"]
@@ -753,35 +751,54 @@ if torneo["stato"] == "gironi":
       )
 
       with st.expander("📝 Inserisci il Risultato Finale", expanded=True):
-        gol_p1 = st.number_input(
-            f"Gol {mia_partita_in_corso['c1']}",
-            min_value=0,
-            max_value=10,
-            value=int(mia_partita_in_corso.get("gol1", 0)),
-            key=f"m_g1_{match_id_mio}",
-        )
-        gol_p2 = st.number_input(
-            f"Gol {mia_partita_in_corso['c2']}",
-            min_value=0,
-            max_value=10,
-            value=int(mia_partita_in_corso.get("gol2", 0)),
-            key=f"m_g2_{match_id_mio}",
-        )
+        st.markdown(f"**Gol {mia_partita_in_corso['c1']}**")
+        cols_g1 = st.columns(8)
+        val_prec_g1 = int(mia_partita_in_corso.get("gol1", 0))
+        gol_p1 = val_prec_g1
+        for i in range(8):
+          with cols_g1[i]:
+            is_selected = val_prec_g1 == i
+            btn_type = "primary" if is_selected else "secondary"
+            if st.button(
+                str(i),
+                key=f"m_btn_g1_{match_id_mio}_{i}",
+                use_container_width=True,
+                type=btn_type,
+            ):
+              mia_partita_in_corso["gol1"] = i
+              salva_dati(db)
+              st.rerun()
+
+        st.markdown(f"**Gol {mia_partita_in_corso['c2']}**")
+        cols_g2 = st.columns(8)
+        val_prec_g2 = int(mia_partita_in_corso.get("gol2", 0))
+        gol_p2 = val_prec_g2
+        for i in range(8):
+          with cols_g2[i]:
+            is_selected = val_prec_g2 == i
+            btn_type = "primary" if is_selected else "secondary"
+            if st.button(
+                str(i),
+                key=f"m_btn_g2_{match_id_mio}_{i}",
+                use_container_width=True,
+                type=btn_type,
+            ):
+              mia_partita_in_corso["gol2"] = i
+              salva_dati(db)
+              st.rerun()
+
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.button(
-            "✅ Salva Risultato e Avanza Torneo",
+            "💾 Salva Risultato",
             key=f"m_save_{match_id_mio}",
             use_container_width=True,
         ):
-          mia_partita_in_corso["gol1"] = int(gol_p1)
-          mia_partita_in_corso["gol2"] = int(gol_p2)
           mia_partita_in_corso["giocata"] = True
           mia_partita_in_corso["in_corso"] = False
           mia_partita_in_corso["tavolo"] = None
           ricalcola_classifiche_gironi(torneo)
           salva_dati(db)
-          st.success(
-              "Risultato salvato con successo! Il torneo è stato aggiornato."
-          )
+          st.success("Risultato salvato con successo! Il torneo è stato aggiornato.")
           st.rerun()
 
     elif mia_posizione_in_coda:
@@ -849,29 +866,48 @@ if torneo["stato"] == "gironi":
 
         if is_admin or sono_interessato:
           with st.expander(
-              f"📝 Inserisci Risultato Tavolo {m.get('tavolo', '')}"
+              f"⚙️ Gestisci: {m['c1']} vs {m['c2']}"
           ):
-            gol_p1 = st.number_input(
-                f"Gol {m['c1']}",
-                min_value=0,
-                max_value=10,
-                value=int(m.get("gol1", 0)),
-                key=f"g1_{match_id}",
-            )
-            gol_p2 = st.number_input(
-                f"Gol {m['c2']}",
-                min_value=0,
-                max_value=10,
-                value=int(m.get("gol2", 0)),
-                key=f"g2_{match_id}",
-            )
+            st.markdown(f"**Gol {m['c1']}**")
+            cols_g1 = st.columns(8)
+            val_prec_g1 = int(m.get("gol1", 0))
+            for i in range(8):
+              with cols_g1[i]:
+                is_selected = val_prec_g1 == i
+                btn_type = "primary" if is_selected else "secondary"
+                if st.button(
+                    str(i),
+                    key=f"btn_g1_{match_id}_{i}",
+                    use_container_width=True,
+                    type=btn_type,
+                ):
+                  m["gol1"] = i
+                  salva_dati(db)
+                  st.rerun()
+
+            st.markdown(f"**Gol {m['c2']}**")
+            cols_g2 = st.columns(8)
+            val_prec_g2 = int(m.get("gol2", 0))
+            for i in range(8):
+              with cols_g2[i]:
+                is_selected = val_prec_g2 == i
+                btn_type = "primary" if is_selected else "secondary"
+                if st.button(
+                    str(i),
+                    key=f"btn_g2_{match_id}_{i}",
+                    use_container_width=True,
+                    type=btn_type,
+                ):
+                  m["gol2"] = i
+                  salva_dati(db)
+                  st.rerun()
+
+            st.markdown("<br>", unsafe_allow_html=True)
             if st.button(
-                "✅ Conferma Risultato",
+                "💾 Salva Risultato",
                 key=f"save_{match_id}",
                 use_container_width=True,
             ):
-              m["gol1"] = int(gol_p1)
-              m["gol2"] = int(gol_p2)
               m["giocata"] = True
               m["in_corso"] = False
               m["tavolo"] = None
