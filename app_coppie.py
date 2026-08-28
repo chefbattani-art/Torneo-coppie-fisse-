@@ -322,13 +322,16 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
 
     if st.button("🚀 Crea Gironi", use_container_width=True):
       coppie = [pulisci_nome(l) for l in whatsapp_text.split("\n") if pulisci_nome(l)]
-      if len(coppie) >= db["num_gironi"] * 2:
+      num_g = int(db["num_gironi"])
+      if len(coppie) >= num_g * 2:
         db["coppie"] = coppie
         random.shuffle(coppie)
-        nomi_g = [chr(65 + i) for i in range(db["num_gironi"])]
+        nomi_g = [chr(65 + i) for i in range(num_g)]
         g_dict = {f"Girone {g}": [] for g in nomi_g}
         for i, c in enumerate(coppie):
-          g_dict[f"Girone {nomi_g[i % db['num_gironi']}}"].append(c)
+          indice_girone = i % num_g
+          nome_girone_chiave = f"Girone {nomi_g[indice_girone]}"
+          g_dict[nome_girone_chiave].append(c)
         db["gironi"] = g_dict
         db["punti_gironi"] = {
             g: {
@@ -433,7 +436,6 @@ if db["stato"] == "gironi":
   # --- SEZIONE DEDICATA ALLA COPPIA SELEZIONATA ---
   if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
     st.markdown("### 🎯 Stato della tua Coppia")
-    # Troviamo info della coppia nelle classifiche
     girone_coppia = None
     info_coppia = None
     for g_nome, dati_g in db["punti_gironi"].items():
@@ -463,10 +465,8 @@ if db["stato"] == "gironi":
       if info_coppia:
         st.markdown(f"**Posizione:** {info_coppia[0]}° posto ({info_coppia[1]['punti']} pt)")
 
-    # Cerchiamo se la coppia ha una partita in corso o in coda
     partita_utente_live = next((m for m in partite_in_corso if coppia_selezionata in [m["c1"], m["c2"]]), None)
     
-    # Cerchiamo in quale posizione della coda si trova
     coda_utente_idx = None
     for idx_c, m in enumerate(partite_da_giocare):
       if coppia_selezionata in [m["c1"], m["c2"]]:
