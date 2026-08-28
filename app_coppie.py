@@ -44,8 +44,21 @@ st.markdown(
         h1 {
             text-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
         }
-        /* Forza i bottoni a restare compatti e allineati in orizzontale */
-        div.stHorizontalBlock div.stButton > button {
+        
+        /* TRCCO CSS: Forza le 8 colonne dei numeri a restare affiancate orizzontalmente anche su mobile */
+        [data-testid="column"] {
+            width: 12.5% !important;
+            flex: 1 1 12.5% !important;
+            min-width: 32px !important;
+        }
+        div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            gap: 2px !important;
+        }
+
+        div.stButton > button {
             border-radius: 6px;
             font-weight: 700;
             border: 1px solid #00f0ff;
@@ -53,11 +66,11 @@ st.markdown(
             color: #f3e8ff;
             width: 100% !important;
             min-width: 0px !important;
-            padding: 4px 2px !important;
-            font-size: 13px !important;
+            padding: 4px 0px !important;
+            font-size: 12px !important;
             transition: all 0.3s ease;
         }
-        div.stHorizontalBlock div.stButton > button:hover {
+        div.stButton > button:hover {
             border-color: #38bdf8;
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
             color: #ffffff;
