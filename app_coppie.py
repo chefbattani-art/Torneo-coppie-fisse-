@@ -45,12 +45,13 @@ st.markdown(
             text-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
         }
         div.stButton > button {
-            border-radius: 10px;
+            border-radius: 8px;
             font-weight: 700;
             border: 1px solid #00f0ff;
             background: linear-gradient(180deg, #1e3a8a, #0f172a);
             color: #f3e8ff;
             transition: all 0.3s ease;
+            padding: 4px 0px;
         }
         div.stButton > button:hover {
             border-color: #38bdf8;
@@ -754,7 +755,6 @@ if torneo["stato"] == "gironi":
         st.markdown(f"**Gol {mia_partita_in_corso['c1']}**")
         cols_g1 = st.columns(8)
         val_prec_g1 = int(mia_partita_in_corso.get("gol1", 0))
-        gol_p1 = val_prec_g1
         for i in range(8):
           with cols_g1[i]:
             is_selected = val_prec_g1 == i
@@ -772,7 +772,6 @@ if torneo["stato"] == "gironi":
         st.markdown(f"**Gol {mia_partita_in_corso['c2']}**")
         cols_g2 = st.columns(8)
         val_prec_g2 = int(mia_partita_in_corso.get("gol2", 0))
-        gol_p2 = val_prec_g2
         for i in range(8):
           with cols_g2[i]:
             is_selected = val_prec_g2 == i
@@ -865,9 +864,7 @@ if torneo["stato"] == "gironi":
               st.rerun()
 
         if is_admin or sono_interessato:
-          with st.expander(
-              f"⚙️ Gestisci: {m['c1']} vs {m['c2']}"
-          ):
+          with st.expander(f"⚙️ Gestisci: {m['c1']} vs {m['c2']}"):
             st.markdown(f"**Gol {m['c1']}**")
             cols_g1 = st.columns(8)
             val_prec_g1 = int(m.get("gol1", 0))
