@@ -2,6 +2,7 @@ import json
 import os
 import random
 import re
+import urllib.parse
 from fpdf import FPDF
 import pandas as pd
 import streamlit as st
@@ -30,7 +31,6 @@ st.markdown(
             border-right: 1px solid #2e1a47;
         }
         
-        /* Header Banner Principale con Effetto Gamer Lucente */
         .esport-header {
             background: linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
             border: 2.5px solid #00f0ff;
@@ -43,7 +43,6 @@ st.markdown(
             overflow: hidden;
         }
 
-        /* Testo in stile Gamer con gradiente lucente ed effetti neon */
         .gamer-title {
             font-size: 32px;
             font-weight: 900;
@@ -56,7 +55,6 @@ st.markdown(
             text-shadow: 0 0 30px rgba(0, 240, 255, 0.6);
         }
 
-        /* HUD Orizzontale Compatto */
         .hud-horizontal-bar {
             display: flex;
             justify-content: space-between;
@@ -146,6 +144,7 @@ def carica_dati():
       "titolo_torneo": "VENERUSO CALCIOBALILLA",
       "sottotitolo_torneo": "🏆 TORNEO LIVE • 3 TOCCHI UISP 🏆",
       "coppie": [],
+      "telefoni": {},
       "num_tavoli": 6,
       "num_gironi": 4,
       "admin_pin": "0000",
@@ -517,6 +516,78 @@ else:
 st.sidebar.markdown("---")
 
 if is_admin:
+  if db["stato"] == "setup":
+    if st.sidebar.button(
+        "🚀 Passa alla Fase Gironi / Gestione", use_container_width=True
+    ):
+      coppie_presenti = db.get("coppie", [])
+      num_g = int(db.get("num_gironi", 4))
+      if len(coppie_presenti) >= (num_g * 2):
+        random.shuffle(coppie_presenti)
+        nomi_gironi = [chr(65 + i) for i in range(num_g)]
+        gironi_dict = {f"Girone {g}": [] for g in nomi_gironi}
+
+        for idx, c in enumerate(coppie_presenti):
+          g_scelto = f"Girone {nomi_gironi[idx % num_g]}"
+          gironi_dict[g_scelto].append(c)
+
+        db["gironi"] = gironi_dict
+        db["punti_gironi"] = {
+            g: {
+                c: {
+                    "punti": 0,
+                    "gf": 0,
+                    "gs": 0,
+                    "dr": 0,
+                    "scontri_diretti_pt": 0,
+                }
+                for c in lst
+            }
+            for g, lst in gironi_dict.items()
+        }
+
+        calendario_totale = {}
+        for g_nome, lista_c in gironi_dict.items():
+          squadre = lista_c.copy()
+          if len(squadre) % 2 != 0:
+            squadre.append("RIPOSO")
+
+          n = len(squadre)
+          turni_girone = []
+
+          for t in range(n - 1):
+            partite_turno = []
+            for i in range(n // 2):
+              s1 = squadre[i]
+              s2 = squadre[n - 1 - i]
+              if s1 != "RIPOSO" and s2 != "RIPOSO":
+                match_id = f"{g_nome}_t{t+1}_m{i}"
+                partite_turno.append({
+                    "id": match_id,
+                    "girone": g_nome,
+                    "c1": s1,
+                    "c2": s2,
+                    "giocata": False,
+                    "in_corso": False,
+                    "tavolo": None,
+                    "gol1": 0,
+                    "gol2": 0,
+                })
+            turni_turno.append({"turno": t + 1, "partite": partite_turno})
+            squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
+
+          calendario_totale[g_nome] = turni_turno
+
+        db["calendario_gironi"] = calendario_totale
+        db["stato"] = "gironi"
+        salva_dati(db)
+        st.success("Gironi generati!")
+        st.rerun()
+      else:
+        st.sidebar.error(
+            f"Servono almeno {num_g * 2} coppie per avviare il torneo."
+        )
+
   if st.sidebar.button(
       "⚙️ Mostra / Nascondi Setup Iniziale", use_container_width=True
   ):
@@ -575,279 +646,262 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- BARRA STATISTICHE ORIZZONTALE COMPATTA ---
-tot_coppie_iscritte = len(db.get("coppie", []))
-tot_biliardini = db.get("num_tavoli", 6)
-tot_gironi_count = len(db.get("gironi", {}))
 
-partite_giocate_count = 0
-partite_totali_count = 0
-for g_n, turni in db.get("calendario_gironi", {}).items():
-  for t_obj in turni:
-    for m in t_obj["partite"]:
-      partite_totali_count += 1
-      if m.get("giocata", False):
-        partite_giocate_count += 1
-
-st.markdown(
-    f"""
-    <div class="hud-horizontal-bar">
-        <div class="hud-item">
-            <div class="hud-label">Iscritte</div>
-            <div class="hud-value" style="color: #c084fc;">{tot_coppie_iscritte}</div>
-        </div>
-        <div class="hud-item">
-            <div class="hud-label">Tavoli</div>
-            <div class="hud-value" style="color: #38bdf8;">{tot_biliardini}</div>
-        </div>
-        <div class="hud-item">
-            <div class="hud-label">Gironi</div>
-            <div class="hud-value" style="color: #4ade80;">{tot_gironi_count}</div>
-        </div>
-        <div class="hud-item">
-            <div class="hud-label">Giocate</div>
-            <div class="hud-value" style="color: #fb923c;">{partite_giocate_count}/{partite_totali_count}</div>
-        </div>
-        <div class="hud-item">
-            <div class="hud-label">Fase</div>
-            <div class="hud-value" style="color: #fb7185; font-size: 12px; margin-top: 4px; text-transform: uppercase;">{db.get('stato', 'Gironi')}</div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-# --- SELETTORE COPPIA & AVVISO ---
-tutte_le_coppie = []
-for g_lst in db["gironi"].values():
-  tutte_le_coppie.extend(g_lst)
-if not tutte_le_coppie and db.get("coppie"):
-  tutte_le_coppie = db["coppie"]
-
-opzioni_selettore = ["-- Seleziona la tua coppia per accedere --"] + sorted(
-    tutte_le_coppie
-)
-coppia_url = st.query_params.get(
-    "coppia", "-- Seleziona la tua coppia per accedere --"
-)
-if coppia_url not in opzioni_selettore:
-  coppia_url = "-- Seleziona la tua coppia per accedere --"
-
-coppia_selezionata = st.selectbox(
-    "📱 Seleziona la tua coppia per gestire i risultati in tempo reale:",
-    options=opzioni_selettore,
-    index=opzioni_selettore.index(coppia_url),
-    key="widget_selezione_coppia",
-)
-
-if coppia_selezionata != coppia_url:
-  st.query_params["coppia"] = coppia_selezionata
-  st.rerun()
-
-if is_admin:
-  st.success(
-      "🛡️ **Modalità Amministratore attiva:** Accesso completo sbloccato senza"
-      " obbligo di selezione coppia."
+# --- SEZIONE ISCRIZIONE / CANCELLAZIONE AUTONOMA (SE IN FASE SETUP) ---
+if db["stato"] == "setup":
+  st.markdown("### 📝 Iscrizione Online al Torneo")
+  st.info(
+      "Compila il modulo sottostante per iscriverti direttamente o rimuovere la"
+      " tua iscrizione in caso di imprevisti."
   )
-elif coppia_selezionata == "-- Seleziona la tua coppia per accedere --":
-  st.warning(
-      "⚠️ **Attenzione:** Seleziona la tua coppia dal menu a tendina sopra per"
-      " sbloccare la tua dashboard dedicata, visualizzare le tue partite e"
-      " inserire i risultati."
-  )
-else:
-  st.success(f"✅ Accesso effettuato come: **{coppia_selezionata}**")
 
-st.markdown(
-    """
-    <div style="padding: 12px 14px; background: linear-gradient(135deg, #3b112a 0%, #1a0815 100%); border-left: 5px solid #f43f5e; border-radius: 8px; font-size: 13px; color: #fda4af; margin: 15px 0; font-weight: bold; line-height: 1.5; box-shadow: 0 0 20px rgba(244,63,94,0.2);">
-        🚨 CHI VINCE È PREGATO DI INSERIRE IL RISULTATO ESATTO • CHI È IN CODA DEVE ESSERE PRONTO A SALIRE AL PRIMO TAVOLO LIBERO!
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+  tab_iscrivi, tab_cancella = st.tabs(["➕ Registrati", "❌ Cancella Iscrizione"])
 
-if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
-  if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
-    with st.expander(
-        f"👁️ Pannello Rapido - Segui la tua coppia: {coppia_selezionata}",
-        expanded=True,
-    ):
-      girone_mio = None
-      pos_mia = None
-      info_mie = None
-      for g_nome, lista_c in db["gironi"].items():
-        if coppia_selezionata in lista_c:
-          girone_mio = g_nome
-          ricalcola_classifiche_gironi()
-          if g_nome in db["punti_gironi"]:
-            dati_g = db["punti_gironi"][g_nome]
-            sorted_c = sorted(
-                dati_g.items(),
-                key=lambda x: (
-                    x[1]["punti"],
-                    x[1]["scontri_diretti_pt"],
-                    x[1]["dr"],
-                    x[1]["gf"],
-                ),
-                reverse=True,
-            )
-            for idx, (c_nome, stats) in enumerate(sorted_c):
-              if c_nome == coppia_selezionata:
-                pos_mia = idx + 1
-                info_mie = stats
-          break
-
-      st.markdown(
-          f"""
-          <div class="cyber-card" style="border-color: #00f0ff; text-align: left; padding: 20px;">
-              <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #00f0ff; font-weight: bold; margin-bottom: 2px;">LA TUA COPPIA</div>
-              <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 14px; text-shadow: 0 0 10px rgba(0,240,255,0.4);">🤝 {coppia_selezionata}</div>
-              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                  <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #1e3a8a; border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; text-align: center;">
-                      <div style="font-size: 10px; color: #94a3b8; font-weight: bold;">POSIZIONE</div>
-                      <div style="font-size: 16px; font-weight: 700; color: #4ade80; margin-top: 2px;">{str(pos_mia) + '° POSTO' if pos_mia else 'N.D.'}</div>
-                  </div>
-                  <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #1e3a8a; border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; text-align: center;">
-                      <div style="font-size: 10px; color: #94a3b8; font-weight: bold;">GIRONE</div>
-                      <div style="font-size: 16px; font-weight: 700; color: #00f0ff; margin-top: 2px;">{girone_mio if girone_mio else 'N.D.'}</div>
-                  </div>
-                  <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #1e3a8a; border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; text-align: center;">
-                      <div style="font-size: 10px; color: #94a3b8; font-weight: bold;">PUNTI / DR</div>
-                      <div style="font-size: 16px; font-weight: 700; color: #fbbf24; margin-top: 2px;">{info_mie['punti'] if info_mie else 0} PT <span style="font-size: 11px; font-weight: normal; color: #94a3b8;">(DR: {info_mie['dr'] if info_mie else 0})</span></div>
-                  </div>
-              </div>
-          </div>
-          """,
-          unsafe_allow_html=True,
+  with tab_iscrivi:
+    with st.form("form_auto_iscrizione"):
+      nome_giocatore = st.text_input(
+          "Nome della Coppia (es. Rossi / Bianchi)"
+      )
+      tel_giocatore = st.text_input(
+          "Numero di Telefono (per avvisi WhatsApp quando tocca a te)"
+      )
+      submit_iscrizione = st.form_submit_button(
+          "✅ Conferma e Iscriviti al Torneo", use_container_width=True
       )
 
-# 1. SETUP
-if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
-  st.subheader("1. Configurazione Iniziale Torneo a Coppie")
+      if submit_iscrizione:
+        pulito = pulisci_nome(nome_giocatore)
+        if not pulito:
+          st.error("Inserisci un nome valido per la coppia.")
+        elif pulito in db["coppie"]:
+          st.warning("Questa coppia risulta già iscritta!")
+        else:
+          db["coppie"].append(pulito)
+          db["telefoni"][pulito] = tel_giocatore.strip()
+          salva_dati(db)
+          st.success(f"Iscrizione completata con successo per **{pulito}**!")
+          st.rerun()
 
-  if not is_admin:
-    st.warning(
-        "⚠️ Configurazione bloccata. Accedi come amministratore dalla barra"
-        " laterale con il PIN."
-    )
+  with tab_cancella:
+    with st.form("form_auto_cancellazione"):
+      coppie_attuali = db.get("coppie", [])
+      coppia_da_rimuovere = st.selectbox(
+          "Seleziona la tua coppia da rimuovere", options=[""] + coppie_attuali
+      )
+      submit_cancellazione = st.form_submit_button(
+          "🗑️ Rimuovi la mia iscrizione", use_container_width=True
+      )
+
+      if submit_cancellazione:
+        if coppia_da_rimuovere and coppia_da_rimuovere in db["coppie"]:
+          db["coppie"].remove(coppia_da_rimuovere)
+          if coppia_da_rimuovere in db["telefoni"]:
+            del db["telefoni"][coppia_da_rimuovere]
+          salva_dati(db)
+          st.success(
+              f"La coppia **{coppia_da_rimuovere}** è stata rimossa con"
+              " successo."
+          )
+          st.rerun()
+        else:
+          st.warning("Seleziona una coppia valida.")
+
+  st.markdown("---")
+  st.subheader(
+      f"📋 Elenco Coppie Iscritte ({len(db.get('coppie', []))}/"
+      f"{int(db.get('num_gironi', 4)) * 2} min)"
+  )
+  if db.get("coppie"):
+    for c in db["coppie"]:
+      telefono_mostrato = (
+          db["telefoni"].get(c, "N/D")
+          if db["telefoni"].get(c)
+          else "Senza tel"
+      )
+      st.markdown(f"- **{c}** *(Tel: {telefono_mostrato})*")
   else:
+    st.info("Nessuna coppia iscritta al momento.")
+
+  if is_admin:
+    st.markdown("---")
+    st.subheader("⚙️ Pannello Admin - Configurazione Torneo")
     db["titolo_torneo"] = st.text_input(
-        "🏷️ Nome del Torneo (es. TORNEO SPECIALE VENERDÌ / EPIC BATTLE)",
+        "🏷️ Nome del Torneo",
         value=db.get("titolo_torneo", "VENERUSO CALCIOBALILLA"),
     )
     db["sottotitolo_torneo"] = st.text_input(
         "📝 Sottotitolo / Descrizione Serata",
         value=db.get("sottotitolo_torneo", "🏆 TORNEO LIVE • 3 TOCCHI UISP 🏆"),
     )
-
-    whatsapp_text = st.text_area(
-        "Incolla qui la lista delle coppie da WhatsApp (es. 1 Rossi / Bianchi):",
-        height=150,
-    )
-
-    col1, col2 = st.columns(2)
-    with col1:
+    col_t, col_g = st.columns(2)
+    with col_t:
       db["num_tavoli"] = st.number_input(
-          "Numero di biliardini disponibili",
+          "Numero di biliardini",
           min_value=1,
           max_value=10,
           value=int(db["num_tavoli"]),
       )
-    with col2:
+    with col_g:
       db["num_gironi"] = st.number_input(
-          "Numero di gironi da creare",
+          "Numero di gironi",
           min_value=1,
           max_value=8,
           value=int(db["num_gironi"]),
       )
-
     db["admin_pin"] = st.text_input("Cambia PIN Admin", value=db["admin_pin"])
+    salva_dati(db)
 
-    if st.button("🚀 Crea Gironi e Sorteggia Coppie", use_container_width=True):
-      coppie = []
-      for line in whatsapp_text.split("\n"):
-        nome_c = pulisci_nome(line)
-        if nome_c:
-          coppie.append(nome_c)
 
-      num_g = int(db["num_gironi"])
+# --- BARRA STATISTICHE ORIZZONTALE COMPATTA ---
+if db["stato"] != "setup":
+  tot_coppie_iscritte = len(db.get("coppie", []))
+  tot_biliardini = db.get("num_tavoli", 6)
+  tot_gironi_count = len(db.get("gironi", {}))
 
-      if len(coppie) < (num_g * 2):
-        st.error(
-            f"Hai inserito {len(coppie)} coppie. Con {num_g} gironi servono"
-            f" almeno {num_g * 2} coppie."
+  partite_giocate_count = 0
+  partite_totali_count = 0
+  for g_n, turni in db.get("calendario_gironi", {}).items():
+    for t_obj in turni:
+      for m in t_obj["partite"]:
+        partite_totali_count += 1
+        if m.get("giocata", False):
+          partite_giocate_count += 1
+
+  st.markdown(
+      f"""
+      <div class="hud-horizontal-bar">
+          <div class="hud-item">
+              <div class="hud-label">Iscritte</div>
+              <div class="hud-value" style="color: #c084fc;">{tot_coppie_iscritte}</div>
+          </div>
+          <div class="hud-item">
+              <div class="hud-label">Tavoli</div>
+              <div class="hud-value" style="color: #38bdf8;">{tot_biliardini}</div>
+          </div>
+          <div class="hud-item">
+              <div class="hud-label">Gironi</div>
+              <div class="hud-value" style="color: #4ade80;">{tot_gironi_count}</div>
+          </div>
+          <div class="hud-item">
+              <div class="hud-label">Giocate</div>
+              <div class="hud-value" style="color: #fb923c;">{partite_giocate_count}/{partite_totali_count}</div>
+          </div>
+          <div class="hud-item">
+              <div class="hud-label">Fase</div>
+              <div class="hud-value" style="color: #fb7185; font-size: 12px; margin-top: 4px; text-transform: uppercase;">{db.get('stato', 'Gironi')}</div>
+          </div>
+      </div>
+      """,
+      unsafe_allow_html=True,
+  )
+
+  # --- SELETTORE COPPIA & AVVISO ---
+  tutte_le_coppie = []
+  for g_lst in db["gironi"].values():
+    tutte_le_coppie.extend(g_lst)
+  if not tutte_le_coppie and db.get("coppie"):
+    tutte_le_coppie = db["coppie"]
+
+  opzioni_selettore = ["-- Seleziona la tua coppia per accedere --"] + sorted(
+      tutte_le_coppie
+  )
+  coppia_url = st.query_params.get(
+      "coppia", "-- Seleziona la tua coppia per accedere --"
+  )
+  if coppia_url not in opzioni_selettore:
+    coppia_url = "-- Seleziona la tua coppia per accedere --"
+
+  coppia_selezionata = st.selectbox(
+      "📱 Seleziona la tua coppia per gestire i risultati in tempo reale:",
+      options=opzioni_selettore,
+      index=opzioni_selettore.index(coppia_url),
+      key="widget_selezione_coppia",
+  )
+
+  if coppia_selezionata != coppia_url:
+    st.query_params["coppia"] = coppia_selezionata
+    st.rerun()
+
+  if is_admin:
+    st.success(
+        "🛡️ **Modalità Amministratore attiva:** Accesso completo sbloccato senza"
+        " obbligo di selezione coppia."
+    )
+  elif coppia_selezionata == "-- Seleziona la tua coppia per accedere --":
+    st.warning(
+        "⚠️ **Attenzione:** Seleziona la tua coppia dal menu a tendina sopra per"
+        " sbloccare la tua dashboard dedicata, visualizzare le tue partite e"
+        " inserire i risultati."
+    )
+  else:
+    st.success(f"✅ Accesso effettuato come: **{coppia_selezionata}**")
+
+  st.markdown(
+      """
+      <div style="padding: 12px 14px; background: linear-gradient(135deg, #3b112a 0%, #1a0815 100%); border-left: 5px solid #f43f5e; border-radius: 8px; font-size: 13px; color: #fda4af; margin: 15px 0; font-weight: bold; line-height: 1.5; box-shadow: 0 0 20px rgba(244,63,94,0.2);">
+          🚨 CHI VINCE È PREGATO DI INSERIRE IL RISULTATO ESATTO • CHI È IN CODA DEVE ESSERE PRONTO A SALIRE AL PRIMO TAVOLO LIBERO!
+      </div>
+      """,
+      unsafe_allow_html=True,
+  )
+
+  if (
+      not is_admin
+      or coppia_selezionata != "-- Seleziona la tua coppia per accedere --"
+  ):
+    if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
+      with st.expander(
+          f"👁️ Pannello Rapido - Segui la tua coppia: {coppia_selezionata}",
+          expanded=True,
+      ):
+        girone_mio = None
+        pos_mia = None
+        info_mie = None
+        for g_nome, lista_c in db["gironi"].items():
+          if coppia_selezionata in lista_c:
+            girone_mio = g_nome
+            ricalcola_classifiche_gironi()
+            if g_nome in db["punti_gironi"]:
+              dati_g = db["punti_gironi"][g_nome]
+              sorted_c = sorted(
+                  dati_g.items(),
+                  key=lambda x: (
+                      x[1]["punti"],
+                      x[1]["scontri_diretti_pt"],
+                      x[1]["dr"],
+                      x[1]["gf"],
+                  ),
+                  reverse=True,
+              )
+              for idx, (c_nome, stats) in enumerate(sorted_c):
+                if c_nome == coppia_selezionata:
+                  pos_mia = idx + 1
+                  info_mie = stats
+            break
+
+        st.markdown(
+            f"""
+            <div class="cyber-card" style="border-color: #00f0ff; text-align: left; padding: 20px;">
+                <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #00f0ff; font-weight: bold; margin-bottom: 2px;">LA TUA COPPIA</div>
+                <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 14px; text-shadow: 0 0 10px rgba(0,240,255,0.4);">🤝 {coppia_selezionata}</div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #1e3a8a; border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; text-align: center;">
+                        <div style="font-size: 10px; color: #94a3b8; font-weight: bold;">POSIZIONE</div>
+                        <div style="font-size: 16px; font-weight: 700; color: #4ade80; margin-top: 2px;">{str(pos_mia) + '° POSTO' if pos_mia else 'N.D.'}</div>
+                    </div>
+                    <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #1e3a8a; border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; text-align: center;">
+                        <div style="font-size: 10px; color: #94a3b8; font-weight: bold;">GIRONE</div>
+                        <div style="font-size: 16px; font-weight: 700; color: #00f0ff; margin-top: 2px;">{girone_mio if girone_mio else 'N.D.'}</div>
+                    </div>
+                    <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #1e3a8a; border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; text-align: center;">
+                        <div style="font-size: 10px; color: #94a3b8; font-weight: bold;">PUNTI / DR</div>
+                        <div style="font-size: 16px; font-weight: 700; color: #fbbf24; margin-top: 2px;">{info_mie['punti'] if info_mie else 0} PT <span style="font-size: 11px; font-weight: normal; color: #94a3b8;">(DR: {info_mie['dr'] if info_mie else 0})</span></div>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
-      else:
-        db["coppie"] = coppie
-        random.shuffle(coppie)
-
-        nomi_gironi = [chr(65 + i) for i in range(num_g)]
-        gironi_dict = {f"Girone {g}": [] for g in nomi_gironi}
-
-        for idx, c in enumerate(coppie):
-          g_scelto = f"Girone {nomi_gironi[idx % num_g]}"
-          gironi_dict[g_scelto].append(c)
-
-        db["gironi"] = gironi_dict
-        db["punti_gironi"] = {
-            g: {
-                c: {
-                    "punti": 0,
-                    "gf": 0,
-                    "gs": 0,
-                    "dr": 0,
-                    "scontri_diretti_pt": 0,
-                }
-                for c in lst
-            }
-            for g, lst in gironi_dict.items()
-        }
-
-        calendario_totale = {}
-        for g_nome, lista_c in gironi_dict.items():
-          squadre = lista_c.copy()
-          if len(squadre) % 2 != 0:
-            squadre.append("RIPOSO")
-
-          n = len(squadre)
-          turni_girone = []
-
-          for t in range(n - 1):
-            partite_turno = []
-            for i in range(n // 2):
-              s1 = squadre[i]
-              s2 = squadre[n - 1 - i]
-              if s1 != "RIPOSO" and s2 != "RIPOSO":
-                match_id = f"{g_nome}_t{t+1}_m{i}"
-                partite_turno.append({
-                    "id": match_id,
-                    "girone": g_nome,
-                    "c1": s1,
-                    "c2": s2,
-                    "giocata": False,
-                    "in_corso": False,
-                    "tavolo": None,
-                    "gol1": 0,
-                    "gol2": 0,
-                })
-            turni_girone.append({"turno": t + 1, "partite": partite_turno})
-            squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
-
-          calendario_totale[g_nome] = turni_girone
-
-        db["calendario_gironi"] = calendario_totale
-        db["stato"] = "gironi"
-        db["fasi_finali_configurate"] = False
-        db["tabellone_a"] = []
-        db["tabellone_b"] = []
-        db["terzo_quarto_a"] = []
-        db["terzo_quarto_b"] = []
-        salva_dati(db)
-        st.success(f"Creati con successo {num_g} gironi!")
-        st.session_state["mostra_setup"] = False
-        st.rerun()
-  st.markdown("---")
 
 # 2. FASE A GIRONI & LIVE DASHBOARD
 if db["stato"] == "gironi":
@@ -961,6 +1015,19 @@ if db["stato"] == "gironi":
             unsafe_allow_html=True,
         )
 
+        if is_admin:
+          for sq_nome in [m["c1"], m["c2"]]:
+            num_tel = db["telefoni"].get(sq_nome, "")
+            if num_tel:
+              testo_wa = f"Ciao {sq_nome}! Toccate a voi: scendete subito al Tavolo {tavolo_num}! Gestite il risultato qui."
+              link_wa = (
+                  f"https://wa.me/{num_tel}?text={urllib.parse.quote(testo_wa)}"
+              )
+              st.markdown(
+                  f'<a href="{link_wa}" target="_blank"><button style="width:100%; background:#25d366; color:white; border:none; border-radius:10px; padding:6px; font-weight:bold; margin-bottom:4px; cursor:pointer;">💬 Invia WhatsApp a {sq_nome}</button></a>',
+                  unsafe_allow_html=True,
+              )
+
         if st.button(
             "🔄 Posticipa di 2",
             key=f"post_ic_{match_id}",
@@ -1024,6 +1091,19 @@ if db["stato"] == "gironi":
             """,
             unsafe_allow_html=True,
         )
+
+        if is_admin:
+          for sq_nome in [m["c1"], m["c2"]]:
+            num_tel = db["telefoni"].get(sq_nome, "")
+            if num_tel:
+              testo_wa = f"Ciao {sq_nome}! Siete in coda (posizione #{idx+1}). Preparatevi a salire al tavolo appena si libera!"
+              link_wa = (
+                  f"https://wa.me/{num_tel}?text={urllib.parse.quote(testo_wa)}"
+              )
+              st.markdown(
+                  f'<a href="{link_wa}" target="_blank"><button style="width:100%; background:#25d366; color:white; border:none; border-radius:8px; padding:4px; font-size:11px; font-weight:bold; margin-bottom:4px; cursor:pointer;">💬 Avvisa {sq_nome}</button></a>',
+                  unsafe_allow_html=True,
+              )
 
   st.markdown("---")
   st.subheader("📊 Classifiche dei Gironi")
