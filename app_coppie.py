@@ -60,13 +60,6 @@ st.markdown(
             letter-spacing: 2px;
         }
         .neon-subtitle { color: #8b949e; font-size: 14px; margin-top: 6px; font-weight: 600; }
-        .neon-box-main {
-            background: linear-gradient(135deg, rgba(16, 22, 36, 0.95) 0%, rgba(8, 12, 20, 0.98) 100%);
-            border: 2px solid #00f2fe;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 20px;
-        }
         .match-live-card {
             background: linear-gradient(135deg, rgba(30, 20, 10, 0.95) 0%, rgba(12, 8, 4, 0.98) 100%);
             border: 2px solid #ffaa00;
@@ -74,9 +67,13 @@ st.markdown(
             padding: 22px;
             text-align: center;
         }
-        .neon-gold { color: #ffaa00 !important; }
-        .neon-blue { color: #00f2fe !important; }
-        .neon-green { color: #00ff66 !important; }
+        .user-panel-box {
+            background: linear-gradient(135deg, rgba(10, 30, 40, 0.95) 0%, rgba(4, 12, 20, 0.98) 100%);
+            border: 2px solid #00f2fe;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
         h1, h2, h3, h4 { font-family: 'Rajdhani', sans-serif !important; color: #ffffff !important; letter-spacing: 1.5px; text-transform: uppercase; }
 
         div.stButton > button {
@@ -117,7 +114,6 @@ def carica_dati():
             dati_salvati[k] = v
         return dati_salvati
     except:
-      # Se il file è corrotto, lo elimina per evitare crash
       os.remove(DB_FILE)
   return dati_default
 
@@ -326,13 +322,16 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
 
     if st.button("🚀 Crea Gironi", use_container_width=True):
       coppie = [pulisci_nome(l) for l in whatsapp_text.split("\n") if pulisci_nome(l)]
-      if len(coppie) >= db["num_gironi"] * 2:
+      num_g = int(db["num_gironi"])
+      if len(coppie) >= num_g * 2:
         db["coppie"] = coppie
         random.shuffle(coppie)
-        nomi_g = [chr(65 + i) for i in range(db["num_gironi"])]
+        nomi_g = [chr(65 + i) for i in range(num_g)]
         g_dict = {f"Girone {g}": [] for g in nomi_g}
         for i, c in enumerate(coppie):
-          g_dict[f"Girone {nomi_g[i % db['num_gironi']}}"].append(c)
+          idx_g = i % num_g
+          nome_g_chiave = "Girone " + nomi_g[idx_g]
+          g_dict[nome_g_chiave].append(c)
         db["gironi"] = g_dict
         db["punti_gironi"] = {
             g: {
@@ -434,6 +433,87 @@ if db["stato"] == "gironi":
     if cambiato:
       salva_dati(db)
 
+  # --- SEZIONE DEDICATA ALLA COPPIA SELEZIONATA ---
+  if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
+    st.markdown("### 🎯 Stato della tua Coppia")
+    girone_coppia = None
+    info_coppia = None
+    for g_nome, dati_g in db["punti_gironi"].items():
+      if coppia_selezionata in dati_g:
+        girone_coppia = g_nome
+        sorted_c = sorted(
+            dati_g.items(),
+            key=lambda x: (
+                x[1]["punti"],
+                x[1]["scontri_diretti_pt"],
+                x[1]["dr"],
+                x[1]["gf"],
+            ),
+            reverse=True,
+        )
+        for idx, (c, inf) in enumerate(sorted_c):
+          if c == coppia_selezionata:
+            info_coppia = (idx + 1, inf)
+            break
+
+    col_u1, col_u2, col_u3 = st.columns(3)
+    with col_u1:
+      st.markdown(f"**Coppia:** {coppia_selezionata}")
+    with col_u2:
+      st.markdown(f"**Girone:** {girone_coppia or 'N/D'}")
+    with col_u3:
+      if info_coppia:
+        st.markdown(f"**Posizione:** {info_coppia[0]}° posto ({info_coppia[1]['punti']} pt)")
+
+    partita_utente_live = next((m for m in partite_in_corso if coppia_selezionata in [m["c1"], m["c2"]]), None)
+    
+    coda_utente_idx = None
+    for idx_c, m in enumerate(partite_da_giocare):
+      if coppia_selezionata in [m["c1"], m["c2"]]:
+        coda_utente_idx = idx_c + 1
+        break
+
+    if partita_utente_live:
+      st.markdown(
+          f"""
+          <div class="user-panel-box" style="border-color: #ffaa00;">
+              <h3 style="color: #ffaa00; margin-top: 0;">🔥 La tua partita è IN CORSO al Tavolo {partita_utente_live.get('tavolo')}!</h3>
+              <p><b>{partita_utente_live['c1']} vs {partita_utente_live['c2']}</b></p>
+          </div>
+          """,
+          unsafe_allow_html=True,
+      )
+      with st.expander("📝 Inserisci / Modifica il Risultato della tua Partita", expanded=True):
+        col_g1, col_g2 = st.columns(2)
+        with col_g1:
+          g1 = st.number_input(f"Gol {partita_utente_live['c1']}", 0, 20, int(partita_utente_live.get("gol1", 0)), key=f"user_g1_{partita_utente_live['id']}")
+        with col_g2:
+          g2 = st.number_input(f"Gol {partita_utente_live['c2']}", 0, 20, int(partita_utente_live.get("gol2", 0)), key=f"user_g2_{partita_utente_live['id']}")
+
+        if st.button("✅ Salva Risultato", key=f"user_sv_{partita_utente_live['id']}", use_container_width=True):
+          partita_utente_live["gol1"] = int(g1)
+          partita_utente_live["gol2"] = int(g2)
+          partita_utente_live["giocata"] = True
+          partita_utente_live["in_corso"] = False
+          partita_utente_live["tavolo"] = None
+          ricalcola_classifiche_gironi()
+          salva_dati(db)
+          st.rerun()
+    elif coda_utente_idx:
+      st.markdown(
+          f"""
+          <div class="user-panel-box" style="border-color: #00ff66;">
+              <h4 style="color: #00ff66; margin-top: 0;">⏳ La tua prossima partita è in CODA (Posizione #{coda_utente_idx})</h4>
+              <p>Preparati a salire appena si libera un tavolo!</p>
+          </div>
+          """,
+          unsafe_allow_html=True,
+      )
+    else:
+      st.info("ℹ️ Al momento non hai partite attive o in coda. Controlla il calendario generale sotto.")
+
+    st.markdown("---")
+
   st.subheader("⚡ Tavoli Live & Coda")
   col_ic, col_coda = st.columns(2)
 
@@ -490,11 +570,14 @@ if db["stato"] == "gironi":
 
   with col_coda:
     st.markdown("#### ⏳ Prossimi in Coda")
-    for i, m in enumerate(partite_da_giocare[:num_tavoli]):
-      st.markdown(
-          f"<div style='background: rgba(8,36,20,0.8); border: 1px solid #00ff66; padding: 10px; border-radius: 10px; margin-bottom: 8px;'><b>#{i+1} ({m['girone']})</b>: {m['c1']} vs {m['c2']}</div>",
-          unsafe_allow_html=True,
-      )
+    if not partite_da_giocare:
+      st.info("Nessuna partita in coda.")
+    else:
+      for i, m in enumerate(partite_da_giocare[:num_tavoli]):
+        st.markdown(
+            f"<div style='background: rgba(8,36,20,0.8); border: 1px solid #00ff66; padding: 10px; border-radius: 10px; margin-bottom: 8px;'><b>#{i+1} ({m['girone']})</b>: {m['c1']} vs {m['c2']}</div>",
+            unsafe_allow_html=True,
+        )
 
   st.markdown("---")
   st.subheader("📊 Classifiche Gironi")
@@ -515,3 +598,52 @@ if db["stato"] == "gironi":
           f"<div style='background: rgba(16,22,36,0.9); border: 1px solid #00f2fe; padding: 8px 12px; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: space-between;'><b>{idx+1}° {c}</b> <span><b>{info['punti']} pt</b> (V:{info['vinte']} P:{info['perse']} DR:{info['dr']:+d})</span></div>",
           unsafe_allow_html=True,
       )
+
+  # --- ELENCO COMPLETO DI TUTTE LE PARTITE ---
+  st.markdown("---")
+  st.subheader("📅 Elenco Completo di Tutte le Partite")
+  
+  tab_scelta = st.radio("Visualizza per:", ["Tutti i Gironi", "Separa per Girone"], horizontal=True)
+
+  if tab_scelta == "Tutti i Gironi":
+    for g_nome, turni in db["calendario_gironi"].items():
+      st.markdown(f"#### 🏷️ {g_nome}")
+      for t_obj in turni:
+        st.markdown(f"**Turno {t_obj['turno']}**")
+        for m in t_obj["partite"]:
+          if m.get("giocata", False):
+            stato_str = f"✅ Giocata ({m['gol1']} - {m['gol2']})"
+            colore_bordo = "#00ff66"
+          elif m.get("in_corso", False):
+            stato_str = f"🔥 In Corso (Tavolo {m.get('tavolo')})"
+            colore_bordo = "#ffaa00"
+          else:
+            stato_str = "⏳ In Coda"
+            colore_bordo = "#8b949e"
+          
+          st.markdown(
+              f"<div style='background: rgba(16,22,36,0.6); border: 1px solid {colore_bordo}; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between;'><span><b>{m['c1']}</b> vs <b>{m['c2']}</b></span><span>{stato_str}</span></div>",
+              unsafe_allow_html=True,
+          )
+  else:
+    gironi_disponibili = list(db["calendario_gironi"].keys())
+    tab_gironi = st.tabs(gironi_disponibili)
+    for idx, g_nome in enumerate(gironi_disponibili):
+      with tab_gironi[idx]:
+        for t_obj in db["calendario_gironi"][g_nome]:
+          st.markdown(f"**Turno {t_obj['turno']}**")
+          for m in t_obj["partite"]:
+            if m.get("giocata", False):
+              stato_str = f"✅ Giocata ({m['gol1']} - {m['gol2']})"
+              colore_bordo = "#00ff66"
+            elif m.get("in_corso", False):
+              stato_str = f"🔥 In Corso (Tavolo {m.get('tavolo')})"
+              colore_bordo = "#ffaa00"
+            else:
+              stato_str = "⏳ In Coda"
+              colore_bordo = "#8b949e"
+            
+            st.markdown(
+                f"<div style='background: rgba(16,22,36,0.6); border: 1px solid {colore_bordo}; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between;'><span><b>{m['c1']}</b> vs <b>{m['c2']}</b></span><span>{stato_str}</span></div>",
+                unsafe_allow_html=True,
+            )
