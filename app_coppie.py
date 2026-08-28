@@ -717,7 +717,7 @@ if torneo["stato"] == "gironi":
         <div style="background: linear-gradient(135deg, rgba(16, 16, 45, 0.98) 0%, rgba(30, 12, 60, 0.98) 100%); border: 2px solid #00ffff; border-radius: 14px; padding: 16px; margin-bottom: 15px; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);">
             <div style="color: #00ffff; font-size: 11px; font-weight: 900; letter-spacing: 2px; margin-bottom: 6px;">✨ LA TUA COPPIA</div>
             <div style="font-size: 21px; font-weight: 900; color: #ffffff; margin-bottom: 14px; text-shadow: 0 0 10px rgba(255,255,255,0.6);">
-                🤝 📖 {coppia_selezionata}
+                🤝 {coppia_selezionata}
             </div>
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1; background: rgba(8, 8, 28, 0.9); border: 1.5px solid #00ffff55; border-radius: 10px; padding: 10px; text-align: center;">
@@ -744,18 +744,13 @@ if torneo["stato"] == "gironi":
     st.markdown("🔥 **Partite in Corso / In Coda per te:**", unsafe_allow_html=True)
 
     if mia_partita_in_corso:
-      avversario = (
-          mia_partita_in_corso["c2"]
-          if mia_partita_in_corso["c1"] == coppia_selezionata
-          else mia_partita_in_corso["c1"]
-      )
       match_id_mio = mia_partita_in_corso["id"]
 
       st.markdown(
           f"""
             <div style="background: linear-gradient(135deg, #381a05 0%, #170a02 100%); border: 1.5px solid #f59e0b; padding: 12px; border-radius: 10px; margin-bottom: 8px; text-align: center; box-shadow: 0 0 12px rgba(245,158,11,0.4);">
                 <div style="font-size: 11px; color: #f59e0b; font-weight: 900;">🥅 IN CORSO (Biliardino {mia_partita_in_corso.get('tavolo')})</div>
-                <div style="font-size: 13px; color: #ffffff; font-weight: 900; margin-top: 5px;">📖 {mia_partita_in_corso['c1']} vs 📖 {mia_partita_in_corso['c2']}</div>
+                <div style="font-size: 13px; color: #ffffff; font-weight: 900; margin-top: 5px;">{mia_partita_in_corso['c1']} vs {mia_partita_in_corso['c2']}</div>
             </div>
             """,
           unsafe_allow_html=True,
@@ -852,9 +847,9 @@ if torneo["stato"] == "gironi":
     else:
       for m in partite_in_corso:
         tavolo_str = (
-            f"<b>🏟️ Tavolo {m.get('tavolo')} - {m['girone']}</b>"
+            f"Biliardino {m.get('tavolo')} - {m['girone']}"
             if m.get("tavolo")
-            else f"<b>🏟️ {m['girone']}</b>"
+            else f"{m['girone']}"
         )
         match_id = m["id"]
         sono_interessato = (
@@ -863,8 +858,8 @@ if torneo["stato"] == "gironi":
 
         st.markdown(
             f"""
-            <div style="background: linear-gradient(135deg, #2b1f07 0%, #120d02 100%); border: 1.5px solid #f59e0b; border-radius: 10px; padding: 8px; text-align: center; margin-bottom: 6px;">
-                <div style="font-size: 10px; color: #f59e0b; font-weight: 900; margin-bottom: 2px;">{tavolo_str}</div>
+            <div style="background: linear-gradient(135deg, #2b1f07 0%, #120d02 100%); border: 1.5px solid #f59e0b; border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 8px;">
+                <div style="font-size: 10px; color: #f59e0b; font-weight: 900; margin-bottom: 3px;">🏟️ {tavolo_str}</div>
                 <div style="font-size: 12px; font-weight: 900; color: #ffffff;">{m['c1']} vs {m['c2']}</div>
             </div>
             """,
@@ -938,7 +933,7 @@ if torneo["stato"] == "gironi":
       for idx, m in enumerate(partite_in_coda_correnti):
         st.markdown(
             f"""
-            <div style="background: linear-gradient(135deg, #06241a 0%, #030f0a 100%); border: 1.5px solid #10b981; padding: 7px; border-radius: 8px; margin-bottom: 6px; color: #34d399; text-align: center;">
+            <div style="background: linear-gradient(135deg, #06241a 0%, #030f0a 100%); border: 1.5px solid #10b981; padding: 9px; border-radius: 8px; margin-bottom: 8px; color: #34d399; text-align: center;">
                 <b style="font-size: 10px;">#{idx+1} ({m['girone']})</b><br>
                 <b style="color: #ffffff; font-size: 11px;">{m['c1']} vs {m['c2']}</b>
             </div>
@@ -991,77 +986,61 @@ if torneo["stato"] == "gironi":
   st.markdown("---")
   st.subheader("🏆 Fasi Finali / Tabellone Eliminatorio")
 
-  # Verifica se tutte le partite dei gironi sono state giocate
-  tutte_gironi_giocate = True
-  for g_nome, turni_lista in torneo["calendario_gironi"].items():
-    for turno_obj in turni_lista:
-      for m in turno_obj["partite"]:
-        if not m.get("giocata", False):
-          tutte_gironi_giocate = False
-          break
-
   if not torneo.get("fasi_finali_configurate", False):
-    if tutte_gironi_giocate:
-      st.success("🎉 I gironi sono completi! È possibile generare il tabellone delle fasi finali.")
-      if is_admin:
-        if st.button("🚀 Genera Tabellone Fasi Finali", use_container_width=True):
-          # Raccoglie le prime 4 posizioni di ogni girone per le fasi finali
-          qualificate = []
-          for g_nome in sorted(torneo["gironi"].keys()):
-            dati_g = torneo["punti_gironi"][g_nome]
-            sorted_c = sorted(
-                dati_g.items(),
-                key=lambda x: (
-                    x[1]["punti"],
-                    x[1]["scontri_diretti_pt"],
-                    x[1]["dr"],
-                    x[1]["gf"],
-                ),
-                reverse=True,
-            )
-            # Prende le prime 4 del girone
-            for idx_q, (c_nome, _) in enumerate(sorted_c):
-              if idx_q < 4:
-                qualificate.append((c_nome, g_nome, idx_q + 1))
-          
-          torneo["fasi_finali"] = {
-              "qualificate": qualificate,
-              "quarti": [
-                  {"id": "q1", "c1": "Da definire", "c2": "Da definire", "gol1": 0, "gol2": 0, "giocata": False},
-                  {"id": "q2", "c1": "Da definire", "c2": "Da definire", "gol1": 0, "gol2": 0, "giocata": False},
-                  {"id": "q3", "c1": "Da definire", "c2": "Da definire", "gol1": 0, "gol2": 0, "giocata": False},
-                  {"id": "q4", "c1": "Da definire", "c2": "Da definire", "gol1": 0, "gol2": 0, "giocata": False},
-              ],
-              "semifinali": [
-                  {"id": "s1", "c1": "Vincente Q1", "c2": "Vincente Q2", "gol1": 0, "gol2": 0, "giocata": False},
-                  {"id": "s2", "c1": "Vincente Q3", "c2": "Vincente Q4", "gol1": 0, "gol2": 0, "giocata": False},
-              ],
-              "finale": [
-                  {"id": "f1", "c1": "Vincente S1", "c2": "Vincente S2", "gol1": 0, "gol2": 0, "giocata": False}
-              ]
-          }
-          
-          # Se ci sono abbastanza qualificate, compila i quarti automaticamente
-          if len(qualificate) >= 8:
-            torneo["fasi_finali"]["quarti"][0]["c1"] = qualificate[0][0] # 1° Girone A
-            torneo["fasi_finali"]["quarti"][0]["c2"] = qualificate[7][0] # 4° Girone B / simile
-            torneo["fasi_finali"]["quarti"][1]["c1"] = qualificate[2][0]
-            torneo["fasi_finali"]["quarti"][1]["c2"] = qualificate[5][0]
-            torneo["fasi_finali"]["quarti"][2]["c1"] = qualificate[1][0]
-            torneo["fasi_finali"]["quarti"][2]["c2"] = qualificate[6][0]
-            torneo["fasi_finali"]["quarti"][3]["c1"] = qualificate[3][0]
-            torneo["fasi_finali"]["quarti"][3]["c2"] = qualificate[4][0]
+    st.info("💡 Puoi generare o sbloccare il tabellone delle fasi finali in qualsiasi momento.")
+    if is_admin:
+      if st.button("🚀 Genera Tabellone Fasi Finali", use_container_width=True):
+        qualificate = []
+        for g_nome in sorted(torneo["gironi"].keys()):
+          dati_g = torneo["punti_gironi"][g_nome]
+          sorted_c = sorted(
+              dati_g.items(),
+              key=lambda x: (
+                  x[1]["punti"],
+                  x[1]["scontri_diretti_pt"],
+                  x[1]["dr"],
+                  x[1]["gf"],
+              ),
+              reverse=True,
+          )
+          for idx_q, (c_nome, _) in enumerate(sorted_c):
+            if idx_q < 4:
+              qualificate.append((c_nome, g_nome, idx_q + 1))
+        
+        torneo["fasi_finali"] = {
+            "qualificate": qualificate,
+            "quarti": [
+                {"id": "q1", "c1": "Da definire", "c2": "Da definire", "gol1": 0, "gol2": 0, "giocata": False},
+                {"id": "q2", "c1": "Da definire", "c2": "Da definire", "gol1": 0, "gol2": 0, "giocata": False},
+                {"id": "q3", "c1": "Da definire", "c2": "Da definire", "gol1": 0, "gol2": 0, "giocata": False},
+                {"id": "q4", "c1": "Da definire", "c2": "Da definire", "gol1": 0, "gol2": 0, "giocata": False},
+            ],
+            "semifinali": [
+                {"id": "s1", "c1": "Vincente Q1", "c2": "Vincente Q2", "gol1": 0, "gol2": 0, "giocata": False},
+                {"id": "s2", "c1": "Vincente Q3", "c2": "Vincente Q4", "gol1": 0, "gol2": 0, "giocata": False},
+            ],
+            "finale": [
+                {"id": "f1", "c1": "Vincente S1", "c2": "Vincente S2", "gol1": 0, "gol2": 0, "giocata": False}
+            ]
+        }
+        
+        if len(qualificate) >= 8:
+          torneo["fasi_finali"]["quarti"][0]["c1"] = qualificate[0][0]
+          torneo["fasi_finali"]["quarti"][0]["c2"] = qualificate[7][0]
+          torneo["fasi_finali"]["quarti"][1]["c1"] = qualificate[2][0]
+          torneo["fasi_finali"]["quarti"][1]["c2"] = qualificate[5][0]
+          torneo["fasi_finali"]["quarti"][2]["c1"] = qualificate[1][0]
+          torneo["fasi_finali"]["quarti"][2]["c2"] = qualificate[6][0]
+          torneo["fasi_finali"]["quarti"][3]["c1"] = qualificate[3][0]
+          torneo["fasi_finali"]["quarti"][3]["c2"] = qualificate[4][0]
 
-          torneo["fasi_finali_configurate"] = True
-          salva_dati(db)
-          st.success("Tabellone generato con successo!")
-          st.rerun()
-      else:
-        st.info("In attesa che l'amministratore generi le fasi finali del torneo.")
+        torneo["fasi_finali_configurate"] = True
+        salva_dati(db)
+        st.success("Tabellone generato con successo!")
+        st.rerun()
     else:
-      st.info("⏳ Le fasi finali si sbloccheranno automaticamente non appena tutte le partite dei gironi saranno completate.")
+      st.info("In attesa che l'amministratore generi le fasi finali del torneo.")
   else:
-    # Mostra il tabellone delle fasi finali
     ff = torneo.get("fasi_finali", {})
     
     st.markdown("#### 🥇 Quarti di Finale")
