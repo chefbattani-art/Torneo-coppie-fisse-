@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- STILE GRAFICO GLOBALE (CYBER / ESPORT HUD ESTREMO) ---
+# --- STILE GRAFICO GLOBALE (CON SCROLL SIDEBAR ABILITATO) ---
 st.markdown(
     """
     <style>
@@ -29,6 +29,7 @@ st.markdown(
         section[data-testid="stSidebar"] {
             background: linear-gradient(180deg, #130f26, #070510);
             border-right: 1px solid #2e1a47;
+            overflow-y: auto !important;
         }
         
         .esport-header {
@@ -517,7 +518,6 @@ st.sidebar.markdown("---")
 
 if is_admin:
   if db["stato"] == "setup":
-    # --- NUOVO: AGGIUNTA RAPIDA ADMIN SENZA NUMERO DI TELEFONO ---
     st.sidebar.subheader("➕ Inserisci Coppia (Admin)")
     with st.sidebar.form("form_admin_aggiungi_coppia", clear_on_submit=True):
       nome_admin_coppia = st.text_input("Nome Coppia (es. Rossi / Bianchi)")
@@ -532,19 +532,26 @@ if is_admin:
           st.sidebar.warning("Questa coppia è già presente!")
         else:
           db["coppie"].append(pulito_admin)
-          db["telefoni"][pulito_admin] = ""  # Nessun numero richiesto
+          db["telefoni"][pulito_admin] = ""
           salva_dati(db)
           st.sidebar.success(f"Aggiunta: {pulito_admin}")
           st.rerun()
 
     st.sidebar.markdown("---")
 
-    if st.sidebar.button(
-        "🚀 Passa alla Fase Gironi / Gestione", use_container_width=True
-    ):
-      coppie_presenti = db.get("coppie", [])
-      num_g = int(db.get("num_gironi", 4))
-      if len(coppie_presenti) >= (num_g * 2):
+    coppie_presenti = db.get("coppie", [])
+    num_g = int(db.get("num_gironi", 4))
+    min_coppie_richieste = num_g * 2
+
+    st.sidebar.markdown(
+        f"**Coppie iscritte:** {len(coppie_presenti)} / {min_coppie_richieste}"
+        " min"
+    )
+
+    if len(coppie_presenti) >= min_coppie_richieste:
+      if st.sidebar.button(
+          "🚀 Passa alla Fase Gironi / Gestione", use_container_width=True
+      ):
         random.shuffle(coppie_presenti)
         nomi_gironi = [chr(65 + i) for i in range(num_g)]
         gironi_dict = {f"Girone {g}": [] for g in nomi_gironi}
@@ -595,20 +602,21 @@ if is_admin:
                     "gol1": 0,
                     "gol2": 0,
                 })
-            turni_turno.append({"turno": t + 1, "partite": partite_turno})
+            turni_girone.append({"turno": t + 1, "partite": partite_turno})
             squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
 
-          calendario_totale[g_nome] = turni_turno
+          calendario_totale[g_nome] = turni_girone
 
         db["calendario_gironi"] = calendario_totale
         db["stato"] = "gironi"
         salva_dati(db)
         st.success("Gironi generati!")
         st.rerun()
-      else:
-        st.sidebar.error(
-            f"Servono almeno {num_g * 2} coppie per avviare il torneo."
-        )
+    else:
+      st.sidebar.warning(
+          f"⚠️ Aggiungi almeno altre {min_coppie_richieste - len(coppie_presenti)}"
+          " coppie per sbloccare l'avvio del torneo."
+      )
 
   if st.sidebar.button(
       "⚙️ Mostra / Nascondi Setup Iniziale", use_container_width=True
