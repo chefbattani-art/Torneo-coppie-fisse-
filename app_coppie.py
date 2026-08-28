@@ -517,6 +517,28 @@ st.sidebar.markdown("---")
 
 if is_admin:
   if db["stato"] == "setup":
+    # --- NUOVO: AGGIUNTA RAPIDA ADMIN SENZA NUMERO DI TELEFONO ---
+    st.sidebar.subheader("➕ Inserisci Coppia (Admin)")
+    with st.sidebar.form("form_admin_aggiungi_coppia", clear_on_submit=True):
+      nome_admin_coppia = st.text_input("Nome Coppia (es. Rossi / Bianchi)")
+      submit_admin_add = st.form_submit_button(
+          "Aggiungi Coppia", use_container_width=True
+      )
+      if submit_admin_add:
+        pulito_admin = pulisci_nome(nome_admin_coppia)
+        if not pulito_admin:
+          st.sidebar.error("Inserisci un nome valido.")
+        elif pulito_admin in db["coppie"]:
+          st.sidebar.warning("Questa coppia è già presente!")
+        else:
+          db["coppie"].append(pulito_admin)
+          db["telefoni"][pulito_admin] = ""  # Nessun numero richiesto
+          salva_dati(db)
+          st.sidebar.success(f"Aggiunta: {pulito_admin}")
+          st.rerun()
+
+    st.sidebar.markdown("---")
+
     if st.sidebar.button(
         "🚀 Passa alla Fase Gironi / Gestione", use_container_width=True
     ):
