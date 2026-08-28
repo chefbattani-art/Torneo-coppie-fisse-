@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- STILE GRAFICO HUD / GAMER CYBERPUNK UNICO ---
+# --- STILE GRAFICO HUD / GAMER CYBERPUNK ---
 st.markdown(
     """
     <style>
@@ -40,21 +40,6 @@ st.markdown(
             padding-right: 0.5rem !important;
         }
         
-        /* FORZA ASSOLUTA: griglia orizzontale in un'unica riga */
-        div[data-testid="stHorizontalBlock"] {
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            align-items: center !important;
-            gap: 2px !important;
-            width: 100% !important;
-        }
-        [data-testid="column"] {
-            flex: 1 1 0% !important;
-            min-width: 0 !important;
-            padding: 0px 1px !important;
-        }
-
         /* Bottoni stile tasto arcade/cyberpunk */
         div.stButton > button {
             border-radius: 4px;
@@ -680,7 +665,7 @@ if torneo["stato"] == "gironi":
       key=lambda x: x.get("tavolo") if x.get("tavolo") is not None else 999,
   )
 
-  # --- 🔥 QUADRANTE UNICO STILE GAMER PER LA COPPIA (UNIONE DI TUTTO) ---
+  # --- QUADRANTE UNICO STILE GAMER PER LA COPPIA ---
   if (
       coppia_selezionata
       and coppia_selezionata != "-- Seleziona la tua coppia per accedere --"
@@ -727,7 +712,6 @@ if torneo["stato"] == "gironi":
     pos_str = f"{pos_mia}° POSTO" if pos_mia else "N.D."
     girone_str = girone_mio if girone_mio else "N.D."
 
-    # HTML/CSS Gamer HUD Box Unico
     st.markdown(
         f"""
         <div style="background: linear-gradient(135deg, rgba(20, 10, 40, 0.95) 0%, rgba(10, 5, 20, 0.95) 100%); 
@@ -757,7 +741,6 @@ if torneo["stato"] == "gironi":
         unsafe_allow_html=True,
     )
 
-    # Gestione stato match personale integrata direttamente nel quadrante
     if mia_partita_in_corso:
       avversario = (
           mia_partita_in_corso["c2"]
