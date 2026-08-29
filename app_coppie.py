@@ -499,6 +499,28 @@ if is_admin:
         st.success("Torneo creato con successo!")
         st.rerun()
 
+  # --- BLOCCO AGGIUNTO: ELIMINAZIONE TORNEO ---
+  st.sidebar.markdown("---")
+  st.sidebar.subheader("🗑️ Elimina Torneo Creato")
+  
+  tornei_eliminabili = [t for t in db["tornei"].keys() if t != "TORNEO GIOVEDÌ 3 MASSALOMBARDA"]
+  
+  if tornei_eliminabili:
+    torneo_da_eliminare = st.sidebar.selectbox("Seleziona torneo da rimuovere", options=tornei_eliminabili, key="sel_del_torneo")
+    conferma_canc_torneo = st.sidebar.checkbox("Conferma eliminazione definitiva", key="chk_del_torneo")
+    
+    if st.sidebar.button("Elimina Torneo Selezionato", use_container_width=True):
+      if conferma_canc_torneo:
+        if torneo_da_eliminare in db["tornei"]:
+          del db["tornei"][torneo_da_eliminare]
+          salva_dati(db)
+          st.success(f"Torneo '{torneo_da_eliminare}' eliminato con successo!")
+          st.rerun()
+      else:
+        st.sidebar.warning("⚠️ Spunta la casella di conferma per procedere.")
+  else:
+    st.sidebar.info("Nessun torneo aggiuntivo eliminabile.")
+
 st.sidebar.markdown("⚙️ Pannello di Controllo")
 
 if t_data["stato"] != "iscrizioni_aperte" and t_data["stato"] != "setup":
