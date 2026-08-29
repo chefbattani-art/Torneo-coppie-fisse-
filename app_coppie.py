@@ -103,24 +103,7 @@ DB_FILE = "coppie_data_multi.json"
 
 def carica_dati():
   dati_default = {
-      "tornei": {
-          "TORNEO GIOVEDÌ 3 MASSALOMBARDA": {
-              "stato": "iscrizioni_aperte",
-              "coppie": [],
-              "coda": [],
-              "max_coppie": 32,
-              "num_tavoli": 6,
-              "num_gironi": 4,
-              "gironi": {},
-              "calendario_gironi": {},
-              "punti_gironi": {},
-              "fasi_finali_configurate": False,
-              "tabellone_a": [],
-              "tabellone_b": [],
-              "terzo_quarto_a": [],
-              "terzo_quarto_b": []
-          }
-      },
+      "tornei": {},
       "admin_pin": "0000"
   }
   if os.path.exists(DB_FILE):
@@ -130,18 +113,11 @@ def carica_dati():
         if "tornei" not in dati_salvati:
           return dati_default
         
-        tornei_da_rimuovere = ["Torneo Principale (PRO)", "Torneo Secondario (Amatoriale)"]
+        tornei_da_rimuovere = ["TORNEO GIOVEDÌ 3 MASSA LOMBARDA", "TORNEO GIOVEDÌ 3 MASSALOMBARDA", "Torneo Principale (PRO)", "Torneo Secondario (Amatoriale)"]
         for t_rem in tornei_da_rimuovere:
           if t_rem in dati_salvati["tornei"]:
             del dati_salvati["tornei"][t_rem]
 
-        for k, v in dati_default["tornei"].items():
-          if k not in dati_salvati["tornei"]:
-            dati_salvati["tornei"][k] = v
-          else:
-            for sub_k, sub_v in v.items():
-              if sub_k not in dati_salvati["tornei"][k]:
-                dati_salvati["tornei"][k][sub_k] = sub_v
         return dati_salvati
     except:
       pass
@@ -435,30 +411,48 @@ st.markdown(
 tornei_disponibili = [t for t in db["tornei"].keys() if t not in ["Torneo Principale (PRO)", "Torneo Secondario (Amatoriale)"]]
 
 if not tornei_disponibili:
-  db["tornei"]["TORNEO GIOVEDÌ 3 MASSALOMBARDA"] = {
-      "stato": "iscrizioni_aperte",
-      "coppie": [],
-      "coda": [],
-      "max_coppie": 32,
-      "num_tavoli": 6,
-      "num_gironi": 4,
-      "gironi": {},
-      "calendario_gironi": {},
-      "punti_gironi": {},
-      "fasi_finali_configurate": False,
-      "tabellone_a": [],
-      "tabellone_b": [],
-      "terzo_quarto_a": [],
-      "terzo_quarto_b": []
-  }
-  salva_dati(db)
-  tornei_disponibili = list(db["tornei"].keys())
+  st.info("Nessun torneo attivo al momento. Utilizza il pannello laterale admin per crearne uno nuovo.")
 
 torneo_selezionato = st.selectbox(
     "🎯 Seleziona il Torneo a cui vuoi partecipare o consultare:",
-    options=tornei_disponibili,
+    options=tornei_disponibili if tornei_disponibili else ["Nessun Torneo Disponibile"],
     key="selettore_torneo_principale"
 )
+
+if not tornei_disponibili:
+  if is_admin:
+    with st.sidebar.expander("➕ Crea Nuovo Torneo con Parametri", expanded=True):
+      nuovo_nome_torneo = st.text_input("Nome del Torneo / Categoria")
+      col_nc1, col_nc2 = st.columns(2)
+      with col_nc1:
+        nc_tavoli = st.number_input("N. Biliardini", min_value=1, max_value=10, value=6)
+        nc_gironi = st.number_input("N. Gironi", min_value=1, max_value=8, value=4)
+      with col_nc2:
+        nc_max = st.number_input("Max Coppie (Titolari)", min_value=2, max_value=128, value=32)
+        
+      if st.button("Crea Torneo Avanzato", use_container_width=True):
+        if nuovo_nome_torneo.strip() and nuovo_nome_torneo.strip().upper() not in db["tornei"]:
+          db["tornei"][nuovo_nome_torneo.strip().upper()] = {
+              "stato": "iscrizioni_aperte",
+              "coppie": [],
+              "coda": [],
+              "max_coppie": int(nc_max),
+              "num_tavoli": int(nc_tavoli),
+              "num_gironi": int(nc_gironi),
+              "gironi": {},
+              "calendario_gironi": {},
+              "punti_gironi": {},
+              "fasi_finali_configurate": False,
+              "tabellone_a": [],
+              "tabellone_b": [],
+              "terzo_quarto_a": [],
+              "terzo_quarto_b": []
+          }
+          salva_dati(db)
+          st.success("Torneo creato con successo!")
+          st.rerun()
+  st.stop()
+
 t_data = db["tornei"][torneo_selezionato]
 
 if "coda" not in t_data:
@@ -499,7 +493,7 @@ if is_admin:
         st.success("Torneo creato con successo!")
         st.rerun()
 
-  # --- BLOCCO ELIMINAZIONE TORNEO (ESTESO A TUTTI I TORNEI) ---
+  # --- BLOCCO ELIMINAZIONE TORNEO ---
   st.sidebar.markdown("---")
   st.sidebar.subheader("🗑️ Elimina Torneo")
   
@@ -513,26 +507,6 @@ if is_admin:
       if conferma_canc_torneo:
         if torneo_da_eliminare in db["tornei"]:
           del db["tornei"][torneo_da_eliminare]
-          
-          # Se il database rimane vuoto, ricrea un torneo di default per evitare errori
-          if not db["tornei"]:
-            db["tornei"]["TORNEO GIOVEDÌ 3 MASSALOMBARDA"] = {
-                "stato": "iscrizioni_aperte",
-                "coppie": [],
-                "coda": [],
-                "max_coppie": 32,
-                "num_tavoli": 6,
-                "num_gironi": 4,
-                "gironi": {},
-                "calendario_gironi": {},
-                "punti_gironi": {},
-                "fasi_finali_configurate": False,
-                "tabellone_a": [],
-                "tabellone_b": [],
-                "terzo_quarto_a": [],
-                "terzo_quarto_b": []
-            }
-
           salva_dati(db)
           st.success(f"Torneo '{torneo_da_eliminare}' eliminato con successo!")
           st.rerun()
