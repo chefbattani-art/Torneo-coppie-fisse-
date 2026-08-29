@@ -961,10 +961,10 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                     "gol1": 0,
                     "gol2": 0,
                 })
-            turni_turno.append({"turno": t + 1, "partite": partite_turno})
+            turni_girone.append({"turno": t + 1, "partite": partite_turno})
             squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
 
-          calendario_totale[g_nome] = turni_turno
+          calendario_totale[g_nome] = turni_girone
 
         db["calendario_gironi"] = calendario_totale
         db["stato"] = "gironi"
