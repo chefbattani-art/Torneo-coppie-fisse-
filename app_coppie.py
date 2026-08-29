@@ -73,7 +73,6 @@ st.markdown(
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
             color: #ffffff;
         }
-        /* STILE PERSONALIZZATO: Selettore del torneo molto più grande e con neon azzurro intenso */
         div[data-baseweb="select"] > div {
             background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.95) 100%) !important;
             border: 2.5px solid #00f0ff !important;
@@ -420,7 +419,7 @@ else:
 
 st.sidebar.markdown("---")
 
-# --- SELETTORE TORNEO IN EVIDENZA IN ALTO (INGRANDITO E NEON AZZURRO) ---
+# --- SELETTORE TORNEO IN EVIDENZA IN ALTO ---
 st.markdown(
     """
     <div style="text-align: left; margin-bottom: 8px;">
@@ -576,12 +575,10 @@ if t_data["stato"] == "iscrizioni_aperte":
     if submit_isc:
       nuove_inserite = []
       
-      # 1. Gestione inserimento singolo
       if c1_input.strip() and c2_input.strip():
         nuova_c = f"{c1_input.strip().upper()} / {c2_input.strip().upper()}"
         nuove_inserite.append(nuova_c)
 
-      # 2. Gestione incolla da WhatsApp
       if whatsapp_paste.strip():
         linee = whatsapp_paste.split("\n")
         for linea in linee:
@@ -619,7 +616,6 @@ if t_data["stato"] == "iscrizioni_aperte":
 
       for nc in nuove_inserite:
         nc_upper = nc.upper()
-        # Controlliamo che non esista già né nei titolari né in coda
         if nc_upper not in t_data["coppie"] and nc_upper not in t_data["coda"]:
           if len(t_data["coppie"]) < int(t_data["max_coppie"]):
             t_data["coppie"].append(nc_upper)
@@ -650,7 +646,6 @@ if t_data["stato"] == "iscrizioni_aperte":
         with col_ic2:
           if st.button("🗑️", key=f"del_isc_{torneo_selezionato}_{idx}", use_container_width=True):
             t_data["coppie"].remove(c)
-            # Se ci sono persone in coda, promuoviamo la prima automaticamente
             if t_data["coda"]:
               promossa = t_data["coda"].pop(0)
               t_data["coppie"].append(promossa)
@@ -772,7 +767,6 @@ elif coppia_selezionata == "-- Seleziona la tua coppia per accedere --":
 else:
   st.success(f"✅ Accesso effettuato come: **{coppia_selezionata}**")
 
-# Pannello personale utente
 if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
   with st.expander(f"👁️ Segui la tua coppia: {coppia_selezionata}", expanded=True):
     girone_mio, pos_mia, info_mie = None, None, None
