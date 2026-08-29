@@ -73,6 +73,27 @@ st.markdown(
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
             color: #ffffff;
         }
+        /* Stile personalizzato per rendere il selectbox del torneo grande e con neon azzurri */
+        div[data-baseweb="select"] > div {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.9) 100%) !important;
+            border: 2px solid #00f0ff !important;
+            border-radius: 14px !important;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4) !important;
+            color: #ffffff !important;
+            min-height: 52px !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+        div[data-baseweb="select"] span {
+            color: #ffffff !important;
+            font-size: 18px !important;
+            font-weight: 700 !important;
+        }
+        div[data-baseweb="select"] svg {
+            fill: #00f0ff !important;
+            width: 24px !important;
+            height: 24px !important;
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -83,25 +104,11 @@ DB_FILE = "coppie_data_multi.json"
 def carica_dati():
   dati_default = {
       "tornei": {
-          "Torneo Principale (PRO)": {
+          "TORNEO GIOVEDÌ 3 MASSALOMBARDA": {
               "stato": "iscrizioni_aperte",
               "coppie": [],
               "num_tavoli": 6,
               "num_gironi": 4,
-              "gironi": {},
-              "calendario_gironi": {},
-              "punti_gironi": {},
-              "fasi_finali_configurate": False,
-              "tabellone_a": [],
-              "tabellone_b": [],
-              "terzo_quarto_a": [],
-              "terzo_quarto_b": []
-          },
-          "Torneo Secondario (Amatoriale)": {
-              "stato": "iscrizioni_aperte",
-              "coppie": [],
-              "num_tavoli": 6,
-              "num_gironi": 2,
               "gironi": {},
               "calendario_gironi": {},
               "punti_gironi": {},
@@ -120,6 +127,13 @@ def carica_dati():
         dati_salvati = json.load(f)
         if "tornei" not in dati_salvati:
           return dati_default
+        
+        # Rimuoviamo automaticamente i primi due tornei di default se ancora presenti nei salvataggi
+        tornei_da_rimuovere = ["Torneo Principale (PRO)", "Torneo Secondario (Amatoriale)"]
+        for t_rem in tornei_da_rimuovere:
+          if t_rem in dati_salvati["tornei"]:
+            del dati_salvati["tornei"][t_rem]
+
         for k, v in dati_default["tornei"].items():
           if k not in dati_salvati["tornei"]:
             dati_salvati["tornei"][k] = v
@@ -417,7 +431,28 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tornei_disponibili = list(db["tornei"].keys())
+# Filtriamo rigorosamente i tornei per escludere i primi due (PRO e Amatoriale)
+tornei_disponibili = [t for t in db["tornei"].keys() if t not in ["Torneo Principale (PRO)", "Torneo Secondario (Amatoriale)"]]
+
+# Fallavoro di sicurezza se la lista fosse vuota
+if not tornei_disponibili:
+  db["tornei"]["TORNEO GIOVEDÌ 3 MASSALOMBARDA"] = {
+      "stato": "iscrizioni_aperte",
+      "coppie": [],
+      "num_tavoli": 6,
+      "num_gironi": 4,
+      "gironi": {},
+      "calendario_gironi": {},
+      "punti_gironi": {},
+      "fasi_finali_configurate": False,
+      "tabellone_a": [],
+      "tabellone_b": [],
+      "terzo_quarto_a": [],
+      "terzo_quarto_b": []
+  }
+  salva_dati(db)
+  tornei_disponibili = list(db["tornei"].keys())
+
 torneo_selezionato = st.selectbox(
     "🎯 Seleziona il Torneo a cui vuoi partecipare o consultare:",
     options=tornei_disponibili,
@@ -518,6 +553,8 @@ if t_data["stato"] == "iscrizioni_aperte":
     if submit_isc:
       if c1_input.strip() and c2_input.strip():
         nuova_c = f"{c1_input.strip().upper()} / {c2_input.strip().upper()}"
+        if nueva_c := nuova_c not in t_data["coppie"]: # fix variable check
+          pass
         if nuova_c not in t_data["coppie"]:
           t_data["coppie"].append(nuova_c)
           salva_dati(db)
