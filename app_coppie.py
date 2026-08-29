@@ -434,7 +434,7 @@ st.markdown(
 # Filtriamo rigorosamente i tornei per escludere i primi due (PRO e Amatoriale)
 tornei_disponibili = [t for t in db["tornei"].keys() if t not in ["Torneo Principale (PRO)", "Torneo Secondario (Amatoriale)"]]
 
-# Fallavoro di sicurezza se la lista fosse vuota
+# Fallimento di sicurezza se la lista fosse vuota
 if not tornei_disponibili:
   db["tornei"]["TORNEO GIOVEDÌ 3 MASSALOMBARDA"] = {
       "stato": "iscrizioni_aperte",
@@ -465,7 +465,7 @@ if is_admin:
     nuovo_nome_torneo = st.text_input("Nome del Torneo / Categoria")
     if st.button("Crea Torneo", use_container_width=True):
       if nuovo_nome_torneo.strip() and nuovo_nome_torneo.strip() not in db["tornei"]:
-        db["tornei"][nuovo_nome_torneo.strip()] = {
+        db["tornei"][nuovo_nome_torneo.strip().upper()] = {
             "stato": "iscrizioni_aperte",
             "coppie": [],
             "num_tavoli": 6,
@@ -540,41 +540,85 @@ with st.expander("ℹ️ Come funziona il torneo"):
       unsafe_allow_html=True,
   )
 
-# --- GESTIONE ISCRIZIONI APERTE (AUTONOME) CON LISTA AGGIORNATA E CANCELLAZIONE ---
+# --- GESTIONE ISCRIZIONI APERTE (AUTONOME + WHATSAPP PASTE) CON MAIUSCOLA FORZATA ---
 if t_data["stato"] == "iscrizioni_aperte":
   st.markdown(f"### 📝 Registrazione Autonoma - {torneo_selezionato}")
-  st.info("Iscriviti inserendo il nome della tua coppia. Puoi verificare la lista degli iscritti qui sotto ed eventualmente cancellare la tua coppia in autonomia se hai sbagliato inserimento.")
+  st.info("Iscrivi la tua coppia inserendo i nomi, oppure incolla direttamente la lista dei partecipanti da WhatsApp (l'app convertirà e aggiungerà tutto automaticamente in maiuscolo).")
 
   with st.form(f"form_iscrizione_{torneo_selezionato}"):
     c1_input = st.text_input("Nome Giocatore 1")
     c2_input = st.text_input("Nome Giocatore 2")
-    submit_isc = st.form_submit_button("Registra la mia Coppia 🚀", use_container_width=True)
+    
+    st.markdown("---")
+    whatsapp_paste = st.text_area("📋 Incolla qui la lista WhatsApp (es. 1. Mario/Luigi, oppure righe separate)")
+    
+    submit_isc = st.form_submit_button("Registra / Importa Coppie 🚀", use_container_width=True)
 
     if submit_isc:
+      aggiunte_count = 0
+      
+      # 1. Gestione inserimento singolo
       if c1_input.strip() and c2_input.strip():
         nuova_c = f"{c1_input.strip().upper()} / {c2_input.strip().upper()}"
-        if nueva_c := nuova_c not in t_data["coppie"]: # fix variable check
-          pass
         if nuova_c not in t_data["coppie"]:
           t_data["coppie"].append(nuova_c)
-          salva_dati(db)
-          st.success(f"Coppia **{nuova_c}** registrata con successo per {torneo_selezionato}!")
-          st.rerun()
-        else:
-          st.warning("Questa coppia risulta già iscritta in questo torneo!")
+          aggiunte_count += 1
+
+      # 2. Gestione incolla da WhatsApp
+      if whatsapp_paste.strip():
+        linee = whatsapp_paste.split("\n")
+        for linea in linee:
+          # Pulizia di numeri iniziali (es. "1.", "1)", "-")
+          linea_pulita = re.sub(r'^\s*(\d+[\.\)]\s*|-\s*)', '', linea).strip()
+          if not linea_pulita:
+            continue
+          
+          # Cerca separatori tipici come "/", "-", " e ", "con"
+          separatori = ["/", "-", " E ", " CON "]
+          coppia_formattata = None
+          
+          for sep in separatori:
+            if sep.lower() in linea_pulita.lower():
+              parti = re.split(sep, linea_pulita, flags=re.IGNORECASE)
+              if len(parti) >= 2:
+                p1 = parti[0].strip().upper()
+                p2 = parti[1].strip().upper()
+                if p1 and p2:
+                  coppia_formattata = f"{p1} / {p2}"
+                  break
+          
+          # Se non trova separatori espliciti ma ci sono due parole/nomi separati da spazio
+          if not coppia_formattata:
+            parole = linea_pulita.split()
+            if len(parole) >= 2:
+              # Prende la prima metà o divide a metà
+              meta = len(parole) // 2
+              p1 = " ".join(parole[:meta]).upper()
+              p2 = " ".join(parole[meta:]).upper()
+              if p1 and p2:
+                coppia_formattata = f"{p1} / {p2}"
+
+          if coppia_formattata and coppia_formattata not in t_data["coppie"]:
+            t_data["coppie"].append(coppia_formattata)
+            aggiunte_count += 1
+
+      if aggiunte_count > 0:
+        salva_dati(db)
+        st.success(f"Aggiunte con successo {aggiunte_count} nuove coppie in MAIUSCOLO!")
+        st.rerun()
       else:
-        st.error("Inserisci entrambi i nomi dei giocatori.")
+        st.warning("Nessuna nuova coppia valida inserita o coppie già esistenti.")
 
   st.markdown("---")
   st.markdown(f"### 📋 Coppie già iscritte a {torneo_selezionato} ({len(t_data['coppie'])} totali):")
   
   if not t_data["coppie"]:
-    st.info("Nessuna coppia iscritta al momento. Sii il primo a registrarti!")
+    st.info("Nessuna coppia iscritta al momento. Sii il primo a registrarti o incolla la lista!")
   else:
     for idx, c in enumerate(t_data["coppie"], 1):
       col_ic1, col_ic2 = st.columns([0.80, 0.20])
       with col_ic1:
-        st.markdown(f"<div style='padding: 8px 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(0,240,255,0.2); border-radius: 8px; margin-bottom: 6px;'><b>{idx}.</b> ⚽ {c}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='padding: 8px 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(0,240,255,0.2); border-radius: 8px; margin-bottom: 6px;'><b>{idx}.</b> ⚽ {c.upper()}</div>", unsafe_allow_html=True)
       with col_ic2:
         if st.button("🗑️ Cancella", key=f"del_isc_{torneo_selezionato}_{idx}", use_container_width=True):
           t_data["coppie"].remove(c)
@@ -593,7 +637,7 @@ if t_data["stato"] == "iscrizioni_aperte":
 
     if st.button("🚀 Chiudi Iscrizioni e Crea Gironi", use_container_width=True):
       num_g = int(t_data["num_gironi"])
-      coppie = t_data["coppie"]
+      coppie = [str(c).upper() for c in t_data["coppie"]]
       if len(coppie) < (num_g * 2):
         st.error(f"Hai inserito {len(coppie)} coppie. Con {num_g} gironi servono almeno {num_g * 2} coppie.")
       else:
@@ -656,8 +700,8 @@ for g_lst in t_data["gironi"].values():
 if not tutte_le_coppie and t_data.get("coppie"):
   tutte_le_coppie = t_data["coppie"]
 
-opzioni_selettore = ["-- Seleziona la tua coppia per accedere --"] + sorted(tutte_le_coppie)
-coppia_url = st.query_params.get("coppia", "-- Seleziona la tua coppia per accedere --")
+opzioni_selettore = ["-- Seleziona la tua coppia per accedere --"] + sorted([str(c).upper() for c in tutte_le_coppie])
+coppia_url = st.query_params.get("coppia", "-- Seleziona la tua coppia per accedere --").upper()
 if coppia_url not in opzioni_selettore:
   coppia_url = "-- Seleziona la tua coppia per accedere --"
 
@@ -854,15 +898,15 @@ if t_data["stato"] == "gironi":
       for g_nome in t_data["gironi"]:
         dati_girone = t_data["punti_gironi"][g_nome]
         sorted_c = sorted(dati_girone.items(), key=lambda x: (x[1]["punti"], x[1]["scontri_diretti_pt"], x[1]["dr"], x[1]["gf"]), reverse=True)
-        squadre_girone = [c[0] for c in sorted_c]
+        squadre_girone = [str(c[0]).upper() for c in sorted_c]
         classificate_a[g_nome] = squadre_girone[:4]
         classificate_b_raw[g_nome] = squadre_girone
 
       abbinamenti_a = crea_abbinamenti_fascia_a_perfetti(classificate_a)
       abbinamenti_b = crea_abbinamenti_fascia_b(classificate_b_raw)
 
-      turno_a_iniziale = [{"id": f"fa_t1_m{i}", "s1": s1[0], "g1": s1[1], "p1": s1[2], "s2": s2[0], "g2": s2[1], "p2": s2[2], "giocata": False, "vincente": None} for i, (s1, s2) in enumerate(abbinamenti_a)]
-      turno_b_iniziale = [{"id": f"fb_t1_m{i}", "s1": s1[0], "g1": s1[1], "p1": s1[2], "s2": s2[0], "g2": s2[1], "p2": s2[2], "giocata": False, "vincente": None} for i, (s1, s2) in enumerate(abbinamenti_b)]
+      turno_a_iniziale = [{"id": f"fa_t1_m{i}", "s1": str(s1[0]).upper(), "g1": s1[1], "p1": s1[2], "s2": str(s2[0]).upper(), "g2": s2[1], "p2": s2[2], "giocata": False, "vincente": None} for i, (s1, s2) in enumerate(abbinamenti_a)]
+      turno_b_iniziale = [{"id": f"fb_t1_m{i}", "s1": str(s1[0]).upper(), "g1": s1[1], "p1": s1[2], "s2": str(s2[0]).upper(), "g2": s2[1], "p2": s2[2], "giocata": False, "vincente": None} for i, (s1, s2) in enumerate(abbinamenti_b)]
 
       t_data["tabellone_a"] = [{"turno": 1, "partite": turno_a_iniziale}]
       t_data["tabellone_b"] = [{"turno": 1, "partite": turno_b_iniziale}]
@@ -888,7 +932,7 @@ elif t_data["stato"] == "fasi_finali":
       dati_girone = t_data["punti_gironi"][g_nome]
       sorted_c = sorted(dati_girone.items(), key=lambda x: (x[1]["punti"], x[1]["scontri_diretti_pt"], x[1]["dr"], x[1]["gf"]), reverse=True)
       for idx, (sq, info) in enumerate(sorted_c):
-        mappa_girone_pos[sq] = (g_nome, idx + 1)
+        mappa_girone_pos[str(sq).upper()] = (g_nome, idx + 1)
 
     campione, secondo_posto, terzo_posto, quarto_posto = None, None, None, None
     tot_partite_turno_1 = len(turni_tab[0]["partite"])
@@ -915,7 +959,7 @@ elif t_data["stato"] == "fasi_finali":
         turno_successivo = turni_tab[t_idx + 1]
         for m_i, match_corrente in enumerate(partite_turno):
           if match_corrente["giocata"] and match_corrente.get("vincente"):
-            vincitore_corrente = match_corrente["vincente"]
+            vincitore_corrente = str(match_corrente["vincente"]).upper()
             g_v, p_v = mappa_girone_pos.get(vincitore_corrente, ("", ""))
             target_match_idx = m_i // 2
             slot_squadra = "s1" if (m_i % 2 == 0) else "s2"
@@ -933,15 +977,15 @@ elif t_data["stato"] == "fasi_finali":
       perdenti_turno = []
       for idx, m in enumerate(partite_turno):
         match_id = m["id"]
-        s1_nome, s2_nome = m["s1"], m["s2"]
+        s1_nome, s2_nome = str(m["s1"]).upper(), str(m["s2"]).upper()
         if s1_nome in ["In attesa...", ""] or s2_nome in ["In attesa...", ""]:
           st.markdown(f"""<div class="cyber-card" style="text-align: center;"><b>{s1_nome} vs {s2_nome}</b><br><span style="color: #93c5fd;">In attesa di squadre</span></div>""", unsafe_allow_html=True)
           continue
 
         if m["giocata"]:
-          perdente_match = s2_nome if m["vincente"] == s1_nome else s1_nome
+          perdente_match = s2_nome if str(m["vincente"]).upper() == s1_nome else s1_nome
           perdenti_turno.append(perdente_match)
-          centro_testo = f"<b style='color: #10b981;'>Vince: {m['vincente']}</b>"
+          centro_testo = f"<b style='color: #10b981;'>Vince: {str(m['vincente']).upper()}</b>"
         else:
           centro_testo = "<b>VS</b>"
 
@@ -964,8 +1008,8 @@ elif t_data["stato"] == "fasi_finali":
                 st.rerun()
 
       if nome_etichetta == "🏆 FINALE" and len(partite_turno) == 1 and partite_turno[0]["giocata"]:
-        campione = partite_turno[0]["vincente"]
-        secondo_posto = partite_turno[0]["s2"] if campione == partite_turno[0]["s1"] else partite_turno[0]["s1"]
+        campione = str(partite_turno[0]["vincente"]).upper()
+        secondo_posto = str(partite_turno[0]["s2"]).upper() if campione == str(partite_turno[0]["s1"]).upper() else str(partite_turno[0]["s1"]).upper()
 
       if nome_etichetta == "⚔️ SEMIFINALI" and len(perdenti_turno) == 2 and not t_data[chiave_34]:
         if is_admin:
@@ -979,21 +1023,21 @@ elif t_data["stato"] == "fasi_finali":
       st.markdown("### 🥉 Finale 3° / 4° Posto")
       tq_match = t_data[chiave_34][0]
       if tq_match["giocata"]:
-        terzo_posto = tq_match["vincente"]
-        quarto_posto = tq_match["s2"] if terzo_posto == tq_match["s1"] else tq_match["s1"]
-      st.markdown(f"<div class='cyber-card' style='text-align: center;'><b>{tq_match['s1']} vs {tq_match['s2']}</b><br>Vincitore 3° posto: {tq_match.get('vincente', 'Da assegnare')}</div>", unsafe_allow_html=True)
+        terzo_posto = str(tq_match["vincente"]).upper()
+        quarto_posto = str(tq_match["s2"]).upper() if terzo_posto == str(tq_match["s1"]).upper() else str(tq_match["s1"]).upper()
+      st.markdown(f"<div class='cyber-card' style='text-align: center;'><b>{str(tq_match['s1']).upper()} vs {str(tq_match['s2']).upper()}</b><br>Vincitore 3° posto: {str(tq_match.get('vincente', 'Da assegnare')).upper()}</div>", unsafe_allow_html=True)
       if is_admin:
         col_tq1, col_tq2 = st.columns(2)
         with col_tq1:
-          if st.button(f"🥉 Vince {tq_match['s1']}", key=f"tq1_{chiave_tabellone}"):
+          if st.button(f"🥉 Vince {str(tq_match['s1']).upper()}", key=f"tq1_{chiave_tabellone}"):
             tq_match["giocata"] = True
-            tq_match["vincente"] = tq_match["s1"]
+            tq_match["vincente"] = str(tq_match["s1"]).upper()
             salva_dati(db)
             st.rerun()
         with col_tq2:
-          if st.button(f"🥉 Vince {tq_match['s2']}", key=f"tq2_{chiave_tabellone}"):
+          if st.button(f"🥉 Vince {str(tq_match['s2']).upper()}", key=f"tq2_{chiave_tabellone}"):
             tq_match["giocata"] = True
-            tq_match["vincente"] = tq_match["s2"]
+            tq_match["vincente"] = str(tq_match["s2"]).upper()
             salva_dati(db)
             st.rerun()
 
