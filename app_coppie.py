@@ -119,7 +119,6 @@ def carica_dati():
       with open(DB_FILE, "r") as f:
         dati_salvati = json.load(f)
         if "tornei" not in dati_salvati:
-          # Migrazione struttura vecchia se esistente
           return dati_default
         for k, v in dati_default["tornei"].items():
           if k not in dati_salvati["tornei"]:
@@ -407,7 +406,6 @@ def posticipa_partita_coda(torneo_selezionato, match_id_da_spostare):
 st.sidebar.header("🏆 Gestione Tornei")
 tornei_disponibili = list(db["tornei"].keys())
 
-# Permetti all'admin di creare nuovi tornei
 admin_param = st.query_params.get("admin", "false")
 is_admin_autenticato = admin_param == "true"
 modalita_admin = st.sidebar.checkbox("Modalità Amministratore (PIN)", value=is_admin_autenticato)
@@ -434,7 +432,6 @@ else:
 
 st.sidebar.markdown("---")
 
-# Selezione torneo corrente
 torneo_selezionato = st.sidebar.selectbox("Seleziona Torneo", options=tornei_disponibili)
 t_data = db["tornei"][torneo_selezionato]
 
@@ -468,7 +465,7 @@ if t_data["stato"] != "iscrizioni_aperte" and t_data["stato"] != "setup":
   st.sidebar.download_button(
       label="📥 Scarica Schema in PDF",
       data=pdf_data,
-      file_name=f"schema_gironi_{slugify(torneo_selezionato) if 'slugify' in globals() else 'torneo'}.pdf",
+      file_name=f"schema_gironi_{torneo_selezionato.lower().replace(' ', '_')}.pdf",
       mime="application/pdf",
       use_container_width=True,
   )
@@ -550,7 +547,8 @@ if t_data["stato"] == "iscrizioni_aperte":
         if nuova_c not in t_data["coppie"]:
           t_data["coppie"].append(nuova_c)
           salva_dati(db)
-          st.success(f"Coppia **{nuova_c}`} registrata con successo per {torneo_selezionato}!")
+          # CORRETTO L'ERRORE DI SINTASSI QUI SOTTO:
+          st.success(f"Coppia **{nuova_c}** registrata con successo per {torneo_selezionato}!")
           st.rerun()
         else:
           st.warning("Questa coppia risulta già iscritta in questo torneo!")
