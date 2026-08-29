@@ -418,14 +418,11 @@ def crea_abbinamenti_fascia_b(classificate_per_girone):
 
 # --- FUNZIONE PER POSTICIPARE LA PARTITA NELLA CODA DEI TURNI ---
 def posticipa_partita_coda(match_id_da_spostare):
-  """Sposta una partita più avanti di 2 posizioni all'interno del proprio girone/turno."""
   for g_nome, turni in db["calendario_gironi"].items():
-    # Raccogliamo tutte le partite del girone in un'unica lista sequenziale
     tutte_partite_girone = []
     for turno_obj in turni:
       tutte_partite_girone.extend(turno_obj["partite"])
 
-    # Troviamo l'indice della partita corrente
     idx_trovato = -1
     for i, m in enumerate(tutte_partite_girone):
       if m["id"] == match_id_da_spostare:
@@ -433,19 +430,16 @@ def posticipa_partita_coda(match_id_da_spostare):
         break
 
     if idx_trovato != -1:
-      # Se ci sono abbastanza partite successive per scalarla di 2
       if idx_trovato + 2 < len(tutte_partite_girone):
         partita = tutte_partite_girone.pop(idx_trovato)
         tutte_partite_girone.insert(idx_trovato + 2, partita)
 
-        # Riassegnamo le partite modificate ai turni originali mantenendo la struttura
         it = iter(tutte_partite_girone)
         for turno_obj in turni:
           turno_obj["partite"] = [
               next(it) for _ in range(len(turno_obj["partite"]))
           ]
 
-        # Se la partita era "in corso", la liberiamo dal tavolo per farla rientrare in coda
         for t_obj in turni:
           for m in t_obj["partite"]:
             if m["id"] == match_id_da_spostare:
@@ -732,7 +726,6 @@ if not is_admin or coppia_selezionata != "-- Seleziona la tua coppia per acceder
                 unsafe_allow_html=True,
             )
 
-            # Pulsante per posticipare se non possono andare al biliardino
             if st.button(
                 "🔄 Posticipa di 2 partite",
                 key=f"posticipa_pers_corso_{match_id_mio}",
@@ -870,7 +863,7 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
     )
   else:
     whatsapp_text = st.text_area(
-        "Incolla qui la lista delle coppie da WhatsApp (es. 1 Fiore Gaffo):",
+        "Incolla qui la lista delle coppie da WhatsApp (es. 1 Fiore Gaffo o MARIO/LUCA):",
         height=150,
     )
 
@@ -894,10 +887,19 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
 
     if st.button("🚀 Crea Gironi e Sorteggia Coppie", use_container_width=True):
       coppie = []
-      for line in whatsapp_text.split("\n"):
-        nome_c = pulisci_nome(line)
-        if nome_c:
-          coppie.append(nome_c)
+      for riga in whatsapp_text.split("\n"):
+        riga_pulita = pulisci_nome(riga).upper()
+        if riga_pulita:
+          if "/" in riga_pulita:
+            c_nome = riga_pulita
+          elif "-" in riga_pulita:
+            parti = riga_pulita.split("-")
+            c_nome = f"{parti[0].strip()} / {parti[1].strip()}"
+          else:
+            c_nome = riga_pulita
+
+          if c_nome not in coppie:
+            coppie.append(c_nome)
 
       num_g = int(db["num_gironi"])
 
@@ -959,10 +961,10 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
                     "gol1": 0,
                     "gol2": 0,
                 })
-            turni_girone.append({"turno": t + 1, "partite": partite_turno})
+            turni_turno.append({"turno": t + 1, "partite": partite_turno})
             squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
 
-          calendario_totale[g_nome] = turni_girone
+          calendario_totale[g_nome] = turni_turno
 
         db["calendario_gironi"] = calendario_totale
         db["stato"] = "gironi"
@@ -975,6 +977,67 @@ if db["stato"] == "setup" or st.session_state.get("mostra_setup", False):
         st.success(f"Creati con successo {num_g} gironi!")
         st.session_state["mostra_setup"] = False
         st.rerun()
+
+  # Sezione di gestione/eliminazione coppie iscritte o aggiunta rapida admin anche in corso
+  if is_admin:
+    st.markdown("---")
+    st.markdown("### 🛠️ Pannello Admin - Gestione Coppie")
+    
+    whatsapp_text_add = st.text_area(
+        "Incolla lista massiva da WhatsApp (ogni riga una coppia):",
+        height=100,
+        placeholder="MARIO/LUCA\nGIOVANNI - PAOLO",
+        key="admin_whatsapp_add"
+    )
+    if st.button("📥 Importa / Aggiungi Coppie da WhatsApp", use_container_width=True):
+      righe = whatsapp_text_add.split("\n")
+      aggiunte = 0
+      for riga in righe:
+        riga_pulita = pulisci_nome(riga).upper()
+        if riga_pulita:
+          if "/" in riga_pulita:
+            c_nome = riga_pulita
+          elif "-" in riga_pulita:
+            parti = riga_pulita.split("-")
+            c_nome = f"{parti[0].strip()} / {parti[1].strip()}"
+          else:
+            c_nome = riga_pulita
+
+          if c_nome not in db["coppie"]:
+            db["coppie"].append(c_nome)
+            aggiunte += 1
+      salva_dati(db)
+      st.success(f"Importate {aggiunte} nuove coppie con successo!")
+      st.rerun()
+
+  if db.get("coppie"):
+    st.markdown(f"### 📋 Coppie Iscritte ({len(db['coppie'])} totali)")
+    for idx, c in enumerate(db["coppie"], 1):
+      col_info, col_del = st.columns([0.85, 0.15])
+      with col_info:
+        st.markdown(
+            f"<div style='padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 6px; font-size: 14px; display: flex; align-items: center;'><b>{idx}.</b> &nbsp; ⚽ {c}</div>",
+            unsafe_allow_html=True,
+        )
+      with col_del:
+        puo_cancellare = is_admin or (
+            coppia_selezionata != "-- Seleziona la tua coppia per accedere --"
+            and coppia_selezionata == c
+        )
+        if puo_cancellare:
+          if st.button("🗑️", key=f"del_c_{idx}", help=f"Elimina {c}"):
+            if c in db["coppie"]:
+              db["coppie"].remove(c)
+            # Rimuovi anche dai gironi se presenti
+            for g_n in db.get("gironi", {}):
+              if c in db["gironi"][g_n]:
+                db["gironi"][g_n].remove(c)
+            salva_dati(db)
+            st.success(f"Coppia {c} rimossa.")
+            if st.session_state.get("coppia_selezionata") == c:
+              st.query_params["coppia"] = "-- Seleziona la tua coppia per accedere --"
+            st.rerun()
+
   st.markdown("---")
 
 # 2. FASE A GIRONI
@@ -1088,7 +1151,6 @@ if db["stato"] == "gironi":
               unsafe_allow_html=True,
           )
 
-          # Pulsante posticipa anche dalla dashboard principale admin/giocatore
           if st.button(
               "🔄 Posticipa di 2 partite",
               key=f"posticipa_main_corso_{match_id}",
