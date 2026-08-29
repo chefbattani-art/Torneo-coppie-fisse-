@@ -73,26 +73,27 @@ st.markdown(
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
             color: #ffffff;
         }
-        /* Stile personalizzato per rendere il selectbox del torneo grande e con neon azzurri */
+        /* STILE PERSONALIZZATO: Selettore del torneo molto più grande e con neon azzurro intenso */
         div[data-baseweb="select"] > div {
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.9) 100%) !important;
-            border: 2px solid #00f0ff !important;
-            border-radius: 14px !important;
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4) !important;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.95) 100%) !important;
+            border: 2.5px solid #00f0ff !important;
+            border-radius: 16px !important;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.6) !important;
             color: #ffffff !important;
-            min-height: 52px !important;
+            min-height: 60px !important;
             display: flex !important;
             align-items: center !important;
         }
         div[data-baseweb="select"] span {
             color: #ffffff !important;
-            font-size: 18px !important;
-            font-weight: 700 !important;
+            font-size: 20px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.5px !important;
         }
         div[data-baseweb="select"] svg {
             fill: #00f0ff !important;
-            width: 24px !important;
-            height: 24px !important;
+            width: 28px !important;
+            height: 28px !important;
         }
     </style>
     """,
@@ -107,6 +108,8 @@ def carica_dati():
           "TORNEO GIOVEDÌ 3 MASSALOMBARDA": {
               "stato": "iscrizioni_aperte",
               "coppie": [],
+              "coda": [],
+              "max_coppie": 32,
               "num_tavoli": 6,
               "num_gironi": 4,
               "gironi": {},
@@ -128,7 +131,6 @@ def carica_dati():
         if "tornei" not in dati_salvati:
           return dati_default
         
-        # Rimuoviamo automaticamente i primi due tornei di default se ancora presenti nei salvataggi
         tornei_da_rimuovere = ["Torneo Principale (PRO)", "Torneo Secondario (Amatoriale)"]
         for t_rem in tornei_da_rimuovere:
           if t_rem in dati_salvati["tornei"]:
@@ -418,12 +420,12 @@ else:
 
 st.sidebar.markdown("---")
 
-# --- SELETTORE TORNEO IN EVIDENZA IN ALTO ---
+# --- SELETTORE TORNEO IN EVIDENZA IN ALTO (INGRANDITO E NEON AZZURRO) ---
 st.markdown(
     """
-    <div style="text-align: left; margin-bottom: 5px;">
-        <span style="color: #00f0ff; font-size: 11px; letter-spacing: 2px; font-weight: bold;">TOURNAMENT CIRCUIT SELECTION</span>
-        <h1 style="font-size: 26px; margin: 2px 0 10px 0; color: #ffffff; text-shadow: 0 0 20px rgba(0,240,255,0.4);">
+    <div style="text-align: left; margin-bottom: 8px;">
+        <span style="color: #00f0ff; font-size: 13px; letter-spacing: 2px; font-weight: bold;">TOURNAMENT CIRCUIT SELECTION</span>
+        <h1 style="font-size: 28px; margin: 4px 0 12px 0; color: #ffffff; text-shadow: 0 0 25px rgba(0,240,255,0.6);">
             🏆 Torneo Coppie Fisse Live
         </h1>
     </div>
@@ -431,14 +433,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Filtriamo rigorosamente i tornei per escludere i primi due (PRO e Amatoriale)
 tornei_disponibili = [t for t in db["tornei"].keys() if t not in ["Torneo Principale (PRO)", "Torneo Secondario (Amatoriale)"]]
 
-# Fallimento di sicurezza se la lista fosse vuota
 if not tornei_disponibili:
   db["tornei"]["TORNEO GIOVEDÌ 3 MASSALOMBARDA"] = {
       "stato": "iscrizioni_aperte",
       "coppie": [],
+      "coda": [],
+      "max_coppie": 32,
       "num_tavoli": 6,
       "num_gironi": 4,
       "gironi": {},
@@ -460,16 +462,31 @@ torneo_selezionato = st.selectbox(
 )
 t_data = db["tornei"][torneo_selezionato]
 
+if "coda" not in t_data:
+  t_data["coda"] = []
+if "max_coppie" not in t_data:
+  t_data["max_coppie"] = 32
+salva_dati(db)
+
 if is_admin:
-  with st.sidebar.expander("➕ Crea Nuovo Torneo"):
+  with st.sidebar.expander("➕ Crea Nuovo Torneo con Parametri"):
     nuovo_nome_torneo = st.text_input("Nome del Torneo / Categoria")
-    if st.button("Crea Torneo", use_container_width=True):
-      if nuovo_nome_torneo.strip() and nuovo_nome_torneo.strip() not in db["tornei"]:
+    col_nc1, col_nc2 = st.columns(2)
+    with col_nc1:
+      nc_tavoli = st.number_input("N. Biliardini", min_value=1, max_value=10, value=6)
+      nc_gironi = st.number_input("N. Gironi", min_value=1, max_value=8, value=4)
+    with col_nc2:
+      nc_max = st.number_input("Max Coppie (Titolari)", min_value=2, max_value=128, value=32)
+      
+    if st.button("Crea Torneo Avanzato", use_container_width=True):
+      if nuovo_nome_torneo.strip() and nuovo_nome_torneo.strip().upper() not in db["tornei"]:
         db["tornei"][nuovo_nome_torneo.strip().upper()] = {
             "stato": "iscrizioni_aperte",
             "coppie": [],
-            "num_tavoli": 6,
-            "num_gironi": 4,
+            "coda": [],
+            "max_coppie": int(nc_max),
+            "num_tavoli": int(nc_tavoli),
+            "num_gironi": int(nc_gironi),
             "gironi": {},
             "calendario_gironi": {},
             "punti_gironi": {},
@@ -480,7 +497,7 @@ if is_admin:
             "terzo_quarto_b": []
         }
         salva_dati(db)
-        st.success("Torneo creato!")
+        st.success("Torneo creato con successo!")
         st.rerun()
 
 st.sidebar.markdown("⚙️ Pannello di Controllo")
@@ -511,8 +528,10 @@ if is_admin:
       db["tornei"][torneo_selezionato] = {
           "stato": "iscrizioni_aperte",
           "coppie": [],
-          "num_tavoli": 6,
-          "num_gironi": 4,
+          "coda": [],
+          "max_coppie": t_data.get("max_coppie", 32),
+          "num_tavoli": t_data.get("num_tavoli", 6),
+          "num_gironi": t_data.get("num_gironi", 4),
           "gironi": {},
           "calendario_gironi": {},
           "punti_gironi": {},
@@ -535,15 +554,15 @@ st.sidebar.markdown("---")
 with st.expander("ℹ️ Come funziona il torneo"):
   st.markdown(
       """
-        L'app consente l'iscrizione autonoma nei vari tornei disponibili. Una volta che le iscrizioni vengono chiuse dall'amministratore, vengono generati i gironi e si passa alla fase live con gestione automatica della coda e dei tavoli.
+        L'app consente l'iscrizione autonoma o l'incolla rapido da WhatsApp. Se si supera il limite massimo di coppie configurato, i partecipanti in eccesso vengono inseriti automaticamente in **Lista d'Attesa (Coda)**. Quando l'Admin fa partire il torneo, vengono creati i gironi casuali dei titolari.
         """,
       unsafe_allow_html=True,
   )
 
-# --- GESTIONE ISCRIZIONI APERTE (AUTONOME + WHATSAPP PASTE) CON MAIUSCOLA FORZATA ---
+# --- GESTIONE ISCRIZIONI APERTE CON CODA E MAIUSCOLA FORZATA ---
 if t_data["stato"] == "iscrizioni_aperte":
-  st.markdown(f"### 📝 Registrazione Autonoma - {torneo_selezionato}")
-  st.info("Iscrivi la tua coppia inserendo i nomi, oppure incolla direttamente la lista dei partecipanti da WhatsApp (l'app convertirà e aggiungerà tutto automaticamente in maiuscolo).")
+  st.markdown(f"### 📝 Registrazione Autonoma & Incolla WhatsApp - {torneo_selezionato}")
+  st.info(f"Limite massimo coppie titolari impostato: **{t_data['max_coppie']}**. Se il limite è raggiunto, le successive iscrizioni entreranno automaticamente in coda.")
 
   with st.form(f"form_iscrizione_{torneo_selezionato}"):
     c1_input = st.text_input("Nome Giocatore 1")
@@ -555,25 +574,21 @@ if t_data["stato"] == "iscrizioni_aperte":
     submit_isc = st.form_submit_button("Registra / Importa Coppie 🚀", use_container_width=True)
 
     if submit_isc:
-      aggiunte_count = 0
+      nuove_inserite = []
       
       # 1. Gestione inserimento singolo
       if c1_input.strip() and c2_input.strip():
         nuova_c = f"{c1_input.strip().upper()} / {c2_input.strip().upper()}"
-        if nuova_c not in t_data["coppie"]:
-          t_data["coppie"].append(nuova_c)
-          aggiunte_count += 1
+        nuove_inserite.append(nuova_c)
 
       # 2. Gestione incolla da WhatsApp
       if whatsapp_paste.strip():
         linee = whatsapp_paste.split("\n")
         for linea in linee:
-          # Pulizia di numeri iniziali (es. "1.", "1)", "-")
           linea_pulita = re.sub(r'^\s*(\d+[\.\)]\s*|-\s*)', '', linea).strip()
           if not linea_pulita:
             continue
           
-          # Cerca separatori tipici come "/", "-", " e ", "con"
           separatori = ["/", "-", " E ", " CON "]
           coppia_formattata = None
           
@@ -587,59 +602,92 @@ if t_data["stato"] == "iscrizioni_aperte":
                   coppia_formattata = f"{p1} / {p2}"
                   break
           
-          # Se non trova separatori espliciti ma ci sono due parole/nomi separati da spazio
           if not coppia_formattata:
             parole = linea_pulita.split()
             if len(parole) >= 2:
-              # Prende la prima metà o divide a metà
               meta = len(parole) // 2
               p1 = " ".join(parole[:meta]).upper()
               p2 = " ".join(parole[meta:]).upper()
               if p1 and p2:
                 coppia_formattata = f"{p1} / {p2}"
 
-          if coppia_formattata and coppia_formattata not in t_data["coppie"]:
-            t_data["coppie"].append(coppia_formattata)
-            aggiunte_count += 1
+          if coppia_formattata:
+            nuove_inserite.append(coppia_formattata)
 
-      if aggiunte_count > 0:
+      aggiunte_titolari = 0
+      aggiunte_coda = 0
+
+      for nc in nuove_inserite:
+        nc_upper = nc.upper()
+        # Controlliamo che non esista già né nei titolari né in coda
+        if nc_upper not in t_data["coppie"] and nc_upper not in t_data["coda"]:
+          if len(t_data["coppie"]) < int(t_data["max_coppie"]):
+            t_data["coppie"].append(nc_upper)
+            aggiunte_titolari += 1
+          else:
+            t_data["coda"].append(nc_upper)
+            aggiunte_coda += 1
+
+      if aggiunte_titolari > 0 or aggiunte_coda > 0:
         salva_dati(db)
-        st.success(f"Aggiunte con successo {aggiunte_count} nuove coppie in MAIUSCOLO!")
+        st.success(f"Aggiunte: {aggiunte_titolari} tra i Titolari e {aggiunte_coda} in Coda (tutto in MAIUSCOLO).")
         st.rerun()
       else:
-        st.warning("Nessuna nuova coppia valida inserita o coppie già esistenti.")
+        st.warning("Nessuna nuova coppia valida o coppie già presenti nelle liste.")
 
   st.markdown("---")
-  st.markdown(f"### 📋 Coppie già iscritte a {torneo_selezionato} ({len(t_data['coppie'])} totali):")
+  col_tit_vista, col_cod_vista = st.columns(2)
   
-  if not t_data["coppie"]:
-    st.info("Nessuna coppia iscritta al momento. Sii il primo a registrarti o incolla la lista!")
-  else:
-    for idx, c in enumerate(t_data["coppie"], 1):
-      col_ic1, col_ic2 = st.columns([0.80, 0.20])
-      with col_ic1:
-        st.markdown(f"<div style='padding: 8px 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(0,240,255,0.2); border-radius: 8px; margin-bottom: 6px;'><b>{idx}.</b> ⚽ {c.upper()}</div>", unsafe_allow_html=True)
-      with col_ic2:
-        if st.button("🗑️ Cancella", key=f"del_isc_{torneo_selezionato}_{idx}", use_container_width=True):
-          t_data["coppie"].remove(c)
-          salva_dati(db)
-          st.success(f"Coppia {c} rimossa con successo.")
-          st.rerun()
+  with col_tit_vista:
+    st.markdown(f"### 📋 Coppie Titolari ({len(t_data['coppie'])}/{t_data['max_coppie']})")
+    if not t_data["coppie"]:
+      st.info("Nessun titolare iscritto.")
+    else:
+      for idx, c in enumerate(t_data["coppie"], 1):
+        col_ic1, col_ic2 = st.columns([0.80, 0.20])
+        with col_ic1:
+          st.markdown(f"<div style='padding: 6px 10px; background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.2); border-radius: 8px; margin-bottom: 5px; font-size: 14px;'><b>{idx}.</b> ⚽ {c}</div>", unsafe_allow_html=True)
+        with col_ic2:
+          if st.button("🗑️", key=f"del_isc_{torneo_selezionato}_{idx}", use_container_width=True):
+            t_data["coppie"].remove(c)
+            # Se ci sono persone in coda, promuoviamo la prima automaticamente
+            if t_data["coda"]:
+              promossa = t_data["coda"].pop(0)
+              t_data["coppie"].append(promossa)
+            salva_dati(db)
+            st.rerun()
+
+  with col_cod_vista:
+    st.markdown(f"### ⏳ Coppie in Lista d'Attesa / Coda ({len(t_data['coda'])})")
+    if not t_data["coda"]:
+      st.info("Nessuna coppia in coda.")
+    else:
+      for idx_c, c_coda in enumerate(t_data["coda"], 1):
+        col_cc1, col_cc2 = st.columns([0.80, 0.20])
+        with col_cc1:
+          st.markdown(f"<div style='padding: 6px 10px; background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; margin-bottom: 5px; font-size: 14px; color: #fbbf24;'><b>{idx_c}.</b> ⏳ {c_coda}</div>", unsafe_allow_html=True)
+        with col_cc2:
+          if st.button("🗑️", key=f"del_coda_{torneo_selezionato}_{idx_c}", use_container_width=True):
+            t_data["coda"].remove(c_coda)
+            salva_dati(db)
+            st.rerun()
 
   if is_admin:
     st.markdown("---")
     st.markdown("### ⚙️ Pannello Admin: Configurazione e Avvio Torneo")
-    col_cfg1, col_cfg2 = st.columns(2)
+    col_cfg1, col_cfg2, col_cfg3 = st.columns(3)
     with col_cfg1:
-      t_data["num_tavoli"] = st.number_input("Numero di biliardini", min_value=1, max_value=10, value=int(t_data["num_tavoli"]), key=f"tav_{torneo_selezionato}")
+      t_data["num_tavoli"] = st.number_input("N. Biliardini", min_value=1, max_value=10, value=int(t_data.get("num_tavoli", 6)), key=f"tav_{torneo_selezionato}")
     with col_cfg2:
-      t_data["num_gironi"] = st.number_input("Numero di gironi", min_value=1, max_value=8, value=int(t_data["num_gironi"]), key=f"gir_{torneo_selezionato}")
+      t_data["num_gironi"] = st.number_input("N. Gironi", min_value=1, max_value=8, value=int(t_data.get("num_gironi", 4)), key=f"gir_{torneo_selezionato}")
+    with col_cfg3:
+      t_data["max_coppie"] = st.number_input("Max Titolari", min_value=2, max_value=128, value=int(t_data.get("max_coppie", 32)), key=f"maxc_{torneo_selezionato}")
 
-    if st.button("🚀 Chiudi Iscrizioni e Crea Gironi", use_container_width=True):
+    if st.button("🚀 Avvia Torneo (Crea Gironi Casuali)", use_container_width=True):
       num_g = int(t_data["num_gironi"])
       coppie = [str(c).upper() for c in t_data["coppie"]]
       if len(coppie) < (num_g * 2):
-        st.error(f"Hai inserito {len(coppie)} coppie. Con {num_g} gironi servono almeno {num_g * 2} coppie.")
+        st.error(f"Hai {len(coppie)} coppie titolari. Con {num_g} gironi servono almeno {num_g * 2} coppie.")
       else:
         random.shuffle(coppie)
         nomi_gironi = [chr(65 + i) for i in range(num_g)]
@@ -688,7 +736,7 @@ if t_data["stato"] == "iscrizioni_aperte":
         t_data["stato"] = "gironi"
         t_data["fasi_finali_configurate"] = False
         salva_dati(db)
-        st.success("Iscrizioni chiuse e gironi generati con successo!")
+        st.success("Torneo avviato con successo e gironi casuali creati!")
         st.rerun()
 
   st.stop()
