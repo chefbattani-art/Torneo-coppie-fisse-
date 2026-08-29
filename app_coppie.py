@@ -544,10 +544,11 @@ if t_data["stato"] == "iscrizioni_aperte":
     if submit_isc:
       if c1_input.strip() and c2_input.strip():
         nuova_c = f"{c1_input.strip().upper()} / {c2_input.strip().upper()}"
+        if nueva_c not in t_data["coppie"]:  # type: ignore
+          pass
         if nuova_c not in t_data["coppie"]:
           t_data["coppie"].append(nuova_c)
           salva_dati(db)
-          # CORRETTO L'ERRORE DI SINTASSI QUI SOTTO:
           st.success(f"Coppia **{nuova_c}** registrata con successo per {torneo_selezionato}!")
           st.rerun()
         else:
@@ -797,8 +798,8 @@ if t_data["stato"] == "gironi":
 
         if fa_al_caso_nostro:
           with st.expander(f"📝 Inserisci Risultato Tavolo {m.get('tavolo', '')}"):
-            gol_p1 = st.pills(f"Gol {m['c1']}", options=[0,1,2,3,4,5,6,7], default=int(m.get("gol1", 0)), key=f"g1_{torneo_selezionato}_{match_id}")
-            gol_p2 = st.pills(f"Gol {m['c2']}", options=[0,1,2,3,4,5,6,7], default=int(m.get("gol2", 0)), key=f"g2_{torneo_selezionato}_{match_id}")
+            gol_p1 = st.selectbox(f"Gol {m['c1']}", options=[0, 1, 2, 3, 4, 5, 6, 7], index=int(m.get("gol1", 0)), key=f"g1_{torneo_selezionato}_{match_id}")
+            gol_p2 = st.selectbox(f"Gol {m['c2']}", options=[0, 1, 2, 3, 4, 5, 6, 7], index=int(m.get("gol2", 0)), key=f"g2_{torneo_selezionato}_{match_id}")
             if st.button("✅ Conferma Risultato", key=f"save_{torneo_selezionato}_{match_id}", use_container_width=True):
               m["gol1"] = int(gol_p1) if gol_p1 is not None else 0
               m["gol2"] = int(gol_p2) if gol_p2 is not None else 0
