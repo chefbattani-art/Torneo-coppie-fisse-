@@ -653,6 +653,79 @@ if t_data["stato"] == "iscrizioni_aperte":
         st.warning("Nessuna nuova coppia valida o coppie già presenti nelle liste.")
 
   st.markdown("---")
+  
+  # --- PANNELLO ADMIN: GESTIONE PAGAMENTI ISCRIZIONI (SPOSTATO IN ALTO) ---
+  if is_admin:
+    st.markdown("### 💶 Pannello Amministratore: Gestione Pagamenti Iscrizioni")
+    st.info("Ogni coppia è divisa in due box (uno per giocatore). Clicca sul simbolo 💶 a sinistra o destra per registrare il pagamento del singolo giocatore (il box diventerà rosso).")
+
+    if "pagamenti" not in t_data:
+        t_data["pagamenti"] = {}
+
+    tutte_le_coppie_iscritte = sorted(list(set(t_data.get("coppie", []) + t_data.get("coda", []))))
+
+    if not tutte_le_coppie_iscritte:
+        st.warning("Nessuna coppia registrata al momento.")
+    else:
+        for idx, coppia in enumerate(tutte_le_coppie_iscritte):
+            parti_coppia = [p.strip() for p in coppia.split("/")]
+            g1_nome = parti_coppia[0] if len(parti_coppia) > 0 else "Giocatore 1"
+            g2_nome = parti_coppia[1] if len(parti_coppia) > 1 else "Giocatore 2"
+
+            if coppia not in t_data["pagamenti"] or not isinstance(t_data["pagamenti"][coppia], dict):
+                t_data["pagamenti"][coppia] = {g1_nome: False, g2_nome: False}
+
+            pagato_g1 = t_data["pagamenti"][coppia].get(g1_nome, False)
+            pagato_g2 = t_data["pagamenti"][coppia].get(g2_nome, False)
+
+            # Stili per i due box separati dei giocatori
+            bg_g1 = "linear-gradient(135deg, rgba(127, 29, 29, 0.9) 0%, rgba(69, 10, 10, 0.95) 100%)" if pagato_g1 else "linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.85) 100%)"
+            bordo_g1 = "#ef4444" if pagato_g1 else "#00f0ff"
+            testo_g1 = "PAID ✅" if pagato_g1 else "DA PAGARE"
+
+            bg_g2 = "linear-gradient(135deg, rgba(127, 29, 29, 0.9) 0%, rgba(69, 10, 10, 0.95) 100%)" if pagato_g2 else "linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.85) 100%)"
+            bordo_g2 = "#ef4444" if pagato_g2 else "#00f0ff"
+            testo_g2 = "PAID ✅" if pagato_g2 else "DA PAGARE"
+
+            # Layout personalizzato: [Simbolo Sinistra] [Box Giocatore 1] [Box Giocatore 2] [Simbolo Destra]
+            cols_pay = st.columns([0.10, 0.38, 0.38, 0.10])
+
+            with cols_pay[0]:
+                if st.button("💶", key=f"pay_l_{torneo_selezionato}_{idx}", use_container_width=True):
+                    t_data["pagamenti"][coppia][g1_nome] = not pagato_g1
+                    salva_dati(db)
+                    st.rerun()
+
+            with cols_pay[1]:
+                st.markdown(
+                    f"""
+                    <div style="background: {bg_g1}; border: 2px solid {bordo_g1}; border-radius: 12px; padding: 12px; text-align: center; box-shadow: 0 0 12px {'rgba(239, 68, 68, 0.4)' if pagato_g1 else 'rgba(0, 240, 255, 0.15)'}; min-height: 70px; display: flex; flex-direction: column; justify-content: center;">
+                        <span style="font-size: 16px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">{g1_nome}</span>
+                        <span style="font-size: 11px; display: block; color: {'#fca5a5' if pagato_g1 else '#38bdf8'}; font-weight: 700; margin-top: 4px;">{testo_g1}</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+            with cols_pay[2]:
+                st.markdown(
+                    f"""
+                    <div style="background: {bg_g2}; border: 2px solid {bordo_g2}; border-radius: 12px; padding: 12px; text-align: center; box-shadow: 0 0 12px {'rgba(239, 68, 68, 0.4)' if pagato_g2 else 'rgba(0, 240, 255, 0.15)'}; min-height: 70px; display: flex; flex-direction: column; justify-content: center;">
+                        <span style="font-size: 16px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">{g2_nome}</span>
+                        <span style="font-size: 11px; display: block; color: {'#fca5a5' if pagato_g2 else '#38bdf8'}; font-weight: 700; margin-top: 4px;">{testo_g2}</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+            with cols_pay[3]:
+                if st.button("💶", key=f"pay_r_{torneo_selezionato}_{idx}", use_container_width=True):
+                    t_data["pagamenti"][coppia][g2_nome] = not pagato_g2
+                    salva_dati(db)
+                    st.rerun()
+
+    st.markdown("---")
+
   col_tit_vista, col_cod_vista = st.columns(2)
   
   with col_tit_vista:
@@ -663,7 +736,7 @@ if t_data["stato"] == "iscrizioni_aperte":
       for idx, c in enumerate(t_data["coppie"], 1):
         col_ic1, col_ic2 = st.columns([0.80, 0.20])
         with col_ic1:
-          st.markdown(f"<div style='padding: 6px 10px; background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.2); border-radius: 8px; margin-bottom: 5px; font-size: 14px;'><b>{idx}.</b> ⚽ {c}</div>", unsafe_allow_html=True)
+          st.markdown(f"<div style='padding: 8px 12px; background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.2); border-radius: 8px; margin-bottom: 5px; font-size: 15px;'><b>{idx}.</b> ⚽ <b>{c}</b></div>", unsafe_allow_html=True)
         with col_ic2:
           if st.button("🗑️", key=f"del_isc_{torneo_selezionato}_{idx}", use_container_width=True):
             t_data["coppie"].remove(c)
@@ -681,7 +754,7 @@ if t_data["stato"] == "iscrizioni_aperte":
       for idx_c, c_coda in enumerate(t_data["coda"], 1):
         col_cc1, col_cc2 = st.columns([0.80, 0.20])
         with col_cc1:
-          st.markdown(f"<div style='padding: 6px 10px; background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; margin-bottom: 5px; font-size: 14px; color: #fbbf24;'><b>{idx_c}.</b> ⏳ {c_coda}</div>", unsafe_allow_html=True)
+          st.markdown(f"<div style='padding: 8px 12px; background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; margin-bottom: 5px; font-size: 15px; color: #fbbf24;'><b>{idx_c}.</b> ⏳ <b>{c_coda}</b></div>", unsafe_allow_html=True)
         with col_cc2:
           if st.button("🗑️", key=f"del_coda_{torneo_selezionato}_{idx_c}", use_container_width=True):
             t_data["coda"].remove(c_coda)
@@ -689,53 +762,6 @@ if t_data["stato"] == "iscrizioni_aperte":
             st.rerun()
 
   if is_admin:
-    st.markdown("---")
-    
-    # --- PANNELLO ADMIN: GESTIONE PAGAMENTI ISCRIZIONI ---
-    with st.expander("💶 Gestione Pagamenti Iscrizioni (Admin)", expanded=False):
-        st.markdown("### Elenco Coppie in Ordine Alfabetico & Stato Pagamento")
-        st.info("Clicca sui simboli 💶 ai lati della coppia per segnare il pagamento effettuato (la riga diventerà rossa).")
-
-        if "pagamenti" not in t_data:
-            t_data["pagamenti"] = {}
-
-        tutte_le_coppie_iscritte = sorted(list(set(t_data.get("coppie", []) + t_data.get("coda", []))))
-
-        if not tutte_le_coppie_iscritte:
-            st.warning("Nessuna coppia registrata al momento.")
-        else:
-            for idx, coppia in enumerate(tutte_le_coppie_iscritte):
-                pagato = t_data["pagamenti"].get(coppia, False)
-                
-                bg_colore = "linear-gradient(135deg, rgba(127, 29, 29, 0.8) 0%, rgba(69, 10, 10, 0.9) 100%)" if pagato else "linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.7) 100%)"
-                bordo_colore = "#ef4444" if pagato else "#00f0ff"
-                testo_stato = "PAID ✅" if pagato else "DA PAGARE"
-
-                cols = st.columns([0.15, 0.70, 0.15])
-                
-                with cols[0]:
-                    if st.button("💶", key=f"pay_l_{torneo_selezionato}_{idx}", use_container_width=True):
-                        t_data["pagamenti"][coppia] = not pagato
-                        salva_dati(db)
-                        st.rerun()
-                
-                with cols[1]:
-                    st.markdown(
-                        f"""
-                        <div style="background: {bg_colore}; border: 1.5px solid {bordo_colore}; border-radius: 10px; padding: 8px 12px; text-align: center; box-shadow: 0 0 10px {'rgba(239, 68, 68, 0.3)' if pagato else 'rgba(0, 240, 255, 0.1)'};">
-                            <span style="font-size: 14px; font-weight: bold; color: #ffffff;">{coppia}</span>
-                            <span style="font-size: 10px; display: block; color: {'#fca5a5' if pagato else '#38bdf8'}; font-weight: 700;">{testo_stato}</span>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-                
-                with cols[2]:
-                    if st.button("💰", key=f"pay_r_{torneo_selezionato}_{idx}", use_container_width=True):
-                        t_data["pagamenti"][coppia] = not pagato
-                        salva_dati(db)
-                        st.rerun()
-
     st.markdown("---")
     st.markdown("### ⚙️ Pannello Admin: Configurazione e Avvio Torneo")
     col_cfg1, col_cfg2, col_cfg3 = st.columns(3)
