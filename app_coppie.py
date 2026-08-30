@@ -66,8 +66,8 @@ st.markdown(
             background: linear-gradient(180deg, #1e3a8a, #0f172a);
             color: #f3e8ff;
             transition: all 0.3s ease;
-            height: 75px;
-            font-size: 22px;
+            height: 65px;
+            font-size: 20px;
         }
         div.stButton > button:hover {
             border-color: #38bdf8;
@@ -558,10 +558,10 @@ else:
 # --- FASE ISCRIZIONI APERTE ---
 if t_data["stato"] == "iscrizioni_aperte":
   
-  # --- PANNELLO ADMIN: GESTIONE PAGAMENTI ISCRIZIONI (AGGIORNATO) ---
+  # --- PANNELLO ADMIN: GESTIONE PAGAMENTI ISCRIZIONI (OTTIMIZZATO CON RICERCA E BOX UNICO) ---
   if is_admin:
     st.markdown("### 💶 Pannello Amministratore: Gestione Pagamenti Iscrizioni")
-    st.info("Ogni coppia è divisa in due box (uno per giocatore). Clicca sul simbolo 💶 a sinistra o destra per registrare il pagamento del singolo giocatore (il box diventerà rosso).")
+    st.info("Cerca una coppia o un giocatore tramite il menu a tendina. Ogni coppia è racchiusa in un unico box con i nomi dei due giocatori impilati verticalmente e i pulsanti euro esterni.")
 
     if "pagamenti" not in t_data:
         t_data["pagamenti"] = {}
@@ -571,7 +571,22 @@ if t_data["stato"] == "iscrizioni_aperte":
     if not tutte_le_coppie_iscritte:
         st.warning("Nessuna coppia registrata al momento.")
     else:
-        for idx, coppia in enumerate(tutte_le_coppie_iscritte):
+        # Creazione lista opzioni per la barra di ricerca rapida
+        opzioni_ricerca = ["-- Mostra Tutte le Coppie --"] + tutte_le_coppie_iscritte
+        coppia_cercata = st.selectbox(
+            "🔍 Cerca coppia o giocatore per nome:",
+            options=opzioni_ricerca,
+            key=f"ricerca_pagamenti_{torneo_selezionato}"
+        )
+
+        # Filtra la lista in base alla selezione della tendina
+        if coppia_cercata != "-- Mostra Tutte le Coppie --":
+            coppie_da_mostrare = [coppia_cercata]
+        else:
+            coppie_da_mostrare = tutte_le_coppie_iscritte
+
+        for coppia in coppie_da_mostrare:
+            idx = tutte_le_coppie_iscritte.index(coppia)
             parti_coppia = [p.strip() for p in coppia.split("/")]
             g1_nome = parti_coppia[0] if len(parti_coppia) > 0 else "Giocatore 1"
             g2_nome = parti_coppia[1] if len(parti_coppia) > 1 else "Giocatore 2"
@@ -582,58 +597,59 @@ if t_data["stato"] == "iscrizioni_aperte":
             pagato_g1 = t_data["pagamenti"][coppia].get(g1_nome, False)
             pagato_g2 = t_data["pagamenti"][coppia].get(g2_nome, False)
 
-            # Box giocatore 1: verde di default, rosso se pagato
+            # Stili visivi separati per ciascun giocatore
             bg_g1 = "linear-gradient(135deg, rgba(127, 29, 29, 0.95) 0%, rgba(69, 10, 10, 0.98) 100%)" if pagato_g1 else "linear-gradient(135deg, rgba(6, 36, 26, 0.9) 0%, rgba(3, 15, 10, 0.9) 100%)"
             bordo_g1 = "#ef4444" if pagato_g1 else "#4ade80"
             testo_g1 = "PAID ✅" if pagato_g1 else "DA PAGARE"
 
-            # Box giocatore 2: verde di default, rosso se pagato
             bg_g2 = "linear-gradient(135deg, rgba(127, 29, 29, 0.95) 0%, rgba(69, 10, 10, 0.98) 100%)" if pagato_g2 else "linear-gradient(135deg, rgba(6, 36, 26, 0.9) 0%, rgba(3, 15, 10, 0.9) 100%)"
             bordo_g2 = "#ef4444" if pagato_g2 else "#4ade80"
             testo_g2 = "PAID ✅" if pagato_g2 else "DA PAGARE"
 
-            # Cornice esterna che racchiude l'intera coppia
+            # Cornice esterna unica che racchiude l'intera coppia e i suoi elementi
             st.markdown(
                 f"""
-                <div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 27, 75, 0.6) 100%); border: 1.5px solid #00f0ff; border-radius: 18px; padding: 14px; margin-bottom: 16px; box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);">
-                    <div style="font-size: 12px; color: #00f0ff; font-weight: bold; margin-bottom: 10px; text-align: center; letter-spacing: 1px;">COPPIA #{idx+1}</div>
+                <div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 27, 75, 0.7) 100%); border: 2px solid #00f0ff; border-radius: 18px; padding: 16px; margin-bottom: 16px; box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);">
+                    <div style="font-size: 13px; color: #00f0ff; font-weight: bold; margin-bottom: 12px; text-align: center; letter-spacing: 1.5px;">COPPIA #{idx+1}</div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-            # Griglia rigida: [Pulsante Euro SX] [Box Giocatore 1] [Box Giocatore 2] [Pulsante Euro DX]
-            cols_pay = st.columns([0.12, 0.38, 0.38, 0.12])
+            # Riga griglia interna: [Pulsante Euro SX] [Box Nome Sopra + Box Nome Sotto] [Pulsante Euro DX]
+            cols_pay = st.columns([0.15, 0.70, 0.15])
 
             with cols_pay[0]:
+                st.markdown("<div style='height: 25px;'></div>", unsafe_allow_html=True) # Spaziatura di allineamento
                 if st.button("💶", key=f"pay_l_{torneo_selezionato}_{idx}", use_container_width=True):
                     t_data["pagamenti"][coppia][g1_nome] = not pagato_g1
                     salva_dati(db)
                     st.rerun()
 
             with cols_pay[1]:
+                # Box Giocatore 1 (Sopra)
                 st.markdown(
                     f"""
-                    <div style="background: {bg_g1}; border: 2.5px solid {bordo_g1}; border-radius: 14px; padding: 14px; text-align: center; box-shadow: 0 0 15px {'rgba(239, 68, 68, 0.5)' if pagato_g1 else 'rgba(74, 222, 128, 0.3)'}; min-height: 75px; display: flex; flex-direction: column; justify-content: center;">
-                        <span style="font-size: 16px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">{g1_nome}</span>
-                        <span style="font-size: 11px; display: block; color: {'#fca5a5' if pagato_g1 else '#4ade80'}; font-weight: 700; margin-top: 5px;">{testo_g1}</span>
+                    <div style="background: {bg_g1}; border: 2px solid {bordo_g1}; border-radius: 12px; padding: 10px; text-align: center; box-shadow: 0 0 12px {'rgba(239, 68, 68, 0.4)' if pagato_g1 else 'rgba(74, 222, 128, 0.25)'}; margin-bottom: 8px;">
+                        <span style="font-size: 15px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">{g1_nome}</span>
+                        <span style="font-size: 11px; display: block; color: {'#fca5a5' if pagato_g1 else '#4ade80'}; font-weight: 700; margin-top: 3px;">{testo_g1}</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+                # Box Giocatore 2 (Sotto)
+                st.markdown(
+                    f"""
+                    <div style="background: {bg_g2}; border: 2px solid {bordo_g2}; border-radius: 12px; padding: 10px; text-align: center; box-shadow: 0 0 12px {'rgba(239, 68, 68, 0.4)' if pagato_g2 else 'rgba(74, 222, 128, 0.25)'};">
+                        <span style="font-size: 15px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">{g2_nome}</span>
+                        <span style="font-size: 11px; display: block; color: {'#fca5a5' if pagato_g2 else '#4ade80'}; font-weight: 700; margin-top: 3px;">{testo_g2}</span>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
 
             with cols_pay[2]:
-                st.markdown(
-                    f"""
-                    <div style="background: {bg_g2}; border: 2.5px solid {bordo_g2}; border-radius: 14px; padding: 14px; text-align: center; box-shadow: 0 0 15px {'rgba(239, 68, 68, 0.5)' if pagato_g2 else 'rgba(74, 222, 128, 0.3)'}; min-height: 75px; display: flex; flex-direction: column; justify-content: center;">
-                        <span style="font-size: 16px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">{g2_nome}</span>
-                        <span style="font-size: 11px; display: block; color: {'#fca5a5' if pagato_g2 else '#4ade80'}; font-weight: 700; margin-top: 5px;">{testo_g2}</span>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-            with cols_pay[3]:
+                st.markdown("<div style='height: 25px;'></div>", unsafe_allow_html=True) # Spaziatura di allineamento
                 if st.button("💶", key=f"pay_r_{torneo_selezionato}_{idx}", use_container_width=True):
                     t_data["pagamenti"][coppia][g2_nome] = not pagato_g2
                     salva_dati(db)
@@ -1153,13 +1169,13 @@ elif t_data["stato"] == "fasi_finali":
         with col_tq1:
           if st.button(f"🥉 Vince {str(tq_match['s1']).upper()}", key=f"tq1_{chiave_tabellone}"):
             tq_match["giocata"] = True
-            tq_match["vincente"] = str(tq_match["s1"]).upper()
+            tq_match["vincente"] = str(tq_match['s1']).upper()
             salva_dati(db)
             st.rerun()
         with col_tq2:
           if st.button(f"🥉 Vince {str(tq_match['s2']).upper()}", key=f"tq2_{chiave_tabellone}"):
             tq_match["giocata"] = True
-            tq_match["vincente"] = str(tq_match["s2"]).upper()
+            tq_match["vincente"] = str(tq_match['s2']).upper()
             salva_dati(db)
             st.rerun()
 
