@@ -558,10 +558,10 @@ else:
 # --- FASE ISCRIZIONI APERTE ---
 if t_data["stato"] == "iscrizioni_aperte":
   
-  # --- PANNELLO ADMIN: GESTIONE PAGAMENTI ISCRIZIONI (POSIZIONATO IN CIMA ASSOLUTA) ---
+  # --- PANNELLO ADMIN: GESTIONE PAGAMENTI ISCRIZIONI (AGGIORNATO) ---
   if is_admin:
     st.markdown("### 💶 Pannello Amministratore: Gestione Pagamenti Iscrizioni")
-    st.info("Ogni coppia ha i due giocatori in box separati (sinistra e destra). Clicca sul simbolo 💶 esterno per registrare il pagamento del singolo giocatore (il box diventerà rosso).")
+    st.info("Ogni coppia è divisa in due box (uno per giocatore). Clicca sul simbolo 💶 a sinistra o destra per registrare il pagamento del singolo giocatore (il box diventerà rosso).")
 
     if "pagamenti" not in t_data:
         t_data["pagamenti"] = {}
@@ -582,15 +582,27 @@ if t_data["stato"] == "iscrizioni_aperte":
             pagato_g1 = t_data["pagamenti"][coppia].get(g1_nome, False)
             pagato_g2 = t_data["pagamenti"][coppia].get(g2_nome, False)
 
-            bg_g1 = "linear-gradient(135deg, rgba(127, 29, 29, 0.95) 0%, rgba(69, 10, 10, 0.98) 100%)" if pagato_g1 else "linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.85) 100%)"
-            bordo_g1 = "#ef4444" if pagato_g1 else "#00f0ff"
+            # Box giocatore 1: verde di default, rosso se pagato
+            bg_g1 = "linear-gradient(135deg, rgba(127, 29, 29, 0.95) 0%, rgba(69, 10, 10, 0.98) 100%)" if pagato_g1 else "linear-gradient(135deg, rgba(6, 36, 26, 0.9) 0%, rgba(3, 15, 10, 0.9) 100%)"
+            bordo_g1 = "#ef4444" if pagato_g1 else "#4ade80"
             testo_g1 = "PAID ✅" if pagato_g1 else "DA PAGARE"
 
-            bg_g2 = "linear-gradient(135deg, rgba(127, 29, 29, 0.95) 0%, rgba(69, 10, 10, 0.98) 100%)" if pagato_g2 else "linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.85) 100%)"
-            bordo_g2 = "#ef4444" if pagato_g2 else "#00f0ff"
+            # Box giocatore 2: verde di default, rosso se pagato
+            bg_g2 = "linear-gradient(135deg, rgba(127, 29, 29, 0.95) 0%, rgba(69, 10, 10, 0.98) 100%)" if pagato_g2 else "linear-gradient(135deg, rgba(6, 36, 26, 0.9) 0%, rgba(3, 15, 10, 0.9) 100%)"
+            bordo_g2 = "#ef4444" if pagato_g2 else "#4ade80"
             testo_g2 = "PAID ✅" if pagato_g2 else "DA PAGARE"
 
-            # Griglia rigida: [Pulsante Sinistra] [Box Giocatore 1] [Box Giocatore 2] [Pulsante Destra]
+            # Cornice esterna che racchiude l'intera coppia
+            st.markdown(
+                f"""
+                <div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 27, 75, 0.6) 100%); border: 1.5px solid #00f0ff; border-radius: 18px; padding: 14px; margin-bottom: 16px; box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);">
+                    <div style="font-size: 12px; color: #00f0ff; font-weight: bold; margin-bottom: 10px; text-align: center; letter-spacing: 1px;">COPPIA #{idx+1}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            # Griglia rigida: [Pulsante Euro SX] [Box Giocatore 1] [Box Giocatore 2] [Pulsante Euro DX]
             cols_pay = st.columns([0.12, 0.38, 0.38, 0.12])
 
             with cols_pay[0]:
@@ -602,9 +614,9 @@ if t_data["stato"] == "iscrizioni_aperte":
             with cols_pay[1]:
                 st.markdown(
                     f"""
-                    <div style="background: {bg_g1}; border: 2.5px solid {bordo_g1}; border-radius: 14px; padding: 14px; text-align: center; box-shadow: 0 0 15px {'rgba(239, 68, 68, 0.5)' if pagato_g1 else 'rgba(0, 240, 255, 0.2)'}; min-height: 75px; display: flex; flex-direction: column; justify-content: center;">
-                        <span style="font-size: 18px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">{g1_nome}</span>
-                        <span style="font-size: 12px; display: block; color: {'#fca5a5' if pagato_g1 else '#38bdf8'}; font-weight: 700; margin-top: 5px;">{testo_g1}</span>
+                    <div style="background: {bg_g1}; border: 2.5px solid {bordo_g1}; border-radius: 14px; padding: 14px; text-align: center; box-shadow: 0 0 15px {'rgba(239, 68, 68, 0.5)' if pagato_g1 else 'rgba(74, 222, 128, 0.3)'}; min-height: 75px; display: flex; flex-direction: column; justify-content: center;">
+                        <span style="font-size: 16px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">{g1_nome}</span>
+                        <span style="font-size: 11px; display: block; color: {'#fca5a5' if pagato_g1 else '#4ade80'}; font-weight: 700; margin-top: 5px;">{testo_g1}</span>
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -613,9 +625,9 @@ if t_data["stato"] == "iscrizioni_aperte":
             with cols_pay[2]:
                 st.markdown(
                     f"""
-                    <div style="background: {bg_g2}; border: 2.5px solid {bordo_g2}; border-radius: 14px; padding: 14px; text-align: center; box-shadow: 0 0 15px {'rgba(239, 68, 68, 0.5)' if pagato_g2 else 'rgba(0, 240, 255, 0.2)'}; min-height: 75px; display: flex; flex-direction: column; justify-content: center;">
-                        <span style="font-size: 18px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">{g2_nome}</span>
-                        <span style="font-size: 12px; display: block; color: {'#fca5a5' if pagato_g2 else '#38bdf8'}; font-weight: 700; margin-top: 5px;">{testo_g2}</span>
+                    <div style="background: {bg_g2}; border: 2.5px solid {bordo_g2}; border-radius: 14px; padding: 14px; text-align: center; box-shadow: 0 0 15px {'rgba(239, 68, 68, 0.5)' if pagato_g2 else 'rgba(74, 222, 128, 0.3)'}; min-height: 75px; display: flex; flex-direction: column; justify-content: center;">
+                        <span style="font-size: 16px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">{g2_nome}</span>
+                        <span style="font-size: 11px; display: block; color: {'#fca5a5' if pagato_g2 else '#4ade80'}; font-weight: 700; margin-top: 5px;">{testo_g2}</span>
                     </div>
                     """,
                     unsafe_allow_html=True
