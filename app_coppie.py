@@ -442,6 +442,7 @@ if not tornei_disponibili:
               "gironi": {},
               "calendario_gironi": {},
               "punti_gironi": {},
+              "pagamenti": {},
               "fasi_finali_configurate": False,
               "tabellone_a": [],
               "tabellone_b": [],
@@ -459,6 +460,8 @@ if "coda" not in t_data:
   t_data["coda"] = []
 if "max_coppie" not in t_data:
   t_data["max_coppie"] = 32
+if "pagamenti" not in t_data:
+  t_data["pagamenti"] = {}
 salva_dati(db)
 
 if is_admin:
@@ -483,6 +486,7 @@ if is_admin:
             "gironi": {},
             "calendario_gironi": {},
             "punti_gironi": {},
+            "pagamenti": {},
             "fasi_finali_configurate": False,
             "tabellone_a": [],
             "tabellone_b": [],
@@ -550,6 +554,7 @@ if is_admin:
           "gironi": {},
           "calendario_gironi": {},
           "punti_gironi": {},
+          "pagamenti": {},
           "fasi_finali_configurate": False,
           "tabellone_a": [],
           "tabellone_b": [],
@@ -684,6 +689,53 @@ if t_data["stato"] == "iscrizioni_aperte":
             st.rerun()
 
   if is_admin:
+    st.markdown("---")
+    
+    # --- PANNELLO ADMIN: GESTIONE PAGAMENTI ISCRIZIONI ---
+    with st.expander("💶 Gestione Pagamenti Iscrizioni (Admin)", expanded=False):
+        st.markdown("### Elenco Coppie in Ordine Alfabetico & Stato Pagamento")
+        st.info("Clicca sui simboli 💶 ai lati della coppia per segnare il pagamento effettuato (la riga diventerà rossa).")
+
+        if "pagamenti" not in t_data:
+            t_data["pagamenti"] = {}
+
+        tutte_le_coppie_iscritte = sorted(list(set(t_data.get("coppie", []) + t_data.get("coda", []))))
+
+        if not tutte_le_coppie_iscritte:
+            st.warning("Nessuna coppia registrata al momento.")
+        else:
+            for idx, coppia in enumerate(tutte_le_coppie_iscritte):
+                pagato = t_data["pagamenti"].get(coppia, False)
+                
+                bg_colore = "linear-gradient(135deg, rgba(127, 29, 29, 0.8) 0%, rgba(69, 10, 10, 0.9) 100%)" if pagato else "linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.7) 100%)"
+                bordo_colore = "#ef4444" if pagato else "#00f0ff"
+                testo_stato = "PAID ✅" if pagato else "DA PAGARE"
+
+                cols = st.columns([0.15, 0.70, 0.15])
+                
+                with cols[0]:
+                    if st.button("💶", key=f"pay_l_{torneo_selezionato}_{idx}", use_container_width=True):
+                        t_data["pagamenti"][coppia] = not pagato
+                        salva_dati(db)
+                        st.rerun()
+                
+                with cols[1]:
+                    st.markdown(
+                        f"""
+                        <div style="background: {bg_colore}; border: 1.5px solid {bordo_colore}; border-radius: 10px; padding: 8px 12px; text-align: center; box-shadow: 0 0 10px {'rgba(239, 68, 68, 0.3)' if pagato else 'rgba(0, 240, 255, 0.1)'};">
+                            <span style="font-size: 14px; font-weight: bold; color: #ffffff;">{coppia}</span>
+                            <span style="font-size: 10px; display: block; color: {'#fca5a5' if pagato else '#38bdf8'}; font-weight: 700;">{testo_stato}</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                
+                with cols[2]:
+                    if st.button("💰", key=f"pay_r_{torneo_selezionato}_{idx}", use_container_width=True):
+                        t_data["pagamenti"][coppia] = not pagato
+                        salva_dati(db)
+                        st.rerun()
+
     st.markdown("---")
     st.markdown("### ⚙️ Pannello Admin: Configurazione e Avvio Torneo")
     col_cfg1, col_cfg2, col_cfg3 = st.columns(3)
