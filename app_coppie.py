@@ -15,32 +15,32 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- STILE GLOBALE CYBER GAMER OTTIMIZZATO ---
+# --- STILE GLOBALE CYBER GAMER CHIARO E LUMINOSO ---
 st.markdown(
     """
     <style>
         .stApp {
-            background: linear-gradient(135deg, #090a0f 0%, #120428 50%, #050b14 100%);
-            color: #e2e8f0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #0891b2 100%);
+            color: #f1f5f9;
             font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
         }
         section[data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #0f0c1b, #050508);
-            border-right: 2px solid #00ffcc;
+            background: linear-gradient(180deg, #1e293b, #0f172a);
+            border-right: 2px solid #4ea8de;
             color: #ffffff;
         }
         section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] .stMarkdown {
-            color: #00ffcc !important;
+            color: #ffe66d !important;
         }
         
         input, textarea, div[data-baseweb="input"] > div {
-            background-color: #0f172a !important;
-            color: #00ffcc !important;
-            -webkit-text-fill-color: #00ffcc !important;
+            background-color: #1e293b !important;
+            color: #4ea8de !important;
+            -webkit-text-fill-color: #4ea8de !important;
             border-radius: 12px !important;
-            border: 2px solid #00ffcc !important;
+            border: 2px solid #4ea8de !important;
             font-weight: 700 !important;
-            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+            box-shadow: 0 0 12px rgba(78, 168, 222, 0.3);
         }
         textarea {
             padding: 10px !important;
@@ -51,80 +51,81 @@ st.markdown(
         }
         
         div[data-baseweb="input"], .stTextInput label, .stTextArea label, .stSelectbox label {
-            color: #ff007f !important;
+            color: #ffe66d !important;
             font-weight: 800 !important;
-            text-shadow: 0 0 5px rgba(255, 0, 127, 0.4);
+            text-shadow: 0 0 6px rgba(255, 230, 109, 0.4);
         }
 
         .cyber-card {
-            background: rgba(15, 23, 42, 0.85);
-            border: 2px solid #00ffcc;
+            background: rgba(30, 41, 59, 0.9);
+            border: 2px solid #4ea8de;
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 14px;
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.25);
-            color: #e2e8f0;
+            box-shadow: 0 0 18px rgba(78, 168, 222, 0.25);
+            color: #f1f5f9;
         }
         .cyber-card-gold {
-            background: linear-gradient(135deg, rgba(20, 10, 40, 0.95) 0%, rgba(40, 20, 60, 0.95) 100%);
-            border: 2.5px solid #ffcc00;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(67, 97, 238, 0.4) 100%);
+            border: 2.5px solid #ffe66d;
             border-radius: 18px;
             padding: 20px;
-            box-shadow: 0 0 25px rgba(255, 204, 0, 0.4);
+            box-shadow: 0 0 25px rgba(255, 230, 109, 0.4);
             text-align: center;
-            color: #ffcc00;
+            color: #ffe66d;
         }
         .match-live-card {
-            background: linear-gradient(135deg, rgba(20, 10, 30, 0.9) 0%, rgba(10, 20, 40, 0.9) 100%);
-            border: 2.5px solid #ff007f;
+            background: linear-gradient(135deg, rgba(67, 97, 238, 0.25) 0%, rgba(181, 23, 158, 0.25) 100%);
+            border: 2.5px solid #b5179e;
             border-radius: 16px;
             padding: 18px;
             text-align: center;
-            box-shadow: 0 0 20px rgba(255, 0, 127, 0.3);
+            box-shadow: 0 0 20px rgba(181, 23, 158, 0.35);
             color: #ffffff;
         }
         h1, h2, h3, h4 {
-            color: #00ffcc !important;
+            color: #ffe66d !important;
             letter-spacing: 1px;
             font-weight: 800;
-            text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+            text-shadow: 0 0 10px rgba(255, 230, 109, 0.4);
         }
         h1 {
-            text-shadow: 0 0 15px rgba(255, 0, 127, 0.7);
+            text-shadow: 0 0 15px rgba(78, 168, 222, 0.7);
+            color: #4ea8de !important;
         }
         div.stButton > button {
             border-radius: 12px;
             font-weight: 700;
-            border: 2px solid #ff007f;
-            background: linear-gradient(180deg, #ff007f, #99004d);
+            border: 2px solid #b5179e;
+            background: linear-gradient(180deg, #b5179e, #4361ee);
             color: #ffffff !important;
             transition: all 0.3s ease;
-            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
+            box-shadow: 0 0 15px rgba(181, 23, 158, 0.4);
             font-size: 16px !important;
         }
         div.stButton > button:hover {
-            border-color: #00ffcc;
-            background: linear-gradient(180deg, #00ffcc, #00997a);
-            box-shadow: 0 0 20px rgba(0, 255, 204, 0.6);
-            color: #090a0f !important;
+            border-color: #4ade80;
+            background: linear-gradient(180deg, #4ade80, #0891b2);
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.6);
+            color: #0f172a !important;
         }
         div[data-baseweb="select"] > div {
-            background: rgba(15, 23, 42, 0.95) !important;
-            border: 2.5px solid #00ffcc !important;
+            background: rgba(30, 41, 59, 0.95) !important;
+            border: 2.5px solid #4ea8de !important;
             border-radius: 16px !important;
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.25) !important;
-            color: #00ffcc !important;
+            box-shadow: 0 0 15px rgba(78, 168, 222, 0.25) !important;
+            color: #4ea8de !important;
             min-height: 60px !important;
             display: flex !important;
             align-items: center !important;
         }
         div[data-baseweb="select"] span {
-            color: #00ffcc !important;
+            color: #ffe66d !important;
             font-size: 20px !important;
             font-weight: 800 !important;
         }
         div[data-baseweb="select"] svg {
-            fill: #00ffcc !important;
+            fill: #ffe66d !important;
             width: 28px !important;
             height: 28px !important;
         }
@@ -250,10 +251,10 @@ def renderizza_classifica_stile_card(torneo_selezionato, g_nome):
   for idx, (coppia, info) in enumerate(sorted_c):
     gioc, tot = calcola_partite_giocate_coppia(torneo_selezionato, g_nome, coppia)
     is_fascia_a = idx < q_fascia_a
-    border_color = "#00ffcc" if is_fascia_a else "#ff007f"
-    bg_gradient = "linear-gradient(135deg, rgba(0, 255, 204, 0.1) 0%, rgba(15, 23, 42, 0.9) 100%)" if is_fascia_a else "linear-gradient(135deg, rgba(255, 0, 127, 0.1) 0%, rgba(15, 23, 42, 0.9) 100%)"
-    shadow_color = "rgba(0, 255, 204, 0.2)" if is_fascia_a else "rgba(255, 0, 127, 0.2)"
-    dot_color = "#00ffcc" if is_fascia_a else "#ff007f"
+    border_color = "#4ade80" if is_fascia_a else "#4ea8de"
+    bg_gradient = "linear-gradient(135deg, rgba(74, 222, 128, 0.15) 0%, rgba(30, 41, 59, 0.95) 100%)" if is_fascia_a else "linear-gradient(135deg, rgba(78, 168, 222, 0.15) 0%, rgba(30, 41, 59, 0.95) 100%)"
+    shadow_color = "rgba(74, 222, 128, 0.2)" if is_fascia_a else "rgba(78, 168, 222, 0.2)"
+    dot_color = "#4ade80" if is_fascia_a else "#4ea8de"
 
     st.markdown(
         f"""
@@ -266,7 +267,7 @@ def renderizza_classifica_stile_card(torneo_selezionato, g_nome):
             <div style="display: flex; gap: 14px; text-align: right; font-size: 13px;">
                 <div>
                     <span style="font-size: 9px; color: #94a3b8; display: block;">PT</span>
-                    <span style="font-weight: 800; color: #ffcc00; font-size: 15px;">{info['punti']}</span>
+                    <span style="font-weight: 800; color: #ffe66d; font-size: 15px;">{info['punti']}</span>
                 </div>
                 <div>
                     <span style="font-size: 9px; color: #94a3b8; display: block;">G</span>
@@ -274,7 +275,7 @@ def renderizza_classifica_stile_card(torneo_selezionato, g_nome):
                 </div>
                 <div>
                     <span style="font-size: 9px; color: #94a3b8; display: block;">DR</span>
-                    <span style="color: {"#00ffcc" if info['dr'] >= 0 else "#ff007f"}; font-weight: 600;">{info['dr']:+d}</span>
+                    <span style="color: {"#4ade80" if info['dr'] >= 0 else "#4ea8de"}; font-weight: 600;">{info['dr']:+d}</span>
                 </div>
             </div>
         </div>
@@ -392,8 +393,8 @@ st.sidebar.markdown("---")
 st.markdown(
     """
     <div style="text-align: left; margin-bottom: 8px;">
-        <span style="color: #00ffcc; font-size: 13px; letter-spacing: 2px; font-weight: 800;">TOURNAMENT CIRCUIT SELECTION</span>
-        <h1 style="font-size: 28px; margin: 4px 0 12px 0; color: #ffffff; text-shadow: 0 0 10px rgba(0,255,204,0.6);">
+        <span style="color: #ffe66d; font-size: 13px; letter-spacing: 2px; font-weight: 800;">TOURNAMENT CIRCUIT SELECTION</span>
+        <h1 style="font-size: 28px; margin: 4px 0 12px 0; color: #4ea8de; text-shadow: 0 0 10px rgba(78,168,222,0.6);">
             🏆 Torneo Coppie Fisse Live
         </h1>
     </div>
@@ -642,7 +643,7 @@ if t_data["stato"] == "iscrizioni_aperte":
       for idx, c in enumerate(t_data["coppie"], 1):
         col_ic1, col_ic2 = st.columns([0.80, 0.20])
         with col_ic1:
-          st.markdown(f"<div style='padding: 6px 10px; background: rgba(15,23,42,0.9); border: 1px solid #00ffcc; border-radius: 8px; margin-bottom: 5px; font-size: 14px; color: #ffffff;'><b>{idx}.</b> ⚽ {c}</div>", unsafe_allow_html=True)
+          st.markdown(f"<div style='padding: 6px 10px; background: rgba(30,41,59,0.9); border: 1px solid #4ea8de; border-radius: 8px; margin-bottom: 5px; font-size: 14px; color: #ffffff;'><b>{idx}.</b> ⚽ {c}</div>", unsafe_allow_html=True)
         with col_ic2:
           if st.button("🗑️", key=f"del_isc_{torneo_selezionato}_{idx}", use_container_width=True):
             t_data["coppie"].remove(c)
@@ -660,7 +661,7 @@ if t_data["stato"] == "iscrizioni_aperte":
       for idx_c, c_coda in enumerate(t_data["coda"], 1):
         col_cc1, col_cc2 = st.columns([0.80, 0.20])
         with col_cc1:
-          st.markdown(f"<div style='padding: 6px 10px; background: rgba(30,10,30,0.9); border: 1px solid #ff007f; border-radius: 8px; margin-bottom: 5px; font-size: 14px; color: #ff007f;'><b>{idx_c}.</b> ⏳ {c_coda}</div>", unsafe_allow_html=True)
+          st.markdown(f"<div style='padding: 6px 10px; background: rgba(67,97,238,0.2); border: 1px solid #b5179e; border-radius: 8px; margin-bottom: 5px; font-size: 14px; color: #ffe66d;'><b>{idx_c}.</b> ⏳ {c_coda}</div>", unsafe_allow_html=True)
         with col_cc2:
           if st.button("🗑️", key=f"del_coda_{torneo_selezionato}_{idx_c}", use_container_width=True):
             t_data["coda"].remove(c_coda)
@@ -796,21 +797,21 @@ if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
 
     st.markdown(
         f"""
-        <div class="cyber-card" style="border-color: #00ffcc; text-align: left; padding: 20px;">
-            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #00ffcc; font-weight: bold; margin-bottom: 2px;">LA TUA COPPIA</div>
+        <div class="cyber-card" style="border-color: #4ea8de; text-align: left; padding: 20px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #ffe66d; font-weight: bold; margin-bottom: 2px;">LA TUA COPPIA</div>
             <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 14px;">🤝 {coppia_selezionata}</div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid #00ffcc; border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; text-align: center;">
+                <div style="background: rgba(30, 41, 59, 0.9); border: 1px solid #4ea8de; border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; text-align: center;">
                     <div style="font-size: 10px; color: #94a3b8; font-weight: bold;">POSIZIONE</div>
-                    <div style="font-size: 16px; font-weight: 700; color: #00ffcc; margin-top: 2px;">{str(pos_mia) + '° POSTO' if pos_mia else 'N.D.'}</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #4ade80; margin-top: 2px;">{str(pos_mia) + '° POSTO' if pos_mia else 'N.D.'}</div>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid #00ffcc; border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; text-align: center;">
+                <div style="background: rgba(30, 41, 59, 0.9); border: 1px solid #4ea8de; border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; text-align: center;">
                     <div style="font-size: 10px; color: #94a3b8; font-weight: bold;">GIRONE</div>
-                    <div style="font-size: 16px; font-weight: 700; color: #ff007f; margin-top: 2px;">{girone_mio if girone_mio else 'N.D.'}</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #b5179e; margin-top: 2px;">{girone_mio if girone_mio else 'N.D.'}</div>
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid #00ffcc; border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; text-align: center;">
+                <div style="background: rgba(30, 41, 59, 0.9); border: 1px solid #4ea8de; border-radius: 10px; padding: 10px; flex: 1; min-width: 100px; text-align: center;">
                     <div style="font-size: 10px; color: #94a3b8; font-weight: bold;">PUNTI / DR</div>
-                    <div style="font-size: 16px; font-weight: 700; color: #ffcc00; margin-top: 2px;">{info_mie['punti'] if info_mie else 0} PT <span style="font-size: 11px; font-weight: normal; color: #94a3b8;">(DR: {info_mie['dr'] if info_mie else 0})</span></div>
+                    <div style="font-size: 16px; font-weight: 700; color: #ffe66d; margin-top: 2px;">{info_mie['punti'] if info_mie else 0} PT <span style="font-size: 11px; font-weight: normal; color: #94a3b8;">(DR: {info_mie['dr'] if info_mie else 0})</span></div>
                 </div>
             </div>
         </div>
@@ -882,9 +883,9 @@ if t_data["stato"] == "gironi":
         st.markdown(
             f"""
             <div class="match-live-card" style="margin-bottom: 12px;">
-                <div style="font-size: 14px; color: #00ffcc; font-weight: bold; margin-bottom: 8px;">{tavolo_str}</div>
+                <div style="font-size: 14px; color: #ffe66d; font-weight: bold; margin-bottom: 8px;">{tavolo_str}</div>
                 <div style="font-size: 16px; font-weight: bold; color: #ffffff;">🤝 {m['c1']}</div>
-                <div style="margin: 4px 0; font-size: 12px; font-weight: bold; color: #ff007f;">VS</div>
+                <div style="margin: 4px 0; font-size: 12px; font-weight: bold; color: #ffe66d;">VS</div>
                 <div style="font-size: 16px; font-weight: bold; color: #ffffff;">🤝 {m['c2']}</div>
             </div>
             """,
@@ -920,8 +921,8 @@ if t_data["stato"] == "gironi":
       for idx, m in enumerate(partite_in_coda_correnti):
         st.markdown(
             f"""
-            <div style="background: rgba(15, 23, 42, 0.9); border: 1.5px solid #ff007f; padding: 14px; border-radius: 10px; margin-bottom: 10px; color: #ffffff; text-align: center; box-shadow: 0 4px 10px rgba(255, 0, 127, 0.15);">
-                <b style="font-size: 13px; color: #ff007f;">⏳ {idx+1}. {m['girone']}</b><br>
+            <div style="background: rgba(30, 41, 59, 0.9); border: 1.5px solid #b5179e; padding: 14px; border-radius: 10px; margin-bottom: 10px; color: #ffffff; text-align: center; box-shadow: 0 4px 10px rgba(181, 23, 158, 0.15);">
+                <b style="font-size: 13px; color: #b5179e;">⏳ {idx+1}. {m['girone']}</b><br>
                 <b style="color: #ffffff; font-size: 14px;">{m['c1']} vs {m['c2']}</b>
             </div>
             """,
@@ -937,7 +938,7 @@ if t_data["stato"] == "gironi":
       if i + j < len(nomi_gironi_chiavi):
         g_nome = nomi_gironi_chiavi[i + j]
         with col_gironi[j]:
-          st.markdown(f"<h3 style='text-align: center; color: #00ffcc;'>📁 {g_nome}</h3>", unsafe_allow_html=True)
+          st.markdown(f"<h3 style='text-align: center; color: #4ea8de;'>📁 {g_nome}</h3>", unsafe_allow_html=True)
           renderizza_classifica_stile_card(torneo_selezionato, g_nome)
 
   if is_admin:
@@ -1014,7 +1015,7 @@ elif t_data["stato"] == "fasi_finali":
       partite_turno = turno_obj["partite"]
       nome_etichetta = ottieni_nome_turno_dinamico(len(partite_turno))
 
-      st.markdown(f"""<div style="background: linear-gradient(90deg, #ff007f 0%, #00ffcc 100%); padding: 10px; border-radius: 8px; margin: 15px 0; text-align: center; color: #090a0f; font-weight: bold;"><b>{nome_etichetta}</b></div>""", unsafe_allow_html=True)
+      st.markdown(f"""<div style="background: linear-gradient(90deg, #4ea8de 0%, #b5179e 100%); padding: 10px; border-radius: 8px; margin: 15px 0; text-align: center; color: #ffffff; font-weight: bold;"><b>{nome_etichetta}</b></div>""", unsafe_allow_html=True)
 
       if t_idx + 1 < len(turni_tab):
         turno_successivo = turni_tab[t_idx + 1]
@@ -1044,9 +1045,9 @@ elif t_data["stato"] == "fasi_finali":
         if m["giocata"]:
           perdente_match = s2_nome if str(m["vincente"]).upper() == s1_nome else s1_nome
           perdenti_turno.append(perdente_match)
-          centro_testo = f"<b style='color: #00ffcc;'>Vince: {str(m['vincente']).upper()}</b>"
+          centro_testo = f"<b style='color: #4ade80;'>Vince: {str(m['vincente']).upper()}</b>"
         else:
-          centro_testo = "<b style='color: #ff007f;'>VS</b>"
+          centro_testo = "<b style='color: #ffe66d;'>VS</b>"
 
         st.markdown(f"""<div class="cyber-card" style="text-align: center;"><b>{s1_nome}</b> vs <b>{s2_nome}</b><br>{centro_testo}</div>""", unsafe_allow_html=True)
 
@@ -1105,9 +1106,9 @@ elif t_data["stato"] == "fasi_finali":
           f"""
           <div class="cyber-card-gold" style="padding: 20px; margin-top: 15px;">
               <h2>🏆 PODIO - {titolo_tab} 🏆</h2>
-              <p style="font-size: 18px; color: #ffcc00;">🥇 1° POSTO: <b>{campione}</b></p>
+              <p style="font-size: 18px; color: #ffe66d;">🥇 1° POSTO: <b>{campione}</b></p>
               <p style="font-size: 16px; color: #cbd5e1;">🥈 2° POSTO: {secondo_posto}</p>
-              <p style="font-size: 16px; color: #00ffcc;">🥉 3° POSTO: {terzo_posto if terzo_posto else 'N.D.'}</p>
+              <p style="font-size: 16px; color: #4ade80;">🥉 3° POSTO: {terzo_posto if terzo_posto else 'N.D.'}</p>
           </div>
           """,
           unsafe_allow_html=True,
