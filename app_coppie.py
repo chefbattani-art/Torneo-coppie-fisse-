@@ -288,7 +288,6 @@ def genera_pdf_coppie(torneo_selezionato):
   pdf.add_page()
   pdf.set_font("Helvetica", "B", 16)
   
-  # Codifica corretta per evitare FPDFUnicodeEncodingException con caratteri accentati
   titolo_pdf = f"Torneo: {torneo_selezionato} - Schema Gironi"
   pdf.cell(0, 10, titolo_pdf.encode("latin-1", "ignore").decode("latin-1"), 0, 1, "C")
   pdf.ln(5)
@@ -321,19 +320,6 @@ def ottieni_nome_turno_dinamico(num_partite_turno):
     return "🌟 SEDICESIMI DI FINALE"
   else:
     return f"Eliminazione Diretta ({tot_squadre} Coppie)"
-
-def crea_abbinamenti_fascia_a_generico(classificate_per_girone):
-  nomi_g = list(classificate_per_girone.keys())
-  tutte_a = []
-  for g_n in nomi_g:
-    for sq in classificate_per_girone[g_n]:
-      tutte_a.append((sq, g_n))
-  
-  abbinamenti = []
-  n = len(tutte_a)
-  for i in range(n // 2):
-    abbinamenti.append((tutte_a[i], tutte_a[n - 1 - i] if (n - 1 - i) >= 0 else ("RIPOSO", "")))
-  return abbinamenti
 
 def crea_abbinamenti_fascia_b(classificate_per_girone, q_fascia_a):
   tutte_b = []
@@ -403,7 +389,6 @@ else:
 
 st.sidebar.markdown("---")
 
-# --- SELETTORE TORNEO IN EVIDENZA IN ALTO ---
 st.markdown(
     """
     <div style="text-align: left; margin-bottom: 8px;">
@@ -573,25 +558,17 @@ else:
 
 st.sidebar.markdown("---")
 
-with st.expander("ℹ️ Come funziona il torneo"):
-  st.markdown(
-      """
-        L'app consente l'iscrizione autonoma o l'incolla rapido da WhatsApp. Se si supera il limite massimo di coppie configurato, i partecipanti in eccesso vengono inseriti automaticamente in **Lista d'Attesa (Coda)**. Quando l'Admin fa partire il torneo, vengono creati i gironi casuali dei titolari.
-        """,
-      unsafe_allow_html=True,
-  )
-
 # --- GESTIONE ISCRIZIONI APERTE ---
 if t_data["stato"] == "iscrizioni_aperte":
   st.markdown(f"### 📝 Registrazione Autonoma & Incolla WhatsApp - {torneo_selezionato}")
   st.info(f"Limite massimo coppie titolari impostato: **{t_data['max_coppie']}**.")
 
   with st.form(f"form_iscrizione_{torneo_selezionato}"):
-    c1_input = st.text_input("Nome Giocatore 1")
-    c2_input = st.text_input("Nome Giocatore 2")
+    c1_input = st.text_input("Nome Giocatore 1", key=f"c1_{torneo_selezionato}")
+    c2_input = st.text_input("Nome Giocatore 2", key=f"c2_{torneo_selezionato}")
     
     st.markdown("---")
-    whatsapp_paste = st.text_area("📋 Incolla qui la lista WhatsApp (es. 1. Mario/Luigi, oppure righe separate)")
+    whatsapp_paste = st.text_area("📋 Incolla qui la lista WhatsApp (es. 1. Mario/Luigi, oppure righe separate)", key=f"wa_{torneo_selezionato}")
     
     submit_isc = st.form_submit_button("Registra / Importa Coppie 🚀", use_container_width=True)
 
@@ -705,7 +682,7 @@ if t_data["stato"] == "iscrizioni_aperte":
         "🏆 Quante coppie passano in FASCIA A per ogni girone?",
         min_value=1, max_value=16,
         value=int(t_data.get("qualificati_fascia_a", 4)),
-        help="Le prime N coppie di ogni girone andranno nel tabellone principale (Fascia A), le rimanenti in Fascia B."
+        key=f"qfa_{torneo_selezionato}"
     )
 
     if st.button("🚀 Avvia Torneo (Crea Gironi Casuali)", use_container_width=True):
