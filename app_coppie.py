@@ -287,12 +287,15 @@ def genera_pdf_coppie(torneo_selezionato):
   pdf = FPDF()
   pdf.add_page()
   pdf.set_font("Helvetica", "B", 16)
-  pdf.cell(0, 10, f"Torneo: {torneo_selezionato} - Schema Gironi", 0, 1, "C")
+  
+  # Codifica corretta per evitare FPDFUnicodeEncodingException con caratteri accentati
+  titolo_pdf = f"Torneo: {torneo_selezionato} - Schema Gironi"
+  pdf.cell(0, 10, titolo_pdf.encode("latin-1", "ignore").decode("latin-1"), 0, 1, "C")
   pdf.ln(5)
 
   for g_nome, turni in t_data["calendario_gironi"].items():
     pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 10, f"--- {g_nome} ---", 0, 1, "L")
+    pdf.cell(0, 10, f"--- {g_nome} ---".encode("latin-1", "ignore").decode("latin-1"), 0, 1, "L")
     for turno_obj in turni:
       pdf.set_font("Helvetica", "B", 11)
       pdf.cell(0, 7, f"Turno {turno_obj['turno']}", 0, 1, "L")
@@ -1117,7 +1120,7 @@ elif t_data["stato"] == "fasi_finali":
           if st.button(f"🥉 Vince {str(tq_match['s2']).upper()}", key=f"tq2_{chiave_tabellone}"):
             tq_match["giocata"] = True
             tq_match["vincente"] = str(tq_match['s2']).upper()
-            salva_dates = salva_dati(db)
+            salva_dati(db)
             st.rerun()
 
     if campione:
