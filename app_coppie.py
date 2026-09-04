@@ -810,6 +810,7 @@ if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
               info_mie = stats
         break
 
+    # --- CARD INFORMATIVA BASE ---
     st.markdown(
         f"""
         <div class="cyber-card" style="border-color: #38bdf8; text-align: left; padding: 20px;">
@@ -833,6 +834,82 @@ if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
         """,
         unsafe_allow_html=True,
     )
+
+    # --- CONTROLLO STATO MATCH / CODA PERSONALE CON NEON VERDE ---
+    match_in_corso_mio = None
+    match_in_coda_mio = None
+
+    if t_data.get("stato") == "gironi":
+      # Ricerca tra le partite in corso
+      for g_n, turni in t_data.get("calendario_gironi", {}).items():
+        for t_obj in turni:
+          for m in t_obj["partite"]:
+            if not m.get("giocata", False):
+              if m.get("in_corso", False) and (m["c1"] == coppia_selezionata or m["c2"] == coppia_selezionata):
+                match_in_corso_mio = m
+                break
+
+      # Ricerca tra le partite in coda se non è già in corso
+      if not match_in_corso_mio:
+        num_tavoli = t_data.get("num_tavoli", 6)
+        max_turni = max([len(turni) for turni in t_data["calendario_gironi"].values()]) if t_data["calendario_gironi"] else 0
+        partite_per_girone_dict = {}
+        for t_num in range(1, max_turni + 1):
+          for g_nome, turni_girone in t_data["calendario_gironi"].items():
+            for t_obj in turni_girone:
+              if t_obj["turno"] == t_num:
+                if g_nome not in partite_per_girone_dict:
+                  partite_per_girone_dict[g_nome] = []
+                partite_per_girone_dict[g_nome].extend(t_obj["partite"])
+
+        partite_miste = []
+        max_len = max([len(v) for v in partite_per_girone_dict.values()]) if partite_per_girone_dict else 0
+        for idx_misto in range(max_len):
+          for g_chiave in sorted(partite_per_girone_dict.keys()):
+            if idx_misto < len(partite_per_girone_dict[g_chiave]):
+              partite_miste.append(partite_per_girone_dict[g_chiave][idx_misto])
+
+        partite_da_giocare = [m for m in partite_miste if not m.get("giocata", False) and not m.get("in_corso", False)]
+        prossime_in_coda = partite_da_giocare[:num_tavoli]
+
+        for idx, m in enumerate(prossime_in_coda):
+          if m["c1"] == coppia_selezionata or m["c2"] == coppia_selezionata:
+            match_in_coda_mio = (m, idx + 1)
+            break
+
+    # Visualizzazione dentro l'expander "Segui la tua coppia"
+    if match_in_corso_mio:
+      tav_num = match_in_corso_mio.get("tavolo", "N.D.")
+      st.markdown(
+          f"""
+          <div class="match-next-neon" style="margin-top: 10px;">
+              <div style="font-size: 13px; color: #22c55e; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px;">
+                  🔥 SEI IN CAMPO ORA!
+              </div>
+              <b style="font-size: 14px; color: #ffe66d;">🏟️ Biliardino {tav_num} • {match_in_corso_mio['girone']}</b>
+              <div style="font-size: 16px; font-weight: 800; color: #ffffff; margin-top: 6px;">
+                  🤝 {match_in_corso_mio['c1']} <span style="color: #22c55e;">VS</span> 🤝 {match_in_corso_mio['c2']}
+              </div>
+          </div>
+          """,
+          unsafe_allow_html=True,
+      )
+    elif match_in_coda_mio:
+      m_coda, pos_coda = match_in_coda_mio
+      st.markdown(
+          f"""
+          <div class="match-next-neon" style="margin-top: 10px;">
+              <div style="font-size: 13px; color: #22c55e; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px;">
+                  ⚡ PROSSIMA PARTITA IN ARRIVO - PREPARATI!
+              </div>
+              <b style="font-size: 13px; color: #ffe66d;">⏳ {pos_coda}° in Coda • {m_coda['girone']}</b>
+              <div style="font-size: 16px; font-weight: 800; color: #ffffff; margin-top: 6px;">
+                  🤝 {m_coda['c1']} <span style="color: #22c55e;">VS</span> 🤝 {m_coda['c2']}
+              </div>
+          </div>
+          """,
+          unsafe_allow_html=True,
+      )
 
 # 2. FASE A GIRONI LIVE
 if t_data["stato"] == "gironi":
