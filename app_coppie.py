@@ -151,7 +151,6 @@ st.markdown(
             height: 28px !important;
         }
 
-        /* CARD PARTITE MIGLIORATE SENZA TESTO TAGLIATO */
         .match-row-card {
             background: rgba(17,34,51,0.85);
             border-radius: 10px;
@@ -304,7 +303,7 @@ def renderizza_classifica_stile_card(torneo_selezionato, g_nome):
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <div style="width: 10px; height: 10px; background-color: {dot_color}; border-radius: 50%; box-shadow: 0 0 8px {dot_color};"></div>
                     <span style="font-size: 16px; font-weight: 800; color: {dot_color}; min-width: 30px;">{idx+1}°</span>
-                    <span style="font-size: 15px; font-weight: bold; color: #ffffff;">⚽🏆 {coppia}</span>
+                    <span style="font-size: 15px; font-weight: bold; color: #ffffff;">⚽ {coppia}</span>
                 </div>
                 <div style="display: flex; gap: 14px; text-align: right; font-size: 13px;">
                     <div>
@@ -1079,11 +1078,29 @@ if t_data["stato"] == "gironi":
                 )
 
     st.markdown("---")
-    st.subheader("📊 Classifiche dei Gironi")
+
+    # --- SEZIONE COPPIE DIVISE ORDINATAMENTE PER GIRONE ---
+    st.subheader("👥 Composizione dei Gironi")
     nomi_gironi_chiavi = list(t_data["gironi"].keys())
+
+    for i in range(0, len(nomi_gironi_chiavi), 2):
+        col_gironi_comp = st.columns(2)
+        for j in range(2):
+            if i + j < len(nomi_gironi_chiavi):
+                g_nome = nomi_gironi_chiavi[i + j]
+                coppie_g = sorted(t_data["gironi"][g_nome])
+                with col_gironi_comp[j]:
+                    st.markdown(f"<h4 style='margin:0 0 8px 0; color: #ffe66d;'>📁 {g_nome}</h4>", unsafe_allow_html=True)
+                    html_coppie = "<div class='cyber-card' style='padding: 10px 14px; margin-bottom: 15px;'>"
+                    for c_idx, c_nome in enumerate(coppie_g, 1):
+                        html_coppie += f"<div style='padding: 4px 0; border-bottom: 1px solid rgba(56,189,248,0.2); color: #ffffff; font-size: 13px;'><b>{c_idx}.</b> ⚽ {c_nome}</div>"
+                    html_coppie += "</div>"
+                    st.markdown(html_coppie, unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.subheader("📊 Classifiche dei Gironi")
     prossime_in_coda_ids = [m["id"] for m in partite_in_coda_correnti]
 
-    # PULSANTE "PARTITE" RIMOVUTO SOPRA LA CLASSIFICA
     for i in range(0, len(nomi_gironi_chiavi), 2):
         col_gironi = st.columns(2)
         for j in range(2):
