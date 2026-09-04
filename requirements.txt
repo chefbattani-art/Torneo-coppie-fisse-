@@ -1,3 +1,4 @@
-git add requirements.txt
-git commit -m "Aggiunto requirements.txt con reportlab"
-git push
+streamlit
+pandas
+streamlit-autorefresh
+reportlab
