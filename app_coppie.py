@@ -208,6 +208,25 @@ if "db" not in st.session_state:
 
 db = st.session_state.db
 
+def gestisci_spostamento_coppia(torneo_selezionato, coppia, girone_origine, girone_destinazione):
+    t_data = db["tornei"][torneo_selezionato]
+    if coppia in t_data["gironi"][girone_origine]:
+        t_data["gironi"][girone_origine].remove(coppia)
+        t_data["gironi"][girone_destinazione].append(coppia)
+        
+        # Elimina le vecchie partite del girone di origine che coinvolgono questa coppia
+        for g_n in [girone_origine, girone_destinazione]:
+            if g_n in t_data["calendario_gironi"]:
+                for t_obj in t_data["calendario_gironi"][g_n]:
+                    t_obj["partite"] = [
+                        m for m in t_obj["partite"] 
+                        if m["c1"] != coppia and m["c2"] != coppia
+                    ]
+        
+        ricalcola_classifiche_gironi(torneo_selezionato)
+        salva_dati(db)
+        st.success(f"Coppia '{coppia}' spostata in {girone_destinazione}. Le sue vecchie partite nel girone originario sono state annullate.")
+
 def ricalcola_classifiche_gironi(torneo_selezionato):
     t_data = db["tornei"][torneo_selezionato]
     for g_nome, coppie_lista in t_data["gironi"].items():
@@ -225,12 +244,14 @@ def ricalcola_classifiche_gironi(torneo_selezionato):
                             pt_s1, pt_s2 = (0, 3) if diff >= 2 else (1, 2)
                         else:
                             pt_s1, pt_s2 = 2, 2
-                        stats[c1]["punti"] += pt_s1
-                        stats[c2]["punti"] += pt_s2
-                        stats[c1]["gf"] += g1
-                        stats[c1]["gs"] += g2
-                        stats[c2]["gf"] += g2
-                        stats[c2]["gs"] += g1
+                        if c1 in stats:
+                            stats[c1]["punti"] += pt_s1
+                            stats[c1]["gf"] += g1
+                            stats[c1]["gs"] += g2
+                        if c2 in stats:
+                            stats[c2]["punti"] += pt_s2
+                            stats[c2]["gf"] += g2
+                            stats[c2]["gs"] += g1
 
             for c in coppie_lista:
                 stats[c]["dr"] = stats[c]["gf"] - stats[c]["gs"]
@@ -530,6 +551,21 @@ if is_admin:
                 }
                 salva_dati(db)
                 st.success("Torneo creato con successo!")
+                st.rerun()
+
+    # --- PANNELLO ADMIN SPOSTAMENTO COPPIE ---
+    if t_data.get("gironi"):
+        with st.sidebar.expander("🔄 Gestione Coppie & Gironi Admin"):
+            st.markdown("##### Sposta una Coppia tra i Gironi")
+            lista_gironi = list(t_data["gironi"].keys())
+            girone_da = st.selectbox("Da Girone", lista_gironi, key="admin_g_da")
+            coppie_in_g = t_data["gironi"].get(girone_da, [])
+            coppia_da_spostare = st.selectbox("Seleziona Coppia", coppie_in_g, key="admin_c_sposta") if coppie_in_g else None
+            destinazioni = [g for g in lista_gironi if g != girone_da]
+            girone_a = st.selectbox("A Girone", destinazioni, key="admin_g_a")
+            
+            if st.button("Sposta Coppia Ora", use_container_width=True) and coppia_da_spostare and girone_a:
+                gestisci_spostamento_coppia(torneo_selezionato, coppia_da_spostare, girone_da, girone_a)
                 st.rerun()
 
     st.sidebar.markdown("---")
@@ -1079,25 +1115,29 @@ if t_data["stato"] == "gironi":
 
     st.markdown("---")
 
-    # --- SEZIONE COPPIE DIVISE ORDINATAMENTE PER GIRONE ---
-    st.subheader("👥 Composizione dei Gironi")
-    nomi_gironi_chiavi = list(t_data["gironi"].keys())
+    # --- SEZIONE COPPIE DIVISE PER GIRONE (VISIBILE SOLO ALL'ADMIN) ---
+    if is_admin:
+        st.subheader("👥 Composizione dei Gironi (Riservato Admin)")
+        nomi_gironi_chiavi = list(t_data["gironi"].keys())
 
-    for i in range(0, len(nomi_gironi_chiavi), 2):
-        col_gironi_comp = st.columns(2)
-        for j in range(2):
-            if i + j < len(nomi_gironi_chiavi):
-                g_nome = nomi_gironi_chiavi[i + j]
-                coppie_g = sorted(t_data["gironi"][g_nome])
-                with col_gironi_comp[j]:
-                    st.markdown(f"<h4 style='margin:0 0 8px 0; color: #ffe66d;'>📁 {g_nome}</h4>", unsafe_allow_html=True)
-                    html_coppie = "<div class='cyber-card' style='padding: 10px 14px; margin-bottom: 15px;'>"
-                    for c_idx, c_nome in enumerate(coppie_g, 1):
-                        html_coppie += f"<div style='padding: 4px 0; border-bottom: 1px solid rgba(56,189,248,0.2); color: #ffffff; font-size: 13px;'><b>{c_idx}.</b> ⚽ {c_nome}</div>"
-                    html_coppie += "</div>"
-                    st.markdown(html_coppie, unsafe_allow_html=True)
+        for i in range(0, len(nomi_gironi_chiavi), 2):
+            col_gironi_comp = st.columns(2)
+            for j in range(2):
+                if i + j < len(nomi_gironi_chiavi):
+                    g_nome = nomi_gironi_chiavi[i + j]
+                    coppie_g = sorted(t_data["gironi"][g_nome])
+                    with col_gironi_comp[j]:
+                        st.markdown(f"<h4 style='margin:0 0 8px 0; color: #ffe66d;'>📁 {g_nome}</h4>", unsafe_allow_html=True)
+                        html_coppie = "<div class='cyber-card' style='padding: 10px 14px; margin-bottom: 15px;'>"
+                        for c_idx, c_nome in enumerate(coppie_g, 1):
+                            html_coppie += f"<div style='padding: 4px 0; border-bottom: 1px solid rgba(56,189,248,0.2); color: #ffffff; font-size: 13px;'><b>{c_idx}.</b> ⚽ {c_nome}</div>"
+                        html_coppie += "</div>"
+                        st.markdown(html_coppie, unsafe_allow_html=True)
 
-    st.markdown("---")
+        st.markdown("---")
+    else:
+        nomi_gironi_chiavi = list(t_data["gironi"].keys())
+
     st.subheader("📊 Classifiche dei Gironi")
     prossime_in_coda_ids = [m["id"] for m in partite_in_coda_correnti]
 
@@ -1110,7 +1150,7 @@ if t_data["stato"] == "gironi":
                     st.markdown(f"<h3 style='margin:0 0 10px 0; color: #38bdf8;'>📁 {g_nome}</h3>", unsafe_allow_html=True)
                     renderizza_classifica_stile_card(torneo_selezionato, g_nome)
 
-    # --- SEZIONE PARTITE DIVISE PER GIRONE (SOTTO LE CLASSIFICHE) ---
+    # --- SEZIONE PARTITE DIVISE PER GIRONE ---
     st.markdown("---")
     st.subheader("📅 Partite divise per Girone")
 
