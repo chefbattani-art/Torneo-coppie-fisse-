@@ -1298,11 +1298,26 @@ if t_data["stato"] == "gironi":
                 classificate_a[g_nome] = squadre_girone[:q_a]
                 classificate_b_raw[g_nome] = [sq[0] for sq in squadre_girone]
 
+            # ACCoppiamento logico e strutturato per la Fascia A (incroci mirati tra gironi se sono 4)
+            nomi_gironi_ordinati = sorted(list(classificate_a.keys()))
             tutte_sq_a = []
-            for g_n in classificate_a:
-                for sq_info in classificate_a[g_n]:
-                    tutte_sq_a.append((sq_info[0], g_n, sq_info[1]))
-            random.shuffle(tutte_sq_a)
+            
+            if len(nomi_gironi_ordinati) == 4:
+                # Esempio classico incrociato: 1°A vs 4°B, 2°A vs 3°B, ecc., oppure lista ordinata per ranking
+                gA, gB, gC, gD = nomi_gironi_ordinati[0], nomi_gironi_ordinati[1], nomi_gironi_ordinati[2], nomi_gironi_ordinati[3]
+                # Estraiamo in modo bilanciato per evitare scontri diretti immediati dello stesso girone ove possibile
+                # Creiamo una lista pulita ordinata per posizione di classifica globale o per girone
+                for pos in range(q_a):
+                    for g in nomi_gironi_ordinati:
+                        if pos < len(classificate_a[g]):
+                            sq_nome, pos_class = classificate_a[g][pos]
+                            tutte_sq_a.append((sq_nome, g, pos_class))
+            else:
+                for g_n in classificate_a:
+                    for sq_info in classificate_a[g_n]:
+                        tutte_sq_a.append((sq_info[0], g_n, sq_info[1]))
+                random.shuffle(tutte_sq_a)
+
             abbinamenti_a = []
             for i in range(0, len(tutte_sq_a), 2):
                 if i + 1 < len(tutte_sq_a):
