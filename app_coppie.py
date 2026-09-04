@@ -377,11 +377,9 @@ def genera_pdf_coppie(torneo_selezionato):
     story.append(Paragraph(f"TORNEO LIVE: {torneo_selezionato.upper()}", title_style))
     story.append(Spacer(1, 10))
 
-    # 1. TABELLA CLASSIFICHE E PARTITE PER OGNI GIRONE
     for g_nome, turni in t_data.get("calendario_gironi", {}).items():
         story.append(Paragraph(f"<b>{g_nome.upper()}</b>", subtitle_style))
         
-        # Classifica
         dati_g = t_data.get("punti_gironi", {}).get(g_nome, {})
         sorted_c = sorted(dati_g.items(), key=lambda x: (x[1]["punti"], x[1]["scontri_diretti_pt"], x[1]["dr"], x[1]["gf"]), reverse=True)
         
@@ -416,7 +414,6 @@ def genera_pdf_coppie(torneo_selezionato):
         story.append(t_classifica)
         story.append(Spacer(1, 8))
 
-        # Partite del Girone
         partite_rows = [[Paragraph("Turno", cell_header), Paragraph("Incontro", cell_header), Paragraph("Risultato / Stato", cell_header)]]
         for t_obj in turni:
             for m in t_obj["partite"]:
@@ -1292,25 +1289,25 @@ if t_data["stato"] == "gironi":
             for g_nome in t_data["gironi"]:
                 dati_girone = t_data["punti_gironi"][g_nome]
                 sorted_c = sorted(dati_girone.items(), key=lambda x: (x[1]["punti"], x[1]["scontri_diretti_pt"], x[1]["dr"], x[1]["gf"]), reverse=True)
-                squadre_girone = [str(c[0]).upper() for c in sorted_c]
+                squadre_girone = [(str(c[0]).upper(), idx + 1) for idx, c in enumerate(sorted_c)]
                 classificate_a[g_nome] = squadre_girone[:q_a]
-                classificate_b_raw[g_nome] = squadre_girone
+                classificate_b_raw[g_nome] = [sq[0] for sq in squadre_girone]
 
             tutte_sq_a = []
             for g_n in classificate_a:
-                for sq in classificate_a[g_n]:
-                    tutte_sq_a.append((sq, g_n))
+                for sq_info in classificate_a[g_n]:
+                    tutte_sq_a.append((sq_info[0], g_n, sq_info[1]))
             random.shuffle(tutte_sq_a)
             abbinamenti_a = []
             for i in range(0, len(tutte_sq_a), 2):
                 if i + 1 < len(tutte_sq_a):
                     abbinamenti_a.append((tutte_sq_a[i], tutte_sq_a[i + 1]))
                 else:
-                    abbinamenti_a.append((tutte_sq_a[i], ("RIPOSO", "")))
+                    abbinamenti_a.append((tutte_sq_a[i], ("RIPOSO", "", 0)))
 
             abbinamenti_b = crea_abbinamenti_fascia_b(classificate_b_raw, q_a)
 
-            turno_a_iniziale = [{"id": f"fa_t1_m{i}", "s1": str(s1[0]).upper(), "g1": s1[1], "p1": "", "s2": str(s2[0]).upper(), "g2": s2[1], "p2": "", "giocata": False, "vincente": None} for i, (s1, s2) in enumerate(abbinamenti_a)]
+            turno_a_iniziale = [{"id": f"fa_t1_m{i}", "s1": str(s1[0]).upper(), "g1": s1[1], "p1": s1[2], "s2": str(s2[0]).upper(), "g2": s2[1], "p2": s2[2], "giocata": False, "vincente": None} for i, (s1, s2) in enumerate(abbinamenti_a)]
             turno_b_iniziale = [{"id": f"fb_t1_m{i}", "s1": str(s1[0]).upper(), "g1": s1[1], "p1": s1[2], "s2": str(s2[0]).upper(), "g2": s2[1], "p2": s2[2], "giocata": False, "vincente": None} for i, (s1, s2) in enumerate(abbinamenti_b)]
 
             t_data["tabellone_a"] = [{"turno": 1, "partite": turno_a_iniziale}]
@@ -1372,20 +1369,26 @@ elif t_data["stato"] == "fasi_finali":
                         target_match_idx = m_i // 2
                         slot_squadra = "s1" if (m_i % 2 == 0) else "s2"
                         slot_g = "g1" if (m_i % 2 == 0) else "g2"
+                        slot_p = "p1" if (m_i % 2 == 0) else "p2"
 
                         if target_match_idx < len(turno_successivo["partite"]):
                             dest_match = turno_successivo["partite"][target_match_idx]
                             if dest_match[slot_squadra] in ["In attesa...", ""]:
                                 dest_match[slot_squadra] = vincitore_corrente
                                 dest_match[slot_g] = g_v
+                                dest_match[slot_p] = p_v
                                 salva_dati(db)
 
             perdenti_turno = []
             for idx, m in enumerate(partite_turno):
                 match_id = m["id"]
                 s1_nome, s2_nome = str(m["s1"]).upper(), str(m["s2"]).upper()
+                
+                g1_info = f" ({m['g1']} - {m['p1']}°)" if m.get("g1") and m.get("p1") else ""
+                g2_info = f" ({m['g2']} - {m['p2']}°)" if m.get("g2") and m.get("p2") else ""
+                
                 if s1_nome in ["In attesa...", ""] or s2_nome in ["In attesa...", ""]:
-                    st.markdown(f"""<div class="cyber-card" style="text-align: center;"><b>{s1_nome} vs {s2_nome}</b><br><span style="color: #94a3b8;">In attesa di squadre</span></div>""", unsafe_allow_html=True)
+                    st.markdown(f"""<div class="cyber-card" style="text-align: center;"><b>{s1_nome}{g1_info} vs {s2_nome}{g2_info}</b><br><span style="color: #94a3b8;">In attesa di squadre</span></div>""", unsafe_allow_html=True)
                     continue
 
                 if m["giocata"]:
@@ -1395,7 +1398,14 @@ elif t_data["stato"] == "fasi_finali":
                 else:
                     centro_testo = "<b style='color: #ffe66d;'>VS</b>"
 
-                st.markdown(f"""<div class="cyber-card" style="text-align: center;"><b>{s1_nome}</b> vs <b>{s2_nome}</b><br>{centro_testo}</div>""", unsafe_allow_html=True)
+                st.markdown(
+                    f"""<div class="cyber-card" style="text-align: center;">
+                        <span style="font-size: 15px;"><b>{s1_nome}</b><span style="color: #38bdf8; font-size: 12px; font-weight: bold;">{g1_info}</span></span>
+                        <br>{centro_testo}<br>
+                        <span style="font-size: 15px;"><b>{s2_nome}</b><span style="color: #38bdf8; font-size: 12px; font-weight: bold;">{g2_info}</span></span>
+                    </div>""",
+                    unsafe_allow_html=True
+                )
 
                 if is_admin:
                     with st.expander(f"⚙️ Imposta Vincitore ({s1_nome} vs {s2_nome})"):
@@ -1431,7 +1441,11 @@ elif t_data["stato"] == "fasi_finali":
             if tq_match["giocata"]:
                 terzo_posto = str(tq_match["vincente"]).upper()
                 quarto_posto = str(tq_match["s2"]).upper() if terzo_posto == str(tq_match["s1"]).upper() else str(tq_match["s1"]).upper()
-            st.markdown(f"<div class='cyber-card' style='text-align: center;'><b>{str(tq_match['s1']).upper()} vs {str(tq_match['s2']).upper()}</b><br>Vincitore 3° posto: {str(tq_match.get('vincente', 'Da assegnare')).upper()}</div>", unsafe_allow_html=True)
+            
+            info_tq1 = f" ({tq_match['g1']} - {tq_match['p1']}°)" if tq_match.get("g1") and tq_match.get("p1") else ""
+            info_tq2 = f" ({tq_match['g2']} - {tq_match['p2']}°)" if tq_match.get("g2") and tq_match.get("p2") else ""
+            
+            st.markdown(f"<div class='cyber-card' style='text-align: center;'><b>{str(tq_match['s1']).upper()}{info_tq1} vs {str(tq_match['s2']).upper()}{info_tq2}</b><br>Vincitore 3° posto: {str(tq_match.get('vincente', 'Da assegnare')).upper()}</div>", unsafe_allow_html=True)
             if is_admin:
                 col_tq1, col_tq2 = st.columns(2)
                 with col_tq1:
