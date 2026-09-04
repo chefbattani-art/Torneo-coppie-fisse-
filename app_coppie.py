@@ -192,7 +192,7 @@ def carica_dati():
     }
     if os.path.exists(DB_FILE):
         try:
-            with open(DB_FILE, "r") as f:
+            with open(DB_FILE, "r", encoding="utf-8") as f:
                 dati_salvati = json.load(f)
                 if "tornei" not in dati_salvati:
                     return dati_default
@@ -203,13 +203,16 @@ def carica_dati():
                         del dati_salvati["tornei"][t_rem]
 
                 return dati_salvati
-        except:
-            pass
+        except Exception:
+            return dati_default
     return dati_default
 
 def salva_dati(data):
-    with open(DB_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+    try:
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        st.error(f"Errore durante il salvataggio dei dati: {e}")
 
 if "db" not in st.session_state:
     st.session_state.db = carica_dati()
@@ -593,15 +596,15 @@ salva_dati(db)
 
 if is_admin:
     with st.sidebar.expander("➕ Crea Nuovo Torneo con Parametri"):
-        nuovo_nome_torneo = st.text_input("Nome del Torneo / Categoria")
+        nuovo_nome_torneo = st.text_input("Nome del Torneo / Categoria", key="input_new_torneo_sidebar")
         col_nc1, col_nc2 = st.columns(2)
         with col_nc1:
-            nc_tavoli = st.number_input("N. Biliardini", min_value=1, max_value=10, value=6)
-            nc_gironi = st.number_input("N. Gironi", min_value=1, max_value=8, value=4)
+            nc_tavoli = st.number_input("N. Biliardini", min_value=1, max_value=10, value=6, key="tavoli_sidebar")
+            nc_gironi = st.number_input("N. Gironi", min_value=1, max_value=8, value=4, key="gironi_sidebar")
         with col_nc2:
-            nc_max = st.number_input("Max Coppie (Titolari)", min_value=2, max_value=128, value=32)
+            nc_max = st.number_input("Max Coppie (Titolari)", min_value=2, max_value=128, value=32, key="max_sidebar")
             
-        if st.button("Crea Torneo Avanzato", use_container_width=True):
+        if st.button("Crea Torneo Avanzato", key="btn_create_sidebar", use_container_width=True):
             if nuovo_nome_torneo.strip() and nuovo_nome_torneo.strip().upper() not in db["tornei"]:
                 db["tornei"][nuovo_nome_torneo.strip().upper()] = {
                     "stato": "iscrizioni_aperte",
