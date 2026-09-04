@@ -197,7 +197,12 @@ def carica_dati():
                 if "tornei" not in dati_salvati:
                     return dati_default
                 
-                tornei_da_rimuovere = ["TORNEO GIOVEDÌ 3 MASSA LOMBARDA", "TORNEO GIOVEDÌ 3 MASSALOMBARDA", "Torneo Principale (PRO)", "Torneo Secondario (Amatoriale)"]
+                tornei_da_rimuovere = [
+                    "TORNEO GIOVEDÌ 3 MASSA LOMBARDA", 
+                    "TORNEO GIOVEDÌ 3 MASSALOMBARDA", 
+                    "Torneo Principale (PRO)", 
+                    "Torneo Secondario (Amatoriale)"
+                ]
                 for t_rem in tornei_da_rimuovere:
                     if t_rem in dati_salvati["tornei"]:
                         del dati_salvati["tornei"][t_rem]
@@ -549,15 +554,15 @@ torneo_selezionato = st.selectbox(
 if not tornei_disponibili:
     if is_admin:
         with st.sidebar.expander("➕ Crea Nuovo Torneo con Parametri", expanded=True):
-            nuovo_nome_torneo = st.text_input("Nome del Torneo / Categoria")
+            nuovo_nome_torneo = st.text_input("Nome del Torneo / Categoria", key="create_first_torneo")
             col_nc1, col_nc2 = st.columns(2)
             with col_nc1:
-                nc_tavoli = st.number_input("N. Biliardini", min_value=1, max_value=10, value=6)
-                nc_gironi = st.number_input("N. Gironi", min_value=1, max_value=8, value=4)
+                nc_tavoli = st.number_input("N. Biliardini", min_value=1, max_value=10, value=6, key="first_tavoli")
+                nc_gironi = st.number_input("N. Gironi", min_value=1, max_value=8, value=4, key="first_gironi")
             with col_nc2:
-                nc_max = st.number_input("Max Coppie (Titolari)", min_value=2, max_value=128, value=32)
+                nc_max = st.number_input("Max Coppie (Titolari)", min_value=2, max_value=128, value=32, key="first_max")
                 
-            if st.button("Crea Torneo Avanzato", use_container_width=True):
+            if st.button("Crea Torneo Avanzato", key="btn_first_torneo", use_container_width=True):
                 if nuovo_nome_torneo.strip() and nuovo_nome_torneo.strip().upper() not in db["tornei"]:
                     db["tornei"][nuovo_nome_torneo.strip().upper()] = {
                         "stato": "iscrizioni_aperte",
@@ -634,7 +639,7 @@ if is_admin:
             destinazioni = [g for g in lista_gironi if g != girone_da]
             girone_a = st.selectbox("A Girone", destinazioni, key="admin_g_a")
             
-            if st.button("Sposta Coppia Ora", use_container_width=True) and coppia_da_spostare and girone_a:
+            if st.button("Sposta Coppia Ora", key="btn_sposta_coppia_admin", use_container_width=True) and coppia_da_spostare and girone_a:
                 gestisci_spostamento_coppia(torneo_selezionato, coppia_da_spostare, girone_da, girone_a)
                 st.rerun()
 
@@ -644,7 +649,7 @@ if is_admin:
     if tornei_eliminabili:
         torneo_da_eliminare = st.sidebar.selectbox("Seleziona torneo da rimuovere", options=tornei_eliminabili, key="sel_del_torneo")
         conferma_canc_torneo = st.sidebar.checkbox("Conferma eliminazione definitiva", key="chk_del_torneo")
-        if st.sidebar.button("Elimina Torneo Selezionato", use_container_width=True):
+        if st.sidebar.button("Elimina Torneo Selezionato", key="btn_elimina_torneo", use_container_width=True):
             if conferma_canc_torneo:
                 if torneo_da_eliminare in db["tornei"]:
                     del db["tornei"][torneo_da_eliminare]
@@ -668,7 +673,7 @@ if t_data["stato"] != "iscrizioni_aperte" and t_data["stato"] != "setup":
     st.sidebar.markdown("---")
 
 if is_admin and t_data["stato"] == "fasi_finali":
-    if st.sidebar.button("🔙 Torna temporaneamente ai Gironi", use_container_width=True):
+    if st.sidebar.button("🔙 Torna temporaneamente ai Gironi", key="btn_torna_gironi", use_container_width=True):
         t_data["stato"] = "gironi"
         salva_dati(db)
         st.rerun()
@@ -677,7 +682,7 @@ if is_admin and t_data["stato"] == "fasi_finali":
 st.sidebar.subheader("⚠️ Zona Pericolo")
 if is_admin:
     conferma_reset = st.sidebar.checkbox("Spunta per confermare il reset", key="checkbox_reset_gara")
-    if st.sidebar.button("🔄 Ricomincia torneo da zero", use_container_width=True):
+    if st.sidebar.button("🔄 Ricomincia torneo da zero", key="btn_ricomincia_torneo", use_container_width=True):
         if conferma_reset:
             db["tornei"][torneo_selezionato] = {
                 "stato": "iscrizioni_aperte",
@@ -825,7 +830,7 @@ if t_data["stato"] == "iscrizioni_aperte":
             key=f"qfa_{torneo_selezionato}"
         )
 
-        if st.button("🚀 Avvia Torneo (Crea Gironi Casuali)", use_container_width=True):
+        if st.button("🚀 Avvia Torneo (Crea Gironi Casuali)", key="btn_avvia_torneo_gironi", use_container_width=True):
             num_g = int(t_data["num_gironi"])
             coppie = [str(c).upper() for c in t_data["coppie"]]
             if len(coppie) < (num_g * 2):
@@ -1284,7 +1289,7 @@ if t_data["stato"] == "gironi":
     if is_admin:
         st.markdown("---")
         q_a = int(t_data.get("qualificati_fascia_a", 4))
-        if st.button(f"🏆 Genera Fasi Finali (Prime {q_a} in Fascia A)", use_container_width=True):
+        if st.button(f"🏆 Genera Fasi Finali (Prime {q_a} in Fascia A)", key="btn_genera_fasi_finali_admin", use_container_width=True):
             classificate_a, classificate_b_raw = {}, {}
             for g_nome in t_data["gironi"]:
                 dati_girone = t_data["punti_gironi"][g_nome]
@@ -1411,13 +1416,13 @@ elif t_data["stato"] == "fasi_finali":
                     with st.expander(f"⚙️ Imposta Vincitore ({s1_nome} vs {s2_nome})"):
                         col_wv1, col_wv2 = st.columns(2)
                         with col_wv1:
-                            if st.button(f"🏆 {s1_nome}", key=f"win1_{match_id}"):
+                            if st.button(f"🏆 {s1_nome}", key=f"win1_{torneo_selezionato}_{match_id}"):
                                 m["giocata"] = True
                                 m["vincente"] = s1_nome
                                 salva_dati(db)
                                 st.rerun()
                         with col_wv2:
-                            if st.button(f"🏆 {s2_nome}", key=f"win2_{match_id}"):
+                            if st.button(f"🏆 {s2_nome}", key=f"win2_{torneo_selezionato}_{match_id}"):
                                 m["giocata"] = True
                                 m["vincente"] = s2_nome
                                 salva_dati(db)
@@ -1449,13 +1454,13 @@ elif t_data["stato"] == "fasi_finali":
             if is_admin:
                 col_tq1, col_tq2 = st.columns(2)
                 with col_tq1:
-                    if st.button(f"🥉 Vince {str(tq_match['s1']).upper()}", key=f"tq1_{chiave_tabellone}"):
+                    if st.button(f"🥉 Vince {str(tq_match['s1']).upper()}", key=f"tq1_{torneo_selezionato}_{chiave_tabellone}"):
                         tq_match["giocata"] = True
                         tq_match["vincente"] = str(tq_match['s1']).upper()
                         salva_dati(db)
                         st.rerun()
                 with col_tq2:
-                    if st.button(f"🥉 Vince {str(tq_match['s2']).upper()}", key=f"tq2_{chiave_tabellone}"):
+                    if st.button(f"🥉 Vince {str(tq_match['s2']).upper()}", key=f"tq2_{torneo_selezionato}_{chiave_tabellone}"):
                         tq_match["giocata"] = True
                         tq_match["vincente"] = str(tq_match['s2']).upper()
                         salva_dati(db)
