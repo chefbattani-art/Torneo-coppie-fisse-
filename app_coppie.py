@@ -2,12 +2,14 @@ import json
 import os
 import random
 import re
+import math
 from fpdf import FPDF
 import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
-st_autorefresh(interval=3000, debounce=False, key="auto_refresh_coppie")
+# --- CONFIGURAZIONE PAGINA E AUTO REFRESH ---
+st_autorefresh(interval=5000, debounce=False, key="auto_refresh_coppie")
 st.set_page_config(
     page_title="Torneo Coppie Fisse Live",
     page_icon="🏆",
@@ -214,7 +216,6 @@ def gestisci_spostamento_coppia(torneo_selezionato, coppia, girone_origine, giro
         t_data["gironi"][girone_origine].remove(coppia)
         t_data["gironi"][girone_destinazione].append(coppia)
         
-        # Elimina le vecchie partite del girone di origine che coinvolgono questa coppia
         for g_n in [girone_origine, girone_destinazione]:
             if g_n in t_data["calendario_gironi"]:
                 for t_obj in t_data["calendario_gironi"][g_n]:
@@ -225,7 +226,7 @@ def gestisci_spostamento_coppia(torneo_selezionato, coppia, girone_origine, giro
         
         ricalcola_classifiche_gironi(torneo_selezionato)
         salva_dati(db)
-        st.success(f"Coppia '{coppia}' spostata in {girone_destinazione}. Le sue vecchie partite nel girone originario sono state annullate.")
+        st.success(f"Coppia '{coppia}' spostata in {girone_destinazione}.")
 
 def ricalcola_classifiche_gironi(torneo_selezionato):
     t_data = db["tornei"][torneo_selezionato]
@@ -302,7 +303,6 @@ def calcola_partite_giocate_coppia(torneo_selezionato, g_nome, coppia):
 def renderizza_classifica_stile_card(torneo_selezionato, g_nome):
     t_data = db["tornei"][torneo_selezionato]
     dati_girone = t_data["punti_gironi"][g_nome]
-    
     q_fascia_a = int(t_data.get("qualificati_fascia_a", 4))
     
     sorted_c = sorted(
@@ -553,7 +553,6 @@ if is_admin:
                 st.success("Torneo creato con successo!")
                 st.rerun()
 
-    # --- PANNELLO ADMIN SPOSTAMENTO COPPIE ---
     if t_data.get("gironi"):
         with st.sidebar.expander("🔄 Gestione Coppie & Gironi Admin"):
             st.markdown("##### Sposta una Coppia tra i Gironi")
@@ -579,10 +578,10 @@ if is_admin:
                 if torneo_da_eliminare in db["tornei"]:
                     del db["tornei"][torneo_da_eliminare]
                     salva_dati(db)
-                    st.success(f"Torneo '{torneo_da_eliminare}' eliminato con successo!")
+                    st.success(f"Torneo '{torneo_da_eliminare}' eliminato!")
                     st.rerun()
             else:
-                st.sidebar.warning("⚠️ Spunta la casella di conferma per procedere.")
+                st.sidebar.warning("⚠️ Spunta la casella di conferma.")
 
 st.sidebar.markdown("⚙️ Pannello di Controllo")
 
@@ -606,8 +605,8 @@ if is_admin and t_data["stato"] == "fasi_finali":
 
 st.sidebar.subheader("⚠️ Zona Pericolo")
 if is_admin:
-    conferma_reset = st.sidebar.checkbox("Spunta per confermare il reset di questo torneo", key="checkbox_reset_gara")
-    if st.sidebar.button("🔄 Ricomincia questo torneo da zero", use_container_width=True):
+    conferma_reset = st.sidebar.checkbox("Spunta per confermare il reset", key="checkbox_reset_gara")
+    if st.sidebar.button("🔄 Ricomincia torneo da zero", use_container_width=True):
         if conferma_reset:
             db["tornei"][torneo_selezionato] = {
                 "stato": "iscrizioni_aperte",
@@ -630,7 +629,7 @@ if is_admin:
             st.success("Torneo azzerato con successo!")
             st.rerun()
         else:
-            st.sidebar.warning("⚠️ Spunta la casella di conferma sopra per procedere.")
+            st.sidebar.warning("⚠️ Spunta la casella di conferma.")
 else:
     st.sidebar.info("🔐 Accedi come admin per resettare.")
 
@@ -639,20 +638,17 @@ st.sidebar.markdown("---")
 # --- GESTIONE ISCRIZIONI APERTE ---
 if t_data["stato"] == "iscrizioni_aperte":
     st.markdown(f"### 📝 Registrazione Autonoma & Incolla WhatsApp - {torneo_selezionato}")
-    st.info(f"Limite massimo coppie titolari impostato: **{t_data['max_coppie']}**.")
+    st.info(f"Limite massimo coppie titolari: **{t_data['max_coppie']}**.")
 
     with st.form(f"form_iscrizione_{torneo_selezionato}"):
         c1_input = st.text_input("Nome Giocatore 1", key=f"c1_{torneo_selezionato}")
         c2_input = st.text_input("Nome Giocatore 2", key=f"c2_{torneo_selezionato}")
-        
         st.markdown("---")
-        whatsapp_paste = st.text_area("📋 Incolla qui la lista WhatsApp (es. 1. Mario/Luigi, oppure righe separate)", key=f"wa_{torneo_selezionato}")
-        
+        whatsapp_paste = st.text_area("📋 Incolla qui la lista WhatsApp", key=f"wa_{torneo_selezionato}")
         submit_isc = st.form_submit_button("Registra / Importa Coppie 🚀", use_container_width=True)
 
         if submit_isc:
             nuove_inserite = []
-            
             if c1_input.strip() and c2_input.strip():
                 nuova_c = f"{c1_input.strip().upper()} / {c2_input.strip().upper()}"
                 nuove_inserite.append(nuova_c)
@@ -663,10 +659,8 @@ if t_data["stato"] == "iscrizioni_aperte":
                     linea_pulita = re.sub(r'^\s*(\d+[\.\)]\s*|-\s*)', '', linea).strip()
                     if not linea_pulita:
                         continue
-                    
                     separatori = ["/", "-", " E ", " CON "]
                     coppia_formattata = None
-                    
                     for sep in separatori:
                         if sep.lower() in linea_pulita.lower():
                             parti = re.split(sep, linea_pulita, flags=re.IGNORECASE)
@@ -676,7 +670,6 @@ if t_data["stato"] == "iscrizioni_aperte":
                                 if p1 and p2:
                                     coppia_formattata = f"{p1} / {p2}"
                                     break
-                    
                     if not coppia_formattata:
                         parole = linea_pulita.split()
                         if len(parole) >= 2:
@@ -704,10 +697,8 @@ if t_data["stato"] == "iscrizioni_aperte":
 
             if aggiunte_titolari > 0 or aggiunte_coda > 0:
                 salva_dati(db)
-                st.success(f"Aggiunte: {aggiunte_titolari} tra i Titolari e {aggiunte_coda} in Coda.")
+                st.success(f"Aggiunte: {aggiunte_titolari} Titolari e {aggiunte_coda} in Coda.")
                 st.rerun()
-            else:
-                st.warning("Nessuna nuova coppia valida o coppie già presenti.")
 
     st.markdown("---")
     col_tit_vista, col_cod_vista = st.columns(2)
@@ -731,7 +722,7 @@ if t_data["stato"] == "iscrizioni_aperte":
                         st.rerun()
 
     with col_cod_vista:
-        st.markdown(f"### ⏳ Coppie in Lista d'Attesa / Coda ({len(t_data['coda'])})")
+        st.markdown(f"### ⏳ Coppie Lista d'Attesa ({len(t_data['coda'])})")
         if not t_data["coda"]:
             st.info("Nessuna coppia in coda.")
         else:
@@ -747,7 +738,7 @@ if t_data["stato"] == "iscrizioni_aperte":
 
     if is_admin:
         st.markdown("---")
-        st.markdown("### ⚙️ Pannello Admin: Configurazione e Avvio Torneo")
+        st.markdown("### ⚙️ Configurazione e Avvio Torneo")
         col_cfg1, col_cfg2, col_cfg3 = st.columns(3)
         with col_cfg1:
             t_data["num_tavoli"] = st.number_input("N. Biliardini", min_value=1, max_value=10, value=int(t_data.get("num_tavoli", 6)), key=f"tav_{torneo_selezionato}")
@@ -757,7 +748,7 @@ if t_data["stato"] == "iscrizioni_aperte":
             t_data["max_coppie"] = st.number_input("Max Titolari", min_value=2, max_value=128, value=int(t_data.get("max_coppie", 32)), key=f"maxc_{torneo_selezionato}")
 
         t_data["qualificati_fascia_a"] = st.number_input(
-            "🏆 Quante coppie passano in FASCIA A per ogni girone?",
+            "🏆 Passano in FASCIA A per girone:",
             min_value=1, max_value=16,
             value=int(t_data.get("qualificati_fascia_a", 4)),
             key=f"qfa_{torneo_selezionato}"
@@ -767,7 +758,7 @@ if t_data["stato"] == "iscrizioni_aperte":
             num_g = int(t_data["num_gironi"])
             coppie = [str(c).upper() for c in t_data["coppie"]]
             if len(coppie) < (num_g * 2):
-                st.error(f"Hai {len(coppie)} coppie titolari. Con {num_g} gironi servono almeno {num_g * 2} coppie.")
+                st.error(f"Hai {len(coppie)} coppie titolari. Servono almeno {num_g * 2} coppie.")
             else:
                 random.shuffle(coppie)
                 nomi_gironi = [chr(65 + i) for i in range(num_g)]
@@ -816,7 +807,7 @@ if t_data["stato"] == "iscrizioni_aperte":
                 t_data["stato"] = "gironi"
                 t_data["fasi_finali_configurate"] = False
                 salva_dati(db)
-                st.success("Torneo avviato con successo e gironi casuali creati!")
+                st.success("Torneo avviato con successo!")
                 st.rerun()
 
     st.stop()
@@ -847,7 +838,7 @@ if coppia_selezionata != coppia_url:
 if is_admin:
     st.success("🛡️ **Modalità Amministratore attiva:** Accesso completo sbloccato.")
 elif coppia_selezionata == "-- Seleziona la tua coppia per accedere --":
-    st.warning("⚠️ **Attenzione:** Seleziona la tua coppia dal menu a tendina per vedere le tue partite e inserire i risultati.")
+    st.warning("⚠️ **Attenzione:** Seleziona la tua coppia dal menu a tendina per accedere.")
     st.stop()
 else:
     st.success(f"✅ Accesso effettuato come: **{coppia_selezionata}**")
@@ -872,7 +863,6 @@ if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
                             info_mie = stats
                 break
 
-        # --- CARD INFORMATIVA BASE ---
         st.markdown(
             f"""
             <div class="cyber-card" style="border-color: #38bdf8; text-align: left; padding: 20px;">
@@ -897,7 +887,6 @@ if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
             unsafe_allow_html=True,
         )
 
-        # --- CONTROLLO STATO MATCH / CODA PERSONALE CON INSERIMENTO RISULTATO ---
         match_in_corso_mio = None
         match_in_coda_mio = None
 
@@ -937,7 +926,6 @@ if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
                         match_in_coda_mio = (m, idx + 1)
                         break
 
-        # VISUALIZZAZIONE E FORM DI REGISTRAZIONE NELLA CARD DEL GIOCATORE
         if match_in_corso_mio:
             tav_num = match_in_corso_mio.get("tavolo", "N.D.")
             match_id_mio = match_in_corso_mio["id"]
@@ -956,7 +944,6 @@ if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
                 unsafe_allow_html=True,
             )
 
-            # INSERIMENTO RISULTATO DIRETTO SOTTO IL BOX
             with st.expander("📝 Inserisci Risultato della Partita", expanded=True):
                 col_m1, col_m2 = st.columns(2)
                 with col_m1:
@@ -1115,7 +1102,6 @@ if t_data["stato"] == "gironi":
 
     st.markdown("---")
 
-    # --- SEZIONE COPPIE DIVISE PER GIRONE (VISIBILE SOLO ALL'ADMIN) ---
     if is_admin:
         st.subheader("👥 Composizione dei Gironi (Riservato Admin)")
         nomi_gironi_chiavi = list(t_data["gironi"].keys())
@@ -1150,7 +1136,7 @@ if t_data["stato"] == "gironi":
                     st.markdown(f"<h3 style='margin:0 0 10px 0; color: #38bdf8;'>📁 {g_nome}</h3>", unsafe_allow_html=True)
                     renderizza_classifica_stile_card(torneo_selezionato, g_nome)
 
-    # --- SEZIONE PARTITE DIVISE PER GIRONE ---
+    # --- SEZIONE PARTITE DIVISE PER GIRONE CON POSSIBILITÀ DI INSERIMENTO/MODIFICA ADMIN ---
     st.markdown("---")
     st.subheader("📅 Partite divise per Girone")
 
@@ -1161,13 +1147,14 @@ if t_data["stato"] == "gironi":
         for t_obj in turni_del_girone:
             st.markdown(f"**Turno {t_obj['turno']}**")
             for m in t_obj["partite"]:
+                match_id = m["id"]
                 if m.get("giocata", False):
                     color_border = "#ef4444"
                     stato_badge = f"<span class='status-badge' style='border: 1px solid #ef4444; color: #f87171; background: rgba(239, 68, 68, 0.1);'>COMPLETATA ({m['gol1']} - {m['gol2']})</span>"
                 elif m.get("in_corso", False):
                     color_border = "#eab308"
                     stato_badge = f"<span class='status-badge' style='border: 1px solid #eab308; color: #ffe66d; background: rgba(234, 179, 8, 0.1);'>IN CORSO (Tavolo {m.get('tavolo', '')})</span>"
-                elif m["id"] in prossime_in_coda_ids:
+                elif match_id in prossime_in_coda_ids:
                     color_border = "#22c55e"
                     stato_badge = "<span class='status-badge' style='border: 1px solid #22c55e; color: #4ade80; background: rgba(34, 197, 94, 0.1);'>IN CODA</span>"
                 else:
@@ -1189,6 +1176,40 @@ if t_data["stato"] == "gironi":
                     """,
                     unsafe_allow_html=True
                 )
+
+                # PERMETTI ALL'ADMIN DI INSERIRE O MODIFICARE I RISULTATI DI QUALSIASI PARTITA
+                if is_admin:
+                    with st.expander(f"⚙️ Modifica / Inserisci Risultato ({m['c1']} vs {m['c2']})"):
+                        col_adm1, col_adm2 = st.columns(2)
+                        with col_adm1:
+                            gol_adm_1 = st.selectbox(f"Gol {m['c1']}", options=[0, 1, 2, 3, 4, 5, 6, 7], index=int(m.get("gol1", 0)), key=f"adm_g1_{torneo_selezionato}_{match_id}")
+                        with col_adm2:
+                            gol_adm_2 = st.selectbox(f"Gol {m['c2']}", options=[0, 1, 2, 3, 4, 5, 6, 7], index=int(m.get("gol2", 0)), key=f"adm_g2_{torneo_selezionato}_{match_id}")
+                        
+                        col_btn1, col_btn2 = st.columns(2)
+                        with col_btn1:
+                            if st.button("💾 Salva Risultato", key=f"adm_save_{torneo_selezionato}_{match_id}", use_container_width=True):
+                                m["gol1"] = int(gol_adm_1)
+                                m["gol2"] = int(gol_adm_2)
+                                m["giocata"] = True
+                                m["in_corso"] = False
+                                m["tavolo"] = None
+                                ricalcola_classifiche_gironi(torneo_selezionato)
+                                salva_dati(db)
+                                st.success("Risultato salvato/modificato!")
+                                st.rerun()
+                        with col_btn2:
+                            if m.get("giocata", False):
+                                if st.button("🔄 Annulla Risultato", key=f"adm_reset_{torneo_selezionato}_{match_id}", use_container_width=True):
+                                    m["gol1"] = 0
+                                    m["gol2"] = 0
+                                    m["giocata"] = False
+                                    m["in_corso"] = False
+                                    m["tavolo"] = None
+                                    ricalcola_classifiche_gironi(torneo_selezionato)
+                                    salva_dati(db)
+                                    st.success("Risultato azzerato!")
+                                    st.rerun()
 
     if is_admin:
         st.markdown("---")
@@ -1249,15 +1270,18 @@ elif t_data["stato"] == "fasi_finali":
         tot_partite_turno_1 = len(turni_tab[0]["partite"])
         num_totale_squadre_tab = tot_partite_turno_1 * 2
 
-        import math
         num_turni_totali = math.ceil(math.log2(num_totale_squadre_tab)) if num_totale_squadre_tab > 1 else 1
 
+        modificato_tabellone = False
         while len(turni_tab) < num_turni_totali:
             prossimo_t_num = len(turni_tab) + 1
             num_match_prossimo = max(1, len(turni_tab[-1]["partite"]) // 2)
             partite_nuovo_turno = [{"id": f"{chiave_tabellone}_t{prossimo_t_num}_m{m_idx}", "s1": "In attesa...", "g1": "", "p1": "", "s2": "In attesa...", "g2": "", "p2": "", "giocata": False, "vincente": None} for m_idx in range(num_match_prossimo)]
             turni_tab.append({"turno": prossimo_t_num, "partite": partite_nuovo_turno})
-        salva_dati(db)
+            modificato_tabellone = True
+            
+        if modificato_tabellone:
+            salva_dati(db)
 
         for t_idx, turno_obj in enumerate(turni_tab):
             t_num = turno_obj["turno"]
