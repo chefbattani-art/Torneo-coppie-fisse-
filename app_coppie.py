@@ -1298,7 +1298,6 @@ if t_data["stato"] == "gironi":
                 classificate_a[g_nome] = squadre_girone[:q_a]
                 classificate_b_raw[g_nome] = [sq[0] for sq in squadre_girone]
 
-            # Dizionario per recuperare facilmente le squadre per Girone e Posizione (es. ("Girone C", 1) -> Nome Coppia)
             mappa_pos_squadre = {}
             for g_n in classificate_a:
                 for sq_info in classificate_a[g_n]:
@@ -1310,15 +1309,6 @@ if t_data["stato"] == "gironi":
                 nome = mappa_pos_squadre.get((g_chiave, posizione), f"Da definire ({posizione}° {girone_lettera})")
                 return (nome, g_chiave, posizione)
 
-            # Abbinamenti fissi degli ottavi di finale della Fascia A basati rigorosamente sullo schema cartaceo:
-            # Match 1: 1° C vs 4° B
-            # Match 2: 2° D vs 3° A
-            # Match 3: 1° A vs 4° D
-            # Match 4: 2° B vs 3° C
-            # Match 5: 3° B vs 2° C
-            # Match 6: 1° D vs 4° A
-            # Match 7: 2° A vs 3° D
-            # Match 8: 4° C vs 1° B
             coppie_abbinamenti_a = [
                 (trova_sq("C", 1), trova_sq("B", 4)),
                 (trova_sq("D", 2), trova_sq("A", 3)),
