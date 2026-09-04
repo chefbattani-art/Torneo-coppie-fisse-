@@ -875,7 +875,7 @@ if t_data["stato"] == "iscrizioni_aperte":
                                     "gol1": 0,
                                     "gol2": 0,
                                 })
-                        turni_turno.append({"turno": t + 1, "partite": partite_turno})
+                        turni_girone.append({"turno": t + 1, "partite": partite_turno})
                         squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
                     calendario_totale[g_nome] = turni_girone
 
