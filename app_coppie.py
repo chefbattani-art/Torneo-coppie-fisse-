@@ -83,6 +83,21 @@ st.markdown(
             box-shadow: 0 0 20px rgba(14, 116, 144, 0.35);
             color: #ffffff;
         }
+        .match-next-neon {
+            background: rgba(34, 197, 94, 0.15);
+            border: 2.5px solid #22c55e;
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.6);
+            color: #ffffff;
+            animation: pulse-neon 2s infinite;
+        }
+        @keyframes pulse-neon {
+            0% { box-shadow: 0 0 10px rgba(34, 197, 94, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(34, 197, 94, 0.8); }
+            100% { box-shadow: 0 0 10px rgba(34, 197, 94, 0.4); }
+        }
         h1, h2, h3, h4 {
             color: #ffe66d !important;
             letter-spacing: 1px;
@@ -919,15 +934,36 @@ if t_data["stato"] == "gironi":
       st.info("Coda vuota.")
     else:
       for idx, m in enumerate(partite_in_coda_correnti):
-        st.markdown(
-            f"""
-            <div style="background: rgba(17, 34, 51, 0.9); border: 1.5px solid #0ea5e9; padding: 14px; border-radius: 10px; margin-bottom: 10px; color: #ffffff; text-align: center; box-shadow: 0 4px 10px rgba(14, 116, 144, 0.15);">
-                <b style="font-size: 13px; color: #0ea5e9;">⏳ {idx+1}. {m['girone']}</b><br>
-                <b style="color: #ffffff; font-size: 14px;">{m['c1']} vs {m['c2']}</b>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        is_mia_partita = (
+            coppia_selezionata != "-- Seleziona la tua coppia per accedere --" 
+            and (coppia_selezionata == m['c1'] or coppia_selezionata == m['c2'])
         )
+        
+        if is_mia_partita:
+          st.markdown(
+              f"""
+              <div class="match-next-neon" style="margin-bottom: 12px;">
+                  <div style="font-size: 13px; color: #22c55e; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px;">
+                      ⚡ LA TUA PROSSIMA PARTITA - PREPARATI!
+                  </div>
+                  <b style="font-size: 13px; color: #ffe66d;">⏳ {idx+1}° In Coda • {m['girone']}</b><br>
+                  <div style="font-size: 16px; font-weight: 800; color: #ffffff; margin-top: 6px;">
+                      🤝 {m['c1']} <span style="color: #22c55e;">VS</span> 🤝 {m['c2']}
+                  </div>
+              </div>
+              """,
+              unsafe_allow_html=True,
+          )
+        else:
+          st.markdown(
+              f"""
+              <div style="background: rgba(17, 34, 51, 0.9); border: 1.5px solid #0ea5e9; padding: 14px; border-radius: 10px; margin-bottom: 10px; color: #ffffff; text-align: center; box-shadow: 0 4px 10px rgba(14, 116, 144, 0.15);">
+                  <b style="font-size: 13px; color: #0ea5e9;">⏳ {idx+1}. {m['girone']}</b><br>
+                  <b style="color: #ffffff; font-size: 14px;">{m['c1']} vs {m['c2']}</b>
+              </div>
+              """,
+              unsafe_allow_html=True,
+          )
 
   st.markdown("---")
   st.subheader("📊 Classifiche dei Gironi")
