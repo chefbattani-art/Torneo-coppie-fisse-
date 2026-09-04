@@ -1,10 +1,16 @@
+import io
 import json
+import math
 import os
 import random
 import re
-import math
-from fpdf import FPDF
 import pandas as pd
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
@@ -231,7 +237,7 @@ def gestisci_spostamento_coppia(torneo_selezionato, coppia, girone_origine, giro
 def ricalcola_classifiche_gironi(torneo_selezionato):
     t_data = db["tornei"][torneo_selezionato]
     for g_nome, coppie_lista in t_data["gironi"].items():
-        stats = {c: {"punti": 0, "gf": 0, "gs": 0, "dr": 0, "scontri_diretti_pt": {}} for c in coppie_lista}
+        stats = {c: {"punti": 0, "gf": 0, "gs": 0, "dr": 0, "scontri_diretti_pt": 0} for c in coppie_lista}
         if g_nome in t_data["calendario_gironi"]:
             for turno_obj in t_data["calendario_gironi"][g_nome]:
                 for m in turno_obj["partite"]:
@@ -345,29 +351,94 @@ def renderizza_classifica_stile_card(torneo_selezionato, g_nome):
             unsafe_allow_html=True,
         )
 
+# --- GENERAZIONE PDF AVANZATA CON REPORTLAB ---
 def genera_pdf_coppie(torneo_selezionato):
     t_data = db["tornei"][torneo_selezionato]
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Helvetica", "B", 16)
-    
-    titolo_pdf = f"Torneo: {torneo_selezionato} - Schema Gironi"
-    pdf.cell(0, 10, titolo_pdf.encode("latin-1", "ignore").decode("latin-1"), 0, 1, "C")
-    pdf.ln(5)
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        rightMargin=15,
+        leftMargin=15,
+        topMargin=15,
+        bottomMargin=15
+    )
+    story = []
+    styles = getSampleStyleSheet()
 
-    for g_nome, turni in t_data["calendario_gironi"].items():
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, f"--- {g_nome} ---".encode("latin-1", "ignore").decode("latin-1"), 0, 1, "L")
-        for turno_obj in turni:
-            pdf.set_font("Helvetica", "B", 11)
-            pdf.cell(0, 7, f"Turno {turno_obj['turno']}", 0, 1, "L")
-            pdf.set_font("Helvetica", "", 10)
-            for idx, m in enumerate(turno_obj["partite"]):
-                risultato = f"{m['gol1']} - {m['gol2']}" if m.get("giocata", False) else "Da giocare"
-                riga = f"  {m['c1']} VS {m['c2']} -> {risultato}"
-                pdf.cell(0, 6, riga.encode("latin-1", "ignore").decode("latin-1"), 0, 1, "L")
-            pdf.ln(2)
-    return bytes(pdf.output())
+    title_style = ParagraphStyle('ReportTitle', parent=styles['Heading1'], fontSize=18, textColor=colors.HexColor('#0F172A'), alignment=1, spaceAfter=10)
+    subtitle_style = ParagraphStyle('ReportSubtitle', parent=styles['Heading2'], fontSize=12, textColor=colors.HexColor('#0EA5E9'), spaceBefore=8, spaceAfter=6)
+    cell_style = ParagraphStyle('CellText', parent=styles['Normal'], fontSize=8, textColor=colors.HexColor('#0F172A'))
+    cell_header = ParagraphStyle('HeaderStyle', parent=styles['Normal'], fontSize=8, textColor=colors.whitesmoke, fontName="Helvetica-Bold", alignment=1)
+
+    story.append(Paragraph(f"TORNEO LIVE: {torneo_selezionato.upper()}", title_style))
+    story.append(Spacer(1, 10))
+
+    # 1. TABELLA CLASSIFICHE E PARTITE PER OGNI GIRONE
+    for g_nome, turni in t_data.get("calendario_gironi", {}).items():
+        story.append(Paragraph(f"<b>{g_nome.upper()}</b>", subtitle_style))
+        
+        # Classifica
+        dati_g = t_data.get("punti_gironi", {}).get(g_nome, {})
+        sorted_c = sorted(dati_g.items(), key=lambda x: (x[1]["punti"], x[1]["scontri_diretti_pt"], x[1]["dr"], x[1]["gf"]), reverse=True)
+        
+        table_data = [[
+            Paragraph("Pos", cell_header),
+            Paragraph("Coppia", cell_header),
+            Paragraph("Punti", cell_header),
+            Paragraph("GF", cell_header),
+            Paragraph("GS", cell_header),
+            Paragraph("DR", cell_header)
+        ]]
+        
+        for idx, (coppia, stats) in enumerate(sorted_c, 1):
+            table_data.append([
+                Paragraph(f"<b>{idx}°</b>", cell_style),
+                Paragraph(coppia, cell_style),
+                Paragraph(str(stats['punti']), cell_style),
+                Paragraph(str(stats['gf']), cell_style),
+                Paragraph(str(stats['gs']), cell_style),
+                Paragraph(f"{stats['dr']:+d}", cell_style)
+            ])
+            
+        t_classifica = Table(table_data, colWidths=[30, 200, 40, 40, 40, 40])
+        t_classifica.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1E293B')),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
+        ]))
+        story.append(t_classifica)
+        story.append(Spacer(1, 8))
+
+        # Partite del Girone
+        partite_rows = [[Paragraph("Turno", cell_header), Paragraph("Incontro", cell_header), Paragraph("Risultato / Stato", cell_header)]]
+        for t_obj in turni:
+            for m in t_obj["partite"]:
+                ris = f"{m['gol1']} - {m['gol2']}" if m.get("giocata", False) else ("IN CORSO" if m.get("in_corso") else "DA GIOCARE")
+                partite_rows.append([
+                    Paragraph(f"Turno {t_obj['turno']}", cell_style),
+                    Paragraph(f"{m['c1']} VS {m['c2']}", cell_style),
+                    Paragraph(f"<b>{ris}</b>", cell_style)
+                ])
+
+        t_partite = Table(partite_rows, colWidths=[60, 230, 100])
+        t_partite.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0ea5e9')),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+            ('TOPPADDING', (0,0), (-1,-1), 2),
+        ]))
+        story.append(t_partite)
+        story.append(Spacer(1, 12))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
 
 def ottieni_nome_turno_dinamico(num_partite_turno):
     tot_squadre = num_partite_turno * 2
@@ -1136,7 +1207,7 @@ if t_data["stato"] == "gironi":
                     st.markdown(f"<h3 style='margin:0 0 10px 0; color: #38bdf8;'>📁 {g_nome}</h3>", unsafe_allow_html=True)
                     renderizza_classifica_stile_card(torneo_selezionato, g_nome)
 
-    # --- SEZIONE PARTITE DIVISE PER GIRONE CON POSSIBILITÀ DI INSERIMENTO/MODIFICA ADMIN ---
+    # --- PARTITE DIVISE PER GIRONE ---
     st.markdown("---")
     st.subheader("📅 Partite divise per Girone")
 
@@ -1177,7 +1248,6 @@ if t_data["stato"] == "gironi":
                     unsafe_allow_html=True
                 )
 
-                # PERMETTI ALL'ADMIN DI INSERIRE O MODIFICARE I RISULTATI DI QUALSIASI PARTITA
                 if is_admin:
                     with st.expander(f"⚙️ Modifica / Inserisci Risultato ({m['c1']} vs {m['c2']})"):
                         col_adm1, col_adm2 = st.columns(2)
