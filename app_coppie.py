@@ -875,7 +875,7 @@ if t_data["stato"] == "iscrizioni_aperte":
                                     "gol1": 0,
                                     "gol2": 0,
                                 })
-                        turni_girone.append({"turno": t + 1, "partite": partite_turno})
+                        turni_turno.append({"turno": t + 1, "partite": partite_turno})
                         squadre = [squadre[0]] + [squadre[-1]] + squadre[1:-1]
                     calendario_totale[g_nome] = turni_girone
 
@@ -1298,32 +1298,41 @@ if t_data["stato"] == "gironi":
                 classificate_a[g_nome] = squadre_girone[:q_a]
                 classificate_b_raw[g_nome] = [sq[0] for sq in squadre_girone]
 
-            # ACCoppiamento logico e strutturato per la Fascia A (incroci mirati tra gironi se sono 4)
-            nomi_gironi_ordinati = sorted(list(classificate_a.keys()))
-            tutte_sq_a = []
-            
-            if len(nomi_gironi_ordinati) == 4:
-                # Esempio classico incrociato: 1°A vs 4°B, 2°A vs 3°B, ecc., oppure lista ordinata per ranking
-                gA, gB, gC, gD = nomi_gironi_ordinati[0], nomi_gironi_ordinati[1], nomi_gironi_ordinati[2], nomi_gironi_ordinati[3]
-                # Estraiamo in modo bilanciato per evitare scontri diretti immediati dello stesso girone ove possibile
-                # Creiamo una lista pulita ordinata per posizione di classifica globale o per girone
-                for pos in range(q_a):
-                    for g in nomi_gironi_ordinati:
-                        if pos < len(classificate_a[g]):
-                            sq_nome, pos_class = classificate_a[g][pos]
-                            tutte_sq_a.append((sq_nome, g, pos_class))
-            else:
-                for g_n in classificate_a:
-                    for sq_info in classificate_a[g_n]:
-                        tutte_sq_a.append((sq_info[0], g_n, sq_info[1]))
-                random.shuffle(tutte_sq_a)
+            # Dizionario per recuperare facilmente le squadre per Girone e Posizione (es. ("Girone C", 1) -> Nome Coppia)
+            mappa_pos_squadre = {}
+            for g_n in classificate_a:
+                for sq_info in classificate_a[g_n]:
+                    nome_sq, pos_sq = sq_info[0], sq_info[1]
+                    mappa_pos_squadre[(g_n, pos_sq)] = nome_sq
+
+            def trova_sq(girone_lettera, posizione):
+                g_chiave = f"Girone {girone_lettera}"
+                nome = mappa_pos_squadre.get((g_chiave, posizione), f"Da definire ({posizione}° {girone_lettera})")
+                return (nome, g_chiave, posizione)
+
+            # Abbinamenti fissi degli ottavi di finale della Fascia A basati rigorosamente sullo schema cartaceo:
+            # Match 1: 1° C vs 4° B
+            # Match 2: 2° D vs 3° A
+            # Match 3: 1° A vs 4° D
+            # Match 4: 2° B vs 3° C
+            # Match 5: 3° B vs 2° C
+            # Match 6: 1° D vs 4° A
+            # Match 7: 2° A vs 3° D
+            # Match 8: 4° C vs 1° B
+            coppie_abbinamenti_a = [
+                (trova_sq("C", 1), trova_sq("B", 4)),
+                (trova_sq("D", 2), trova_sq("A", 3)),
+                (trova_sq("A", 1), trova_sq("D", 4)),
+                (trova_sq("B", 2), trova_sq("C", 3)),
+                (trova_sq("B", 3), trova_sq("C", 2)),
+                (trova_sq("D", 1), trova_sq("A", 4)),
+                (trova_sq("A", 2), trova_sq("D", 3)),
+                (trova_sq("C", 4), trova_sq("B", 1)),
+            ]
 
             abbinamenti_a = []
-            for i in range(0, len(tutte_sq_a), 2):
-                if i + 1 < len(tutte_sq_a):
-                    abbinamenti_a.append((tutte_sq_a[i], tutte_sq_a[i + 1]))
-                else:
-                    abbinamenti_a.append((tutte_sq_a[i], ("RIPOSO", "", 0)))
+            for s1, s2 in coppie_abbinamenti_a:
+                abbinamenti_a.append((s1, s2))
 
             abbinamenti_b = crea_abbinamenti_fascia_b(classificate_b_raw, q_a)
 
@@ -1337,7 +1346,7 @@ if t_data["stato"] == "gironi":
             t_data["stato"] = "fasi_finali"
             t_data["fasi_finali_configurate"] = True
             salva_dati(db)
-            st.success("Fasi finali generate correttamente!")
+            st.success("Fasi finali generate correttamente con gli accoppiamenti ordinati!")
             st.rerun()
 
 # 3. FASI FINALI
