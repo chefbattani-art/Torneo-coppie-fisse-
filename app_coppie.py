@@ -112,6 +112,15 @@ st.markdown(
             50% { box-shadow: 0 0 25px rgba(34, 197, 94, 0.8); }
             100% { box-shadow: 0 0 10px rgba(34, 197, 94, 0.4); }
         }
+        .match-waiting-card {
+            background: rgba(56, 189, 248, 0.15);
+            border: 2.5px solid #38bdf8;
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+            color: #ffffff;
+        }
         h1, h2, h3, h4 {
             color: #ffe66d !important;
             letter-spacing: 1px;
@@ -965,16 +974,19 @@ if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
 
         match_in_corso_mio = None
         match_in_coda_mio = None
+        partite_prima = 0
 
         if t_data.get("stato") == "gironi":
+            # 1. Cerca prima se è in corso
             for g_n, turni in t_data.get("calendario_gironi", {}).items():
                 for t_obj in turni:
                     for m in t_obj["partite"]:
-                        if not m.get("giocata", False):
-                            if m.get("in_corso", False) and (m["c1"] == coppia_selezionata or m["c2"] == coppia_selezionata):
+                        if not m.get("giocata", False) and m.get("in_corso", False):
+                            if m["c1"] == coppia_selezionata or m["c2"] == coppia_selezionata:
                                 match_in_corso_mio = m
                                 break
 
+            # 2. Se non è in corso, calcola l'ordine esatto di tutte le partite non giocate e non in corso
             if not match_in_corso_mio:
                 num_tavoli = t_data.get("num_tavoli", 6)
                 max_turni = max([len(turni) for turni in t_data["calendario_gironi"].values()]) if t_data["calendario_gironi"] else 0
@@ -995,11 +1007,12 @@ if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
                             partite_miste.append(partite_per_girone_dict[g_chiave][idx_misto])
 
                 partite_da_giocare = [m for m in partite_miste if not m.get("giocata", False) and not m.get("in_corso", False)]
-                prossime_in_coda = partite_da_giocare[:num_tavoli]
 
-                for idx, m in enumerate(prossime_in_coda):
+                # Calcolo esatto di quante partite ci sono PRIMA della prossima partita del giocatore
+                for idx, m in enumerate(partite_da_giocare):
                     if m["c1"] == coppia_selezionata or m["c2"] == coppia_selezionata:
-                        match_in_coda_mio = (m, idx + 1)
+                        match_in_coda_mio = m
+                        partite_prima = idx
                         break
 
         if match_in_corso_mio:
@@ -1039,21 +1052,43 @@ if coppia_selezionata != "-- Seleziona la tua coppia per accedere --":
                     st.rerun()
 
         elif match_in_coda_mio:
-            m_coda, pos_coda = match_in_coda_mio
-            st.markdown(
-                f"""
-                <div class="match-next-neon" style="margin-top: 10px;">
-                    <div style="font-size: 13px; color: #22c55e; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px;">
-                        ⚡ PROSSIMA PARTITA IN ARRIVO - PREPARATI!
+            m_coda = match_in_coda_mio
+            
+            # Se è la primissima partita da chiamare
+            if partite_prima == 0:
+                st.markdown(
+                    f"""
+                    <div class="match-next-neon" style="margin-top: 10px;">
+                        <div style="font-size: 13px; color: #22c55e; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px;">
+                            ⚡ PROSSIMA PARTITA IN ARRIVO - PREPARATI!
+                        </div>
+                        <b style="font-size: 14px; color: #ffe66d;">⏳ Giochi alla prossima chiamata! • {m_coda['girone']}</b>
+                        <div style="font-size: 16px; font-weight: 800; color: #ffffff; margin-top: 6px;">
+                            🤝 {m_coda['c1']} <span style="color: #22c55e;">VS</span> 🤝 {m_coda['c2']}
+                        </div>
                     </div>
-                    <b style="font-size: 13px; color: #ffe66d;">⏳ {pos_coda}° in Coda • {m_coda['girone']}</b>
-                    <div style="font-size: 16px; font-weight: 800; color: #ffffff; margin-top: 6px;">
-                        🤝 {m_coda['c1']} <span style="color: #22c55e;">VS</span> 🤝 {m_coda['c2']}
+                    """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                testo_attesa = f"Giochi tra 1 partita" if partite_prima == 1 else f"Giochi tra {partite_prima} partite"
+                st.markdown(
+                    f"""
+                    <div class="match-waiting-card" style="margin-top: 10px;">
+                        <div style="font-size: 15px; color: #ffe66d; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px;">
+                            ⏳ {testo_attesa.upper()}
+                        </div>
+                        <b style="font-size: 13px; color: #38bdf8;">PROSSIMO INCONTRO • {m_coda['girone']}</b>
+                        <div style="font-size: 16px; font-weight: 800; color: #ffffff; margin-top: 6px;">
+                            🤝 {m_coda['c1']} <span style="color: #38bdf8;">VS</span> 🤝 {m_coda['c2']}
+                        </div>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+                    """,
+                    unsafe_allow_html=True,
+                )
+        else:
+            if t_data.get("stato") == "gironi":
+                st.info("🎉 Hai completato tutte le tue partite della fase a gironi!")
 
 # 2. FASE A GIRONI LIVE
 if t_data["stato"] == "gironi":
